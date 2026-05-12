@@ -1,6 +1,9 @@
 import { autoRetry } from "@grammyjs/auto-retry";
 import { run, sequentialize } from "@grammyjs/runner";
 
+import { env } from "./config/env";
+
+
 import { bot } from "./config/bot";
 import { commands } from "./commands";
 import { captchaQueue } from "./queues/captcha-queue";
@@ -50,6 +53,16 @@ await bot.api.deleteWebhook({ drop_pending_updates: true });
 
 run(bot);
 console.log("Bot started");
+
+// Health check for or other cloud providers
+if (env.WEB_SERVICE) {
+  Bun.serve({
+    port: process.env.PORT || 3000,
+    fetch() {
+      return new Response("Bot is running!");
+    },
+  });
+}
 
 await CommandsHelper.setCommands();
 await resumeBroadcast();

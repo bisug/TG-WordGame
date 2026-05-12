@@ -41,5 +41,10 @@ export const env = z
       .string()
       .url()
       .default("https://t.me/WordGuesser"),
+    WEB_SERVICE: z
+      .string()
+      .optional()
+      .default("false")
+      .transform((val) => val.toLowerCase() === "true"),
   })
   .parse(process.env);

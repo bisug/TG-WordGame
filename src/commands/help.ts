@@ -79,7 +79,7 @@ export function getMainHelpKeyboard(
       )
       .style(active == "admin" ? "primary" : undefined);
   }
-  keyboard.url("GitHub Repo", "https://github.com/binamralamsal/WordSeek");
+  keyboard.url("GitHub Repo", "https://github.com/bisug/TG-WordGame");
   keyboard.row().url("📢 Updates", UPDATES_CHANNEL);
   keyboard.url("💓 Donate", DONATION_LINK).success();
   keyboard.url("💬 Discussion", DISCUSSION_GROUP);
@@ -126,7 +126,9 @@ export function getHowToPlayMessage() {
 • You build a streak by solving the daily puzzle without failing
 • You cannot play normal WordSeek and Daily at the same time:
   - If a normal game is running, end it before using /daily
-  - If Daily is active, use /pausedaily to play normal WordSeek again</blockquote>`;
+  - If Daily is active, use /pausedaily to play normal WordSeek again</blockquote>
+  
+<i>This bot is a fork of the original <a href="https://t.me/WordSeekBot">WordSeek</a> by <a href="https://github.com/binamralamsal">Binamra Lamsal</a>.</i>`;
 }
 
 export function getScoresMessage() {

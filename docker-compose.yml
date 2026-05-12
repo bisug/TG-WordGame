@@ -1,0 +1,24 @@
+services:
+  wordseek-bot:
+    build: .
+    container_name: wordseek-bot
+    restart: always
+    env_file:
+      - .env
+    # Uncomment the following if you need to run DB/Redis in Docker too
+    # depends_on:
+    #   - postgres
+    #   - redis
+
+# Example for local DB/Redis (optional)
+# postgres:
+#   image: postgres:15-alpine
+#   restart: always
+#   environment:
+#     POSTGRES_PASSWORD: password
+#   volumes:
+#     - ./data/postgres:/var/lib/postgresql/data
+
+# redis:
+#   image: redis:alpine
+#   restart: always

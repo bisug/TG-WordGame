@@ -1,7 +1,7 @@
 {
   "name": "WordSeek",
   "description": "A fun and competitive Wordle-style game for Telegram",
-  "repository": "https://github.com/binamralamsal/WordSeek",
+  "repository": "https://github.com/bisug/TG-WordGame",
   "logo": "https://github.com/user-attachments/assets/bf444d36-2eea-4ad5-83e7-4a99acda2bfe",
   "keywords": [
     "telegram",

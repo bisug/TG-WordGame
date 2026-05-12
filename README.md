@@ -1,6 +1,10 @@
 # WordSeek
 <img width="1173" alt="Group 40 5" src="https://github.com/user-attachments/assets/bf444d36-2eea-4ad5-83e7-4a99acda2bfe" />
 
+> [!NOTE]
+> This project is a fork of the original [WordSeek](https://github.com/binamralamsal/WordSeek) by [Binamra Lamsal](https://github.com/binamralamsal).
+
+
 ## Tech Stack
 
 <p align="left">
@@ -75,16 +79,50 @@
 
 ## Deployment
 
+### Deploy to VPS (Recommended)
+
+Deploying to a VPS provides the best performance and reliability.
+
+#### Method 1: Using PM2 (Fastest for Bun)
+1. **Install Bun**:
+   ```bash
+   curl -fsSL https://bun.sh/install | bash
+   source ~/.bashrc
+   ```
+2. **Setup the project**:
+   ```bash
+   git clone https://github.com/bisug/TG-WordGame
+   cd TG-WordGame
+   bun install
+   cp .env.example .env && nano .env # Edit your .env file
+   bun run db:migrate
+   ```
+3. **Start the bot with PM2**:
+   ```bash
+   npm install -g pm2
+   pm2 start src/index.ts --name wordseek --interpreter bun
+   ```
+
+#### Method 2: Using Docker Compose (Standard)
+1. **Build and Start**:
+   ```bash
+   docker compose up -d --build
+   ```
+2. **View Logs**:
+   ```bash
+   docker compose logs -f
+   ```
+
 ### Deploy to Heroku
 
-[![Deploy](https://www.herokucdn.com/deploy/button.svg)](https://heroku.com/deploy?template=https://github.com/binamralamsal/WordSeek)
+[![Deploy](https://www.herokucdn.com/deploy/button.svg)](https://heroku.com/deploy?template=https://github.com/bisug/TG-WordGame)
 
 If you prefer to deploy manually using the Heroku CLI:
 
 1. Clone this repository and navigate to the directory:
    ```bash
-   git clone https://github.com/binamralamsal/WordSeek
-   cd WordSeek
+   git clone https://github.com/bisug/TG-WordGame
+   cd TG-WordGame
    ```
 2. Login to Heroku and create a new container-based app:
    ```bash
@@ -115,6 +153,27 @@ If you prefer to deploy manually using the Heroku CLI:
    heroku ps:scale worker=1
    ```
 
+
+### Deploy to Render
+
+[![Deploy to Render](https://render.com/images/deploy-to-render-button.svg)](https://render.com/deploy?repo=https://github.com/bisug/TG-WordGame)
+
+You can deploy WordSeek to [Render](https://render.com/) using the provided `Dockerfile` and `render.yaml`.
+
+#### Option 1: Background Worker (Recommended)
+1. Create a new **Background Worker** on Render.
+2. Connect your GitHub repository.
+3. Choose **Docker** as the runtime.
+4. Add your environment variables.
+5. Render will build and run the bot automatically.
+
+#### Option 2: Web Service (Free Tier)
+To use the free tier, you must enable the health check listener by setting the environment variable `WEB_SERVICE=true`.
+
+Render expects a Web Service to listen on a port. With `WEB_SERVICE=true`, the bot will start a simple server on the port provided by Render (defaulting to 3000).
+
+*Note: Free Web Services will go to sleep after 15 minutes of inactivity. You may need a service like [cron-job.org](https://cron-job.org/) to ping your URL and keep it awake.*
+
 ### Deploy using Docker
 
 1. **Build the Docker image**:
@@ -137,6 +196,24 @@ If you prefer to deploy manually using the Heroku CLI:
 
    *Note: If running databases in other containers, ensure they are on the same network or use the appropriate host address.*
 
+
+
+*Note: If running databases in other containers, ensure they are on the same network or use the appropriate host address.*
+
+### Deployment Comparison
+
+| Feature | VPS (Self-Hosted) | Heroku (Eco) | Render (Free) |
+| :--- | :--- | :--- | :--- |
+| **Cost** | Fixed ($4–$6/mo) | ~$5/mo + Add-ons | **Free** |
+| **Availability** | 🟢 **Always Online** | 🟢 Always Online | 🔴 **Sleeps after 15m** |
+| **Setup** | Moderate (Manual) | Easy (Git push) | Easy (Auto-deploy) |
+| **Maintenance** | Manual (OS Updates) | Fully Managed | Fully Managed |
+| **Performance** | 🟢 High (Dedicated) | 🟡 Shared Resources | 🔴 Very Limited |
+| **Scalability** | Easy (Resize VPS) | Easy (Scaling Dynos) | Hard (Free tier) |
+
+> [!TIP]
+> **Recommendation:** For a production-ready Telegram bot, we **highly recommend using a VPS**. It provides the most reliable performance, ensures the bot never "sleeps," and gives you full control over your database and security. Heroku is a great second choice for ease of use, while Render Free is best only for testing.
+
 ## Installation & Setup
 
 ### Requirements
@@ -145,11 +222,46 @@ If you prefer to deploy manually using the Heroku CLI:
 - PostgreSQL database
 - Redis server (for caching, session management, and job queues)
 
+### Database & Redis Configuration
+
+You can use either a locally hosted instance or a cloud provider like [Aiven](https://console.aiven.io/).
+
+#### 1. Local Setup
+If you have PostgreSQL and Redis installed locally, use the following connection strings in your `.env`:
+- **PostgreSQL**: `postgresql://<user>:<password>@localhost:5432/<database_name>`
+- **Redis**: `redis://localhost:6379`
+
+**Pros & Cons of Local Setup:**
+- ✅ **Pros**:
+  - Maximum performance (lowest latency).
+  - Total control over data and privacy.
+  - No external service dependency.
+- ❌ **Cons**:
+  - Requires manual installation and configuration.
+  - You are responsible for manual backups and maintenance.
+  - Consumes local system resources.
+
+#### 2. Cloud Setup (Aiven)
+For a free or managed cloud solution, we recommend [Aiven Cloud](https://console.aiven.io/):
+1. **PostgreSQL**: Create a PostgreSQL service and copy the **Service URI**.
+2. **Valkey (Redis)**: Create a Valkey service (Aiven's open-source alternative to Redis) and copy the **Service URI**.
+3. Paste these URIs into your `.env` file as `DATABASE_URL` and `REDIS_URI`.
+
+**Pros & Cons of Aiven Free Tier:**
+- ✅ **Pros**:
+  - No credit card required to start.
+  - Fully managed (no manual installation/maintenance).
+  - Free forever for certain plans (PostgreSQL, Valkey).
+- ❌ **Cons**:
+  - Limited resources (suitable for small to medium usage).
+  - No automated backups on the free tier.
+  - Single node only (no high-availability failover).
+
 ### Steps
 1. **Clone the repository**:
    ```bash
-   git clone https://github.com/binamralamsal/WordSeek
-   cd WordSeek
+   git clone https://github.com/bisug/TG-WordGame
+   cd TG-WordGame
    ```
 
 2. **Install dependencies**:
@@ -163,12 +275,15 @@ If you prefer to deploy manually using the Heroku CLI:
    BOT_TOKEN=your-telegram-bot-token
    DATABASE_URL=your-postgresql-database-url
    DAILY_WORDLE_SECRET=your-random-secret-string
+   DAILY_WORDLE_START_DATE=2025-01-01
    NODE_ENV=development
    REDIS_URI=redis://127.0.0.1:6379
    ADMIN_USERS=your-telegram-user-id
    TIME_ZONE=UTC
-   UPDATES_CHANNEL=https://t.me/YourChannel
-   DISCUSSION_GROUP=https://t.me/YourGroup
+   UPDATES_CHANNEL=https://t.me/WordSeek
+   DISCUSSION_GROUP=https://t.me/WordGuesser
+   WEB_SERVICE=false
+   GEMINI_API_KEYS=your_gemini_key_1 your_gemini_key_2
    ```
 
 4. **Set up the database**:
@@ -220,9 +335,31 @@ Please read [CONTRIBUTING.md](CONTRIBUTING.md) for details on our code of conduc
 
 ### Getting Help
 If you encounter issues:
-1. Check the [Issues](https://github.com/binamralamsal/WordSeek/issues) page on GitHub.
+1. Check the [Issues](https://github.com/bisug/TG-WordGame/issues) page on GitHub.
 2. Join the [Word Guesser Group](https://t.me/wordguesser) for community support.
 3. Contact the developer directly: [@binamralamsal](https://t.me/binamralamsal)
+
+## Credits
+
+This project was originally created by **[Binamra Lamsal](https://github.com/binamralamsal)**. You can find the original bot at [@WordSeekBot](https://t.me/WordSeekBot) and the original repository at [binamralamsal/WordSeek](https://github.com/binamralamsal/WordSeek).
+
+### Support the Original Creator
+
+If you'd like to support the original creator of WordSeek, you can do so here:
+
+<a href="https://buymemomo.com/binamra">
+  <img src="https://buymemomo.com/logo.png" height="80" alt="Donate" />
+  <br />
+  <b>Click here to donate and support the original creator!</b>
+</a>
+
+## Contributors
+
+A huge thanks to everyone who has contributed to this project!
+
+<a href="https://github.com/bisug/TG-WordGame/graphs/contributors">
+  <img src="https://contrib.rocks/image?repo=bisug/TG-WordGame" />
+</a>
 
 ## License
 This project is licensed under the MIT License. See the [LICENSE](LICENSE) file for more details.
