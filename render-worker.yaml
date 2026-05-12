@@ -1,12 +1,12 @@
 services:
-  - type: web
-    name: wordseek-bot
+  - type: worker
+    name: wordseek-bot-worker
     runtime: docker
     dockerfilePath: Dockerfile
     dockerContext: .
     envVars:
       - key: WEB_SERVICE
-        value: "true"
+        value: "false"
       - key: BOT_TOKEN
         sync: false
       - key: DATABASE_URL

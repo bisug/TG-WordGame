@@ -156,9 +156,11 @@ If you prefer to deploy manually using the Heroku CLI:
 
 ### Deploy to Render
 
-[![Deploy to Render](https://render.com/images/deploy-to-render-button.svg)](https://render.com/deploy?repo=https://github.com/bisug/TG-WordGame)
+| Web Service (Free Tier) | Background Worker (Paid) |
+| :--- | :--- |
+| [![Deploy to Render](https://render.com/images/deploy-to-render-button.svg)](https://render.com/deploy?repo=https://github.com/bisug/TG-WordGame) | [![Deploy to Render](https://render.com/images/deploy-to-render-button.svg)](https://render.com/deploy?repo=https://github.com/bisug/TG-WordGame&blueprint=render-worker.yaml) |
 
-You can deploy WordSeek to [Render](https://render.com/) using the provided `Dockerfile` and `render.yaml`.
+You can deploy WordSeek to [Render](https://render.com/) using the provided buttons above. The Web Service is compatible with the free tier, while the Background Worker is recommended for paid plans.
 
 #### Option 1: Background Worker (Recommended)
 1. Create a new **Background Worker** on Render.
