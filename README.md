@@ -116,7 +116,7 @@ Deploying to a VPS provides the best performance and reliability.
 ### Deploy to Heroku
 
 [![Deploy to Heroku](https://www.herokucdn.com/deploy/button.svg)](https://heroku.com/deploy?template=https://github.com/bisug/TG-WordGame)
-[![Deploy on Railway](https://railway.app/button.svg)](https://railway.app/new/template?template=https://github.com/bisug/TG-WordGame)
+[![Deploy on Railway](https://railway.app/button.svg)](https://railway.com/new?template=https://github.com/bisug/TG-WordGame)
 
 If you prefer to deploy manually using the Heroku CLI:
 
