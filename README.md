@@ -115,7 +115,8 @@ Deploying to a VPS provides the best performance and reliability.
 
 ### Deploy to Heroku
 
-[![Deploy](https://www.herokucdn.com/deploy/button.svg)](https://heroku.com/deploy?template=https://github.com/bisug/TG-WordGame)
+[![Deploy to Heroku](https://www.herokucdn.com/deploy/button.svg)](https://heroku.com/deploy?template=https://github.com/bisug/TG-WordGame)
+[![Deploy on Railway](https://railway.app/button.svg)](https://railway.app/new/template?template=https://github.com/bisug/TG-WordGame)
 
 If you prefer to deploy manually using the Heroku CLI:
 
@@ -164,6 +165,26 @@ If you prefer to deploy manually using the Heroku CLI:
 
 ---
 
+### Deploy to Railway
+
+Railway is a modern deployment platform that is ideal for bots because it doesn't "sleep" like Render's free tier.
+
+1. **Create a Project**: Click the **Deploy on Railway** button above or go to [Railway.app](https://railway.app).
+2. **Add Services**:
+   - Add a **PostgreSQL** database.
+   - Add a **Redis** database.
+3. **Set Environment Variables**:
+   Railway will automatically provide database connection strings. Map them to your app variables:
+   - `BOT_TOKEN`: Your bot token.
+   - `DATABASE_URL`: `${{Postgres.DATABASE_URL}}`
+   - `REDIS_URI`: `${{Redis.REDIS_URL}}`
+   - `DAILY_WORDLE_SECRET`: A random secret.
+   - `ADMIN_USERS`: Your Telegram ID.
+   - `NODE_ENV`: `production`
+4. **Deploy**: Railway will detect the `Dockerfile` or `bun.lockb` and start the bot automatically.
+
+---
+
 ### Deployment Options on Render
 
 | Web Service (Free Tier) | Background Worker (Paid/Always Online) |
@@ -194,14 +215,17 @@ If you prefer to deploy manually using the Heroku CLI:
 
 ### Deployment Comparison
 
-| Feature | VPS (Self-Hosted) | Heroku (Eco) | Render (Free) |
-| :--- | :--- | :--- | :--- |
-| **Cost** | Fixed ($4–$6/mo) | ~$5/mo + Add-ons | **Free** |
-| **Availability** | 🟢 **Always Online** | 🟢 Always Online | 🔴 **Sleeps after 15m** |
-| **Setup** | Moderate (Manual) | Easy (Git push) | Easy (Auto-deploy) |
-| **Maintenance** | Manual (OS Updates) | Fully Managed | Fully Managed |
-| **Performance** | 🟢 High (Dedicated) | 🟡 Shared Resources | 🔴 Very Limited |
-| **Scalability** | Easy (Resize VPS) | Easy (Scaling Dynos) | Hard (Free tier) |
+| Feature | VPS (Self-Hosted) | Railway (Trial/Paid) | Heroku (Eco) | Render (Free) |
+| :--- | :--- | :--- | :--- | :--- |
+| **Cost** | Fixed ($4–$6/mo) | Usage-based | ~$5/mo + Add-ons | **Free** |
+| **Availability** | 🟢 **Always Online** | 🟢 **Always Online** | 🟢 Always Online | 🔴 **Sleeps after 15m** |
+| **Setup** | Moderate (Manual) | 🟢 Very Easy | Easy (Git push) | Easy (Auto-deploy) |
+| **Maintenance** | Manual (OS Updates) | Fully Managed | Fully Managed | Fully Managed |
+| **Performance** | 🟢 High (Dedicated) | 🟢 High | 🟡 Shared Resources | 🔴 Very Limited |
+| **Scalability** | Easy (Resize VPS) | 🟢 Seamless | Easy (Scaling Dynos) | Hard (Free tier) |
+
+> [!WARNING]
+> **Performance Note:** While Heroku and Render are easier to set up, they are generally **slower than a VPS**. PaaS providers use shared resources and container virtualization which can introduce slight latency. For the absolute fastest response times and lowest latency, a **VPS** is always the superior choice.
 
 > [!TIP]
 > **Recommendation:** For a production-ready Telegram bot, we **highly recommend using a VPS**. It provides the most reliable performance, ensures the bot never "sleeps," and gives you full control over your database and security. Heroku is a great second choice for ease of use, while Render Free is best only for testing.
@@ -209,10 +233,22 @@ If you prefer to deploy manually using the Heroku CLI:
 ## Installation & Setup
 
 ### Requirements
-- Bun.js Runtime (or Node.js)
-- Telegram Bot Token (create one via [BotFather](https://core.telegram.org/bots#botfather))
-- PostgreSQL database
-- Redis server (for caching, session management, and job queues)
+- **Bun.js Runtime** (v1.1+) or Node.js
+- **Telegram Bot Token** (from [BotFather](https://t.me/BotFather))
+- **PostgreSQL** (Relational database)
+- **Redis/Valkey** (Sessions, caching, and BullMQ)
+
+### System Specifications
+
+| Resource | Minimum | Recommended |
+| :--- | :--- | :--- |
+| **CPU** | 0.1 vCPU | 1.0 vCPU+ |
+| **RAM** | 256 MB | 1 GB |
+| **Storage** | 500 MB | 2 GB+ |
+| **Network** | 10 Mbps | 100 Mbps+ |
+
+> [!NOTE]
+> The bot is highly optimized thanks to **Bun**. It can run comfortably on Render's free tier (512MB RAM) or a $4/mo VPS. Higher specs are only recommended if you expect thousands of concurrent players.
 
 ### Database & Redis Configuration
 
