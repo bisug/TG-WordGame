@@ -154,27 +154,22 @@ If you prefer to deploy manually using the Heroku CLI:
    ```
 
 
-### Deploy to Render
+2.  **Stay Awake**: Render's free web services sleep after 15 minutes of inactivity. Since this is a Telegram bot (long-polling), you **MUST** use an external service like [cron-job.org](https://cron-job.org/) to ping your bot's URL every 10–14 minutes to keep it from sleeping.
 
-| Web Service (Free Tier) | Background Worker (Paid) |
+**Monthly Free Usage Limits:**
+- **Instance Hours**: 750 hours (shared across all free services).
+- **Outbound Bandwidth**: 100 GB.
+- **Build Pipeline**: 500 minutes.
+- **Databases**: Free Postgres expires after 30 days.
+
+---
+
+### Deployment Options on Render
+
+| Web Service (Free Tier) | Background Worker (Paid/Always Online) |
 | :--- | :--- |
 | [![Deploy to Render](https://render.com/images/deploy-to-render-button.svg)](https://render.com/deploy?repo=https://github.com/bisug/TG-WordGame) | [![Deploy to Render](https://render.com/images/deploy-to-render-button.svg)](https://render.com/deploy?repo=https://github.com/bisug/TG-WordGame&blueprint=render-worker.yaml) |
-
-You can deploy WordSeek to [Render](https://render.com/) using the provided buttons above. The Web Service is compatible with the free tier, while the Background Worker is recommended for paid plans.
-
-#### Option 1: Background Worker (Recommended)
-1. Create a new **Background Worker** on Render.
-2. Connect your GitHub repository.
-3. Choose **Docker** as the runtime.
-4. Add your environment variables.
-5. Render will build and run the bot automatically.
-
-#### Option 2: Web Service (Free Tier)
-To use the free tier, you must enable the health check listener by setting the environment variable `WEB_SERVICE=true`.
-
-Render expects a Web Service to listen on a port. With `WEB_SERVICE=true`, the bot will start a simple server on the port provided by Render (defaulting to 3000).
-
-*Note: Free Web Services will go to sleep after 15 minutes of inactivity. You may need a service like [cron-job.org](https://cron-job.org/) to ping your URL and keep it awake.*
+| *Best for testing. Sleeps after 15m idle.* | *Best for production. Never sleeps.* |
 
 ### Deploy using Docker
 
@@ -196,11 +191,6 @@ Render expects a Web Service to listen on a port. With `WEB_SERVICE=true`, the b
      wordseek-bot
    ```
 
-   *Note: If running databases in other containers, ensure they are on the same network or use the appropriate host address.*
-
-
-
-*Note: If running databases in other containers, ensure they are on the same network or use the appropriate host address.*
 
 ### Deployment Comparison
 

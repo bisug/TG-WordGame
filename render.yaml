@@ -1,6 +1,7 @@
 services:
   - type: web
     name: wordseek-bot
+    plan: free
     runtime: docker
     dockerfilePath: Dockerfile
     dockerContext: .
