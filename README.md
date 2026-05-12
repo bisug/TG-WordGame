@@ -116,7 +116,7 @@ Deploying to a VPS provides the best performance and reliability.
 ### Deploy to Heroku
 
 [![Deploy to Heroku](https://www.herokucdn.com/deploy/button.svg)](https://heroku.com/deploy?template=https://github.com/bisug/TG-WordGame)
-[![Deploy on Railway](https://railway.app/button.svg)](https://railway.com/new?template=https://github.com/bisug/TG-WordGame)
+[![Deploy on Railway](https://railway.com/button.svg)](https://railway.com/new/template?template=https://github.com/bisug/TG-WordGame)
 
 If you prefer to deploy manually using the Heroku CLI:
 
@@ -165,23 +165,22 @@ If you prefer to deploy manually using the Heroku CLI:
 
 ---
 
-### Deploy to Railway
+### Deploy to Railway (Recommended - May 2026)
 
-Railway is a modern deployment platform that is ideal for bots because it doesn't "sleep" like Render's free tier.
+Railway is the best modern alternative for bots. **New in May 2026:** You can now manage your deployments and view logs on the go using the **Railway iOS App**.
 
-1. **Create a Project**: Click the **Deploy on Railway** button above or go to [Railway.app](https://railway.app).
+1. **Create a Project**: Click the **Deploy on Railway** button above or go to [Railway.com](https://railway.com).
 2. **Add Services**:
    - Add a **PostgreSQL** database.
    - Add a **Redis** database.
 3. **Set Environment Variables**:
-   Railway will automatically provide database connection strings. Map them to your app variables:
    - `BOT_TOKEN`: Your bot token.
    - `DATABASE_URL`: `${{Postgres.DATABASE_URL}}`
    - `REDIS_URI`: `${{Redis.REDIS_URL}}`
    - `DAILY_WORDLE_SECRET`: A random secret.
    - `ADMIN_USERS`: Your Telegram ID.
-   - `NODE_ENV`: `production`
-4. **Deploy**: Railway will detect the `Dockerfile` or `bun.lockb` and start the bot automatically.
+4. **Deploy**: Railway detects the `railway.toml` and starts the bot.
+5. **Template Updates**: If you publish this as a template, your users will now get **automatic update notifications** when you push to GitHub!
 
 ---
 
@@ -221,8 +220,9 @@ Railway is a modern deployment platform that is ideal for bots because it doesn'
 | **Availability** | 🟢 **Always Online** | 🟢 **Always Online** | 🟢 Always Online | 🔴 **Sleeps after 15m** |
 | **Setup** | Moderate (Manual) | 🟢 Very Easy | Easy (Git push) | Easy (Auto-deploy) |
 | **Maintenance** | Manual (OS Updates) | Fully Managed | Fully Managed | Fully Managed |
+| **Mobile App** | 🔴 No (SSH Only) | 🟢 **Yes (iOS/TUI)** | 🔴 No | 🔴 No |
 | **Performance** | 🟢 High (Dedicated) | 🟢 High | 🟡 Shared Resources | 🔴 Very Limited |
-| **Scalability** | Easy (Resize VPS) | 🟢 Seamless | Easy (Scaling Dynos) | Hard (Free tier) |
+| **Updates** | Manual | 🟢 **Auto-Notified** | Easy | Easy |
 
 > [!WARNING]
 > **Performance Note:** While Heroku and Render are easier to set up, they are generally **slower than a VPS**. PaaS providers use shared resources and container virtualization which can introduce slight latency. For the absolute fastest response times and lowest latency, a **VPS** is always the superior choice.

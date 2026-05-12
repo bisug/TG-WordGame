@@ -1,6 +1,7 @@
 [build]
 builder = "DOCKERFILE"
 dockerfilePath = "Dockerfile"
+watchPatterns = ["src/**", "package.json", "bun.lockb"]
 
 [deploy]
 restartPolicyType = "on-failure"
