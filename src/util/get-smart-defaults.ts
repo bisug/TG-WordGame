@@ -34,99 +34,49 @@ export async function getSmartDefaults({
     }
   }
 
-  const wordLength = requestedWordLength
-    ? requestedWordLength
-    : await getSmartDefaultWordLength({ userId, chatId, searchKey });
+  // Fetch all word lengths and their latest guess time in one query
+  const stats = await db
+    .selectFrom("leaderboard")
+    .select([
+      "wordLength",
+      db.fn.max<Date>("createdAt").as("latestCreatedAt"),
+    ])
+    .where("userId", "=", userId)
+    .$if(searchKey === "group", (qb) => qb.where("chatId", "=", chatId))
+    .groupBy("wordLength")
+    .execute();
 
-  let timeKey: AllowedChatTimeKey;
+  const statsMap = new Map(stats.map(s => [s.wordLength as string, s.latestCreatedAt]));
+
+  let wordLength: AllowedWordLength = 5;
+  if (requestedWordLength) {
+    wordLength = requestedWordLength;
+  } else {
+    const preferenceOrder: AllowedWordLength[] = [5, 4, 6];
+    for (const len of preferenceOrder) {
+      if (statsMap.has(len.toString())) {
+        wordLength = len;
+        break;
+      }
+    }
+  }
+
+  const hasAnyScores = statsMap.has(wordLength.toString());
+  let timeKey: AllowedChatTimeKey = "all";
 
   if (requestedTimeKey) {
     timeKey = requestedTimeKey;
-  } else {
-    timeKey = await getSmartDefaultTimeKey({
-      userId,
-      chatId,
-      searchKey,
-      wordLength,
-    });
+  } else if (hasAnyScores) {
+    const latestDate = new Date(statsMap.get(wordLength.toString())!);
+    timeKey = deriveTimeKey(latestDate);
   }
-
-  let hasAnyScoresQuery = db
-    .selectFrom("leaderboard")
-    .select("userId")
-    .where("userId", "=", userId)
-    .where("wordLength", "=", wordLength.toString() as "4" | "5" | "6")
-    .limit(1);
-
-  if (searchKey === "group") {
-    hasAnyScoresQuery = hasAnyScoresQuery.where("chatId", "=", chatId);
-  }
-
-  const hasAnyScores = !!(await hasAnyScoresQuery.executeTakeFirst());
 
   return { searchKey, timeKey, wordLength, hasAnyScores };
 }
 
-async function getSmartDefaultWordLength({
-  userId,
-  chatId,
-  searchKey,
-}: {
-  userId: string;
-  chatId: string;
-  searchKey: AllowedChatSearchKey;
-}): Promise<AllowedWordLength> {
-  const preferenceOrder: AllowedWordLength[] = [5, 4, 6];
-
-  for (const length of preferenceOrder) {
-    let query = db
-      .selectFrom("leaderboard")
-      .select("userId")
-      .where("userId", "=", userId)
-      .where("wordLength", "=", length.toString() as "4" | "5" | "6")
-      .limit(1);
-
-    if (searchKey === "group") {
-      query = query.where("chatId", "=", chatId);
-    }
-
-    const exists = await query.executeTakeFirst();
-    if (exists) return length;
-  }
-
-  return 5;
-}
-
-async function getSmartDefaultTimeKey({
-  userId,
-  chatId,
-  searchKey,
-  wordLength,
-}: {
-  userId: string;
-  chatId: string;
-  searchKey: AllowedChatSearchKey;
-  wordLength: AllowedWordLength;
-}): Promise<AllowedChatTimeKey> {
-  let query = db
-    .selectFrom("leaderboard")
-    .select("createdAt")
-    .where("userId", "=", userId)
-    .where("wordLength", "=", wordLength.toString() as "4" | "5" | "6")
-    .orderBy("createdAt", "desc")
-    .limit(1);
-
-  if (searchKey === "group") {
-    query = query.where("chatId", "=", chatId);
-  }
-
-  const latestEntry = await query.executeTakeFirst();
-
-  if (!latestEntry) return "all";
-
+function deriveTimeKey(latestDate: Date): AllowedChatTimeKey {
   const now = new Date();
-  const latestDate = new Date(latestEntry.createdAt);
-
+  
   if (
     latestDate.getFullYear() === now.getFullYear() &&
     latestDate.getMonth() === now.getMonth() &&

@@ -2,6 +2,7 @@ import { Composer } from "grammy";
 
 import { db } from "../config/db";
 import { env } from "../config/env";
+import { redis } from "../config/redis";
 
 const composer = new Composer();
 
@@ -39,6 +40,8 @@ composer.command("ban", async (ctx) => {
       userId: user.id,
     })
     .execute();
+
+  await redis.set(`ban:${user.id}`, "1", "EX", 3600); // 1 hour
 
   ctx.reply(`Banned ${user.name} from the bot`);
 });

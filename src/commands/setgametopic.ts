@@ -5,6 +5,7 @@ import pg from "pg";
 import { db } from "../config/db";
 import { CommandsHelper } from "../util/commands-helper";
 import { adminOnlyGuards, runGuards } from "../util/guards";
+import { invalidateTopicsCache } from "../util/topic-cache";
 
 const { DatabaseError } = pg;
 
@@ -32,6 +33,8 @@ composer.command("setgametopic", async (ctx) => {
     await ctx.reply(
       `@${ctx.me.username} will now use this topic for the game.`,
     );
+
+    await invalidateTopicsCache(ctx.chat.id.toString());
   } catch (err) {
     if (err instanceof DatabaseError && err.code === "23505") {
       return await ctx.reply(

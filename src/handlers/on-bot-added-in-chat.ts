@@ -3,6 +3,7 @@ import { Composer } from "grammy";
 import { db } from "../config/db";
 import { logger } from "../config/logger";
 import { getGeneralKeyboard } from "../util/get-general-keyboard";
+import { invalidateTopicsCache } from "../util/topic-cache";
 
 const composer = new Composer();
 
@@ -39,12 +40,32 @@ That's all I need:  no other permissions are necessary.`,
     new_chat_member.status === "left" ||
     new_chat_member.status === "kicked"
   ) {
+    const chatIdStr = chat.id.toString();
+
     await db
       .deleteFrom("broadcastChats")
-      .where("id", "=", chat.id.toString())
+      .where("id", "=", chatIdStr)
       .execute();
 
-    logger.info({ chat_id: chat.id }, "Bot was removed/blocked from chat");
+    // Cascading cleanup of stale data
+    await db
+      .deleteFrom("chatGameTopics")
+      .where("chatId", "=", chatIdStr)
+      .execute();
+
+    await db
+      .deleteFrom("games")
+      .where("activeChat", "=", chatIdStr)
+      .execute();
+
+    await db
+      .deleteFrom("authorizedUsers")
+      .where("chatId", "=", chatIdStr)
+      .execute();
+
+    await invalidateTopicsCache(chatIdStr);
+
+    logger.info({ chat_id: chat.id }, "Bot was removed/blocked from chat. Cleaned up stale data.");
   }
 });
 

@@ -3,6 +3,7 @@ import { Composer } from "grammy";
 import { db } from "../config/db";
 import { CommandsHelper } from "../util/commands-helper";
 import { adminOnlyGuards, runGuards } from "../util/guards";
+import { invalidateTopicsCache } from "../util/topic-cache";
 
 const composer = new Composer();
 
@@ -26,6 +27,8 @@ composer.command("unsetgametopic", async (ctx) => {
     .execute();
 
   await ctx.reply(`@${ctx.me.username} won't use this topic for the game.`);
+
+  await invalidateTopicsCache(ctx.chat.id.toString());
 });
 
 CommandsHelper.addNewCommand(

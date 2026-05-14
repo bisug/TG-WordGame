@@ -11,8 +11,8 @@ import {
 
 const composer = new Composer();
 
-composer.command("start", async (ctx) => {
-  const keyboard = new InlineKeyboard()
+export function getStartKeyboard(ctx: any) {
+  return new InlineKeyboard()
     .url(
       "Add me to your Group",
       `https://t.me/${ctx.me.username}?startgroup=true`,
@@ -24,8 +24,10 @@ composer.command("start", async (ctx) => {
     .row()
     .url("💓 Donate", DONATION_LINK)
     .success();
+}
 
-  const caption = `<b>Welcome to WordSeek!</b>
+export function getStartMessage() {
+  return `<b>Welcome to WordSeek!</b>
 
 A fun and competitive Wordle-style game that you can play directly on Telegram.
 
@@ -35,6 +37,11 @@ A fun and competitive Wordle-style game that you can play directly on Telegram.
 • Use /help for detailed instructions and command list</blockquote>
 
 Ready to test your word skills? Let's play!`;
+}
+
+composer.command("start", async (ctx) => {
+  const keyboard = getStartKeyboard(ctx);
+  const caption = getStartMessage();
 
   try {
     await ctx.replyWithPhoto(

@@ -4,7 +4,7 @@ import { db } from "../config/db";
 import { env } from "../config/env";
 import { redis } from "../config/redis";
 import { CommandsHelper } from "../util/commands-helper";
-// import { formatWordDetails } from "../util/format-word-details";
+import { deleteCachedGame } from "../util/game-cache";
 import { requireAllowedTopic, runGuards } from "../util/guards";
 
 const composer = new Composer();
@@ -22,14 +22,20 @@ export async function isUserAuthorized(userId: string, chatId: string) {
 export async function endGame(
   ctx: Context,
   chatId: number,
+  topicId: string,
   word: string,
   reason: string,
 ) {
   const game = await db
     .deleteFrom("games")
     .where("activeChat", "=", String(chatId))
-    .returning("word")
+    .where("topicId", "=", topicId)
+    .returning(["word", "topicId"])
     .executeTakeFirst();
+
+  if (game) {
+    await deleteCachedGame(String(chatId), game.topicId);
+  }
 
   const wordLength = game?.word ? game.word.length : 5;
 
@@ -96,7 +102,7 @@ composer.command("end", async (ctx) => {
       reason = `<b>Ended by: </b>${userLink}`;
     }
 
-    return await endGame(ctx, chatId, currentGame.word, reason);
+    return await endGame(ctx, chatId, currentGame.topicId, currentGame.word, reason);
   }
 
   const voteKey = `vote:${chatId}`;

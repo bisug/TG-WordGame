@@ -3,6 +3,8 @@ import { Context } from "grammy";
 import { db } from "../config/db";
 import { redis } from "../config/redis";
 import { dailyWordleSchema } from "../handlers/on-message";
+import { getCachedGame } from "./game-cache";
+import { getCachedTopics } from "./topic-cache";
 
 type GuardResult = { ok: true } | { ok: false; message: string };
 
@@ -40,11 +42,7 @@ async function requireNoActiveRegularGame(ctx: Context): Promise<GuardResult> {
   if (!ctx.from) return { ok: true };
 
   const userId = ctx.from.id.toString();
-  const activeGame = await db
-    .selectFrom("games")
-    .selectAll()
-    .where("activeChat", "=", userId)
-    .executeTakeFirst();
+  const activeGame = await getCachedGame(userId, "general");
 
   if (activeGame) {
     return {
@@ -60,11 +58,7 @@ export async function requireAllowedTopic(ctx: Context): Promise<GuardResult> {
   if (!ctx.chat || !ctx.msg || !ctx.chat.is_forum) return { ok: true };
 
   const chatId = ctx.chat.id;
-  const topicData = await db
-    .selectFrom("chatGameTopics")
-    .where("chatId", "=", chatId.toString())
-    .selectAll()
-    .execute();
+  const topicData = await getCachedTopics(chatId.toString());
 
   const topicIds = topicData.map((t) => t.topicId);
   const currentTopicId = ctx.msg.message_thread_id?.toString() || "general";

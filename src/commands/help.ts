@@ -84,6 +84,12 @@ export function getMainHelpKeyboard(
   keyboard.url("💓 Donate", DONATION_LINK).success();
   keyboard.url("💬 Discussion", DISCUSSION_GROUP);
 
+  if (active !== "howto") {
+    keyboard.row().text("⬅️ Back to Main Help", "help_howto");
+  } else {
+    keyboard.row().text("🔙 Back to Start", "help_start");
+  }
+
   return keyboard;
 }
 

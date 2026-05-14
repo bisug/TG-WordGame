@@ -4,6 +4,7 @@ import { db } from "../config/db";
 import { logger } from "../config/logger";
 import { CommandsHelper } from "../util/commands-helper";
 import { adminOnlyGuards, runGuards } from "../util/guards";
+import { invalidateTopicsCache } from "../util/topic-cache";
 
 const composer = new Composer();
 
@@ -53,6 +54,8 @@ composer.command("recreatetopic", async (ctx) => {
     await ctx.reply(
       `Topic recreation on expire has been turned ${action.toUpperCase()}.`,
     );
+
+    await invalidateTopicsCache(ctx.chat.id.toString());
   } catch (err) {
     logger.error({ err }, "Error updating recreate topic setting");
     await ctx.reply("An error occurred while updating the setting.");
