@@ -2,6 +2,7 @@ import { Composer } from "grammy";
 
 import { db } from "../config/db";
 import { logger } from "../config/logger";
+import { redis } from "../config/redis";
 
 const composer = new Composer();
 
@@ -18,14 +19,10 @@ composer.use(async (ctx, next) => {
 
       (async () => {
         try {
-          // if (userUsername) {
-          //   await db
-          //     .updateTable("users")
-          //     .set({ username: null })
-          //     .where("username", "=", userUsername)
-          //     .where("id", "!=", userId)
-          //     .execute();
-          // }
+          const syncKey = `sync:user:${userId}`;
+          if (await redis.get(syncKey)) return;
+          await redis.set(syncKey, "1", "EX", 3600 * 24); // Sync once a day
+
           await db
             .insertInto("users")
             .values({
@@ -58,14 +55,10 @@ composer.use(async (ctx, next) => {
 
       (async () => {
         try {
-          // if (chatUsername) {
-          //   await db
-          //     .updateTable("broadcastChats")
-          //     .set({ username: null })
-          //     .where("username", "=", chatUsername)
-          //     .where("id", "!=", chatId)
-          //     .execute();
-          // }
+          const syncKey = `sync:chat:${chatId}`;
+          if (await redis.get(syncKey)) return;
+          await redis.set(syncKey, "1", "EX", 3600 * 24); // Sync once a day
+
           await db
             .insertInto("broadcastChats")
             .values({
