@@ -5,6 +5,7 @@ import z from "zod";
 import { SYSTEM_PROMPT } from "../config/constants";
 import { db } from "../config/db";
 import { env } from "../config/env";
+import { logger } from "../config/logger";
 import words from "../data/daily-word-lists.json";
 import { APIKeyManager } from "../util/key-manager";
 
@@ -118,9 +119,7 @@ export function getCurrentGameDateString() {
 
 async function resetStreaksForInactivePlayers(yesterdayDate: string) {
   try {
-    console.log(
-      `Resetting streaks for players who didn't play on ${yesterdayDate}`,
-    );
+    logger.info({ date: yesterdayDate }, `Resetting streaks for inactive players`);
 
     // The game day for yesterdayDate started at 06:00 AM in env.TIME_ZONE
     // We should reset streaks for anyone whose lastGuessed is before that.
@@ -149,12 +148,12 @@ async function resetStreaksForInactivePlayers(yesterdayDate: string) {
     );
 
     if (resetCount > 0) {
-      console.log(`Reset streaks for ${resetCount} inactive players`);
+      logger.info({ count: resetCount }, `Reset streaks for inactive players`);
     } else {
-      console.log("No inactive players found to reset");
+      logger.info("No inactive players found to reset");
     }
   } catch (error) {
-    console.error("Error resetting streaks for inactive players:", error);
+    logger.error({ err: error }, "Error resetting streaks for inactive players");
   }
 }
 
@@ -174,7 +173,7 @@ async function generateDailyWordInternal(gameDate: string) {
   const details = await getWordDetails(word);
 
   if (!details) {
-    console.warn(`Failed to fetch AI details for word: ${word}. Inserting with null details.`);
+    logger.warn({ word }, `Failed to fetch AI details for word. Inserting with null details.`);
   }
 
   const insertedWord = await db
@@ -195,24 +194,19 @@ async function generateDailyWordInternal(gameDate: string) {
 
   await resetStreaksForInactivePlayers(yesterdayString);
 
-  console.log(`Successfully generated daily word: ${word} for ${gameDate}`);
+  logger.info({ word, date: gameDate }, `Successfully generated daily word`);
   return insertedWord;
 }
 
 async function generateDailyWord() {
   try {
     const gameDate = getCurrentGameDateString();
-    console.log(
-      "Generating daily word for",
-      gameDate,
-      "at",
-      new Date().toISOString(),
-    );
+    logger.info({ gameDate, time: new Date().toISOString() }, "Generating daily word");
 
     // Generate today's word
     await generateDailyWordInternal(gameDate);
   } catch (error) {
-    console.error("Error generating daily word:", error);
+    logger.error({ err: error }, "Error generating daily word");
   }
 }
 
@@ -221,7 +215,7 @@ export async function ensureDailyWordExists(gameDate?: string) {
     const dateToUse = gameDate ?? getCurrentGameDateString();
     return await generateDailyWordInternal(dateToUse);
   } catch (error) {
-    console.error("Error ensuring daily word exists:", error);
+    logger.error({ err: error }, "Error ensuring daily word exists");
     return null;
   }
 }

@@ -2,6 +2,7 @@ import { Composer } from "grammy";
 
 import { db } from "../config/db";
 import { env } from "../config/env";
+import { logger } from "../config/logger";
 
 const composer = new Composer();
 
@@ -81,7 +82,7 @@ composer.command("transfer", async (ctx) => {
         `Total score transferred: ${totalScore}`,
     );
   } catch (error) {
-    console.error("Error transferring leaderboard:", error);
+    logger.error({ err: error }, "Error transferring leaderboard");
     await ctx.reply("❌ An error occurred while transferring leaderboard data");
   }
 });

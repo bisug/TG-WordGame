@@ -1,6 +1,7 @@
 import { Composer } from "grammy";
 
 import { db } from "../config/db";
+import { logger } from "../config/logger";
 
 const composer = new Composer();
 
@@ -32,12 +33,7 @@ composer.on("message:forum_topic_edited", async (ctx) => {
       .where("topicId", "=", topicIdForQuery)
       .execute();
   } catch (err) {
-    console.error("Failed updating chatGameTopics:", {
-      chatId: chatIdForQuery,
-      topicId: topicIdForQuery,
-      updates,
-      error: err,
-    });
+    logger.error({ err, chatId: chatIdForQuery, topicId: topicIdForQuery, updates }, "Failed updating chatGameTopics");
   }
 });
 

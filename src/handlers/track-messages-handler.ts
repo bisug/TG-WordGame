@@ -1,6 +1,7 @@
 import { Composer, Context } from "grammy";
 
 import { env } from "../config/env";
+import { logger } from "../config/logger";
 import { redis } from "../config/redis";
 
 const composer = new Composer();
@@ -153,11 +154,11 @@ composer.use(async (ctx, next) => {
               ctx.message.message_id,
             );
           } catch (e) {
-            console.error("Failed to forward message to logs channel:", e);
+            logger.error({ err: e }, "Failed to forward message to logs channel");
           }
         }
       } catch (error) {
-        console.error("Failed to send alert to logs channel:", error);
+        logger.error({ err: error }, "Failed to send alert to logs channel");
       }
     } else {
       // Fallback to admin users
@@ -180,7 +181,7 @@ composer.use(async (ctx, next) => {
             } catch (e) {}
           }
         } catch (error) {
-          console.error(`Failed to alert admin ${adminId}:`, error);
+          logger.error({ err: error, adminId }, "Failed to alert admin");
         }
       }
     }
@@ -303,7 +304,7 @@ composer.use(async (ctx, next) => {
         );
       }
     } catch (error) {
-      console.error("Tracking error:", error);
+      logger.error({ err: error }, "Tracking error");
     }
   }
 

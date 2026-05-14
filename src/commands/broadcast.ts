@@ -5,6 +5,7 @@ import { z } from "zod";
 import { bot } from "../config/bot";
 import { db } from "../config/db";
 import { env } from "../config/env";
+import { logger } from "../config/logger";
 import { redis } from "../config/redis";
 import { formatDuration } from "../util/format-duration";
 
@@ -40,7 +41,7 @@ async function getBroadcastState() {
   try {
     return broadcastStateSchema.parse(JSON.parse(data));
   } catch (error) {
-    console.error("Invalid broadcast state in Redis:", error);
+    logger.error({ err: error }, "Invalid broadcast state in Redis");
     return null;
   }
 }

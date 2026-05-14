@@ -3,6 +3,7 @@ import { CommandContext, Composer, Context } from "grammy";
 import { DatabaseError } from "pg";
 
 import { db } from "../config/db";
+import { logger } from "../config/logger";
 import { CommandsHelper } from "../util/commands-helper";
 import { regularGameGuards, runGuards } from "../util/guards";
 import { type WordLength, WordSelector } from "../util/word-selector";
@@ -88,7 +89,7 @@ async function startGame(
       );
     }
 
-    console.error(error);
+    logger.error({ err: error }, "Error starting new game");
     return ctx.reply("Something went wrong. Please try again.");
   }
 }

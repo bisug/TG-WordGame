@@ -1,14 +1,13 @@
 import { getBroadcastState, performBroadcast } from "../commands/broadcast";
 import { bot } from "../config/bot";
 import { db } from "../config/db";
+import { logger } from "../config/logger";
 
 export async function resumeBroadcast() {
   const state = await getBroadcastState();
   if (!state) return;
 
-  console.log(
-    `Resuming broadcast from index ${state.currentIndex}/${state.totalChats}`,
-  );
+  logger.info({ currentIndex: state.currentIndex, totalChats: state.totalChats }, "Resuming broadcast");
 
   const chats = await db
     .selectFrom("broadcastChats")
@@ -28,9 +27,9 @@ Success so far: <code>${state.successCount}</code>`,
       { parse_mode: "HTML" },
     );
   } catch (error) {
-    console.error("Failed to update status message:", error);
+    logger.error({ err: error }, "Failed to update status message");
   }
 
   await performBroadcast(chats, state);
-  console.log("Broadcast resumed and completed successfully");
+  logger.info("Broadcast resumed and completed successfully");
 }

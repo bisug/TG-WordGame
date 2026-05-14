@@ -1,6 +1,7 @@
 import { Composer } from "grammy";
 
 import { db } from "../config/db";
+import { logger } from "../config/logger";
 import { CommandsHelper } from "../util/commands-helper";
 import { adminOnlyGuards, runGuards } from "../util/guards";
 
@@ -53,7 +54,7 @@ composer.command("recreatetopic", async (ctx) => {
       `Topic recreation on expire has been turned ${action.toUpperCase()}.`,
     );
   } catch (err) {
-    console.error("Error updating recreate topic setting:", err);
+    logger.error({ err }, "Error updating recreate topic setting");
     await ctx.reply("An error occurred while updating the setting.");
   }
 });

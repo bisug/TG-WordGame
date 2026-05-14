@@ -1,6 +1,7 @@
 import { Composer } from "grammy";
 
 import { db } from "../config/db";
+import { logger } from "../config/logger";
 
 const composer = new Composer();
 
@@ -40,7 +41,7 @@ composer.use(async (ctx, next) => {
             )
             .execute();
         } catch (error) {
-          console.error("Error in user sync:", error);
+          logger.error({ err: error, userId }, "Error in user sync");
         }
       })();
     }
@@ -80,12 +81,12 @@ composer.use(async (ctx, next) => {
             )
             .execute();
         } catch (error) {
-          console.error("Error in chat sync:", error);
+          logger.error({ err: error, chatId: chat.id }, "Error in chat sync");
         }
       })();
     }
   } catch (error) {
-    console.error("Error in sync middleware:", error);
+    logger.error({ err: error }, "Error in sync middleware");
   }
 
   return next();
