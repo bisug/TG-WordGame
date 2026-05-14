@@ -2,9 +2,9 @@ import { Context } from "grammy";
 
 import { db } from "../config/db";
 import { redis } from "../config/redis";
-import { dailyWordleSchema } from "../handlers/on-message";
 import { getCachedGame } from "./game-cache";
 import { getCachedTopics } from "./topic-cache";
+import { dailyWordleSchema } from "../handlers/on-message";
 
 type GuardResult = { ok: true } | { ok: false; message: string };
 

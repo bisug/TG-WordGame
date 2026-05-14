@@ -9,7 +9,6 @@ services:
     # depends_on:
     #   - postgres
     #   - redis
-
 # Example for local DB/Redis (optional)
 # postgres:
 #   image: postgres:15-alpine

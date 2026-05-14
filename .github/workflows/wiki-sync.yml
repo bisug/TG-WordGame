@@ -3,7 +3,7 @@ name: Wiki Sync
 on:
   push:
     paths:
-      - 'wiki_drafts/**'
+      - "wiki_drafts/**"
     branches:
       - master
 

@@ -1,5 +1,5 @@
-import type { AllowedChatSearchKey, LeaderboardEntry } from "../types";
 import { escapeHtmlEntities } from "../util/escape-html-entities";
+import type { AllowedChatSearchKey, LeaderboardEntry } from "../types";
 
 export function formatLeaderboardMessage(
   data: LeaderboardEntry[],

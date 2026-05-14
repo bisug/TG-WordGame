@@ -3,8 +3,8 @@ import { Composer, Context } from "grammy";
 import { db } from "../config/db";
 import { env } from "../config/env";
 import { redis } from "../config/redis";
-import { CommandsHelper } from "../util/commands-helper";
 import { deleteCachedGame } from "../util/game-cache";
+import { CommandsHelper } from "../util/commands-helper";
 import { requireAllowedTopic, runGuards } from "../util/guards";
 
 const composer = new Composer();
@@ -102,7 +102,13 @@ composer.command("end", async (ctx) => {
       reason = `<b>Ended by: </b>${userLink}`;
     }
 
-    return await endGame(ctx, chatId, currentGame.topicId, currentGame.word, reason);
+    return await endGame(
+      ctx,
+      chatId,
+      currentGame.topicId,
+      currentGame.word,
+      reason,
+    );
   }
 
   const voteKey = `vote:${chatId}`;

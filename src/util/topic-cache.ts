@@ -13,7 +13,7 @@ export type CachedTopic = {
 export async function getCachedTopics(chatId: string): Promise<CachedTopic[]> {
   const key = `topics:${chatId}`;
   const cached = await redis.get(key);
-  
+
   if (cached) {
     return JSON.parse(cached) as CachedTopic[];
   }

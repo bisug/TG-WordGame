@@ -4,13 +4,14 @@ import { sql } from "kysely";
 
 import { db } from "../config/db";
 import { env } from "../config/env";
-import { logger } from "../config/logger";
 import { redis } from "../config/redis";
+import { logger } from "../config/logger";
 import { captchaSchema } from "../schemas";
 import { getUserScores } from "../services/get-user-scores";
 import { getSmartDefaults } from "../util/get-smart-defaults";
 import { endGame, isUserAuthorized } from "../commands/end-game";
 import { AllowedChatSearchKey, AllowedChatTimeKey } from "../types";
+import { getStartKeyboard, getStartMessage } from "../commands/start";
 import { formatNoScoresMessage } from "../util/format-no-scores-message";
 import { getLeaderboardScores } from "../services/get-leaderboard-scores";
 import { formatUserScoreMessage } from "../util/format-user-score-message";
@@ -37,7 +38,6 @@ import {
   getOtherCommandsMessage,
   getScoresMessage,
 } from "../commands/help";
-import { getStartKeyboard, getStartMessage } from "../commands/start";
 
 const composer = new Composer();
 
@@ -46,7 +46,10 @@ composer.on("callback_query:data", async (ctx) => {
 
   condition: if (data.startsWith("leaderboard")) {
     const [, searchKey, timeKey, wordLength] = data.split(" ");
-    logger.debug({ searchKey, timeKey, wordLength }, "Leaderboard callback query");
+    logger.debug(
+      { searchKey, timeKey, wordLength },
+      "Leaderboard callback query",
+    );
     if (!allowedChatSearchKeys.includes(searchKey as AllowedChatSearchKey))
       break condition;
     if (!allowedChatTimeKeys.includes(timeKey as AllowedChatTimeKey))
@@ -403,7 +406,13 @@ composer.on("callback_query:data", async (ctx) => {
       }
 
       await ctx.deleteMessage();
-      await endGame(ctx, chatId, existingGame.topicId, existingGame.word, reason);
+      await endGame(
+        ctx,
+        chatId,
+        existingGame.topicId,
+        existingGame.word,
+        reason,
+      );
 
       return await ctx.answerCallbackQuery({
         text: "Game ended by admin/game starter! 🎯",
@@ -417,7 +426,13 @@ composer.on("callback_query:data", async (ctx) => {
 
       const reason = "<b>Game ended - 3 players voted to end the game</b>";
       await ctx.deleteMessage();
-      await endGame(ctx, chatId, existingGame.topicId, existingGame.word, reason);
+      await endGame(
+        ctx,
+        chatId,
+        existingGame.topicId,
+        existingGame.word,
+        reason,
+      );
 
       return await ctx.answerCallbackQuery({
         text: "Game ended! Voting threshold reached. 🎯",

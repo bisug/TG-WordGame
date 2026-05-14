@@ -1,8 +1,8 @@
 import { Composer } from "grammy";
 
 import { db } from "../config/db";
-import { logger } from "../config/logger";
 import { redis } from "../config/redis";
+import { logger } from "../config/logger";
 
 const composer = new Composer();
 

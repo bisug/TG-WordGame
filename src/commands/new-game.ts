@@ -4,11 +4,11 @@ import { DatabaseError } from "pg";
 
 import { db } from "../config/db";
 import { logger } from "../config/logger";
+import { setCachedGame } from "../util/game-cache";
+import { getCachedTopics } from "../util/topic-cache";
 import { CommandsHelper } from "../util/commands-helper";
 import { regularGameGuards, runGuards } from "../util/guards";
 import { type WordLength, WordSelector } from "../util/word-selector";
-import { setCachedGame } from "../util/game-cache";
-import { getCachedTopics } from "../util/topic-cache";
 
 const composer = new Composer();
 
@@ -28,7 +28,7 @@ async function startGame(
     if (!guard.ok) return ctx.reply(guard.message);
 
     const allTopics = await getCachedTopics(chatId.toString());
-    const topicSettings = allTopics.find(t => t.topicId === topicId);
+    const topicSettings = allTopics.find((t) => t.topicId === topicId);
 
     const allowedLengths: WordLength[] =
       (topicSettings?.allowedLengths as WordLength[]) ?? GLOBAL_VALID_LENGTHS;

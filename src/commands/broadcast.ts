@@ -2,11 +2,11 @@ import { Api, Composer } from "grammy";
 
 import { z } from "zod";
 
-import { bot } from "../config/bot";
 import { db } from "../config/db";
+import { bot } from "../config/bot";
 import { env } from "../config/env";
-import { logger } from "../config/logger";
 import { redis } from "../config/redis";
+import { logger } from "../config/logger";
 import { formatDuration } from "../util/format-duration";
 
 const composer = new Composer();

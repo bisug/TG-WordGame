@@ -1,12 +1,15 @@
 import { BotError, Context, GrammyError, HttpError } from "grammy";
 
 import { db } from "../config/db";
-import { logger } from "../config/logger";
 import { redis } from "../config/redis";
+import { logger } from "../config/logger";
 
 export async function errorHandler(error: BotError<Context>) {
   const ctx = error.ctx;
-  logger.error({ update_id: ctx.update.update_id }, `Error while handling update:`);
+  logger.error(
+    { update_id: ctx.update.update_id },
+    `Error while handling update:`,
+  );
   const e = error.error;
 
   if (e instanceof GrammyError) {
@@ -21,7 +24,10 @@ export async function errorHandler(error: BotError<Context>) {
     ) {
       try {
         if (ctx.chat) {
-          logger.info({ chat_id: ctx.chat.id }, `Leaving chat due to missing rights.`);
+          logger.info(
+            { chat_id: ctx.chat.id },
+            `Leaving chat due to missing rights.`,
+          );
           await ctx.api.leaveChat(ctx.chat.id);
         }
       } catch (leaveErr) {

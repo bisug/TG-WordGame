@@ -11,10 +11,13 @@ export type CachedGame = {
   startedBy: string | null;
 } | null;
 
-export async function getCachedGame(chatId: string, topicId: string): Promise<CachedGame | undefined> {
+export async function getCachedGame(
+  chatId: string,
+  topicId: string,
+): Promise<CachedGame | undefined> {
   const key = `game:${chatId}:${topicId}`;
   const cached = await redis.get(key);
-  
+
   if (cached === "none") return null;
   if (cached) return JSON.parse(cached) as CachedGame;
 
@@ -35,7 +38,11 @@ export async function getCachedGame(chatId: string, topicId: string): Promise<Ca
   }
 }
 
-export async function setCachedGame(chatId: string, topicId: string, game: NonNullable<CachedGame>) {
+export async function setCachedGame(
+  chatId: string,
+  topicId: string,
+  game: NonNullable<CachedGame>,
+) {
   const key = `game:${chatId}:${topicId}`;
   await redis.set(key, JSON.stringify(game), "EX", CACHE_TTL);
 }

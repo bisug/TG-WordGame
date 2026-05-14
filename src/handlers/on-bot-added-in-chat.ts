@@ -2,8 +2,8 @@ import { Composer } from "grammy";
 
 import { db } from "../config/db";
 import { logger } from "../config/logger";
-import { getGeneralKeyboard } from "../util/get-general-keyboard";
 import { invalidateTopicsCache } from "../util/topic-cache";
+import { getGeneralKeyboard } from "../util/get-general-keyboard";
 
 const composer = new Composer();
 
@@ -42,10 +42,7 @@ That's all I need:  no other permissions are necessary.`,
   ) {
     const chatIdStr = chat.id.toString();
 
-    await db
-      .deleteFrom("broadcastChats")
-      .where("id", "=", chatIdStr)
-      .execute();
+    await db.deleteFrom("broadcastChats").where("id", "=", chatIdStr).execute();
 
     // Cascading cleanup of stale data
     await db
@@ -53,10 +50,7 @@ That's all I need:  no other permissions are necessary.`,
       .where("chatId", "=", chatIdStr)
       .execute();
 
-    await db
-      .deleteFrom("games")
-      .where("activeChat", "=", chatIdStr)
-      .execute();
+    await db.deleteFrom("games").where("activeChat", "=", chatIdStr).execute();
 
     await db
       .deleteFrom("authorizedUsers")
@@ -65,7 +59,10 @@ That's all I need:  no other permissions are necessary.`,
 
     await invalidateTopicsCache(chatIdStr);
 
-    logger.info({ chat_id: chat.id }, "Bot was removed/blocked from chat. Cleaned up stale data.");
+    logger.info(
+      { chat_id: chat.id },
+      "Bot was removed/blocked from chat. Cleaned up stale data.",
+    );
   }
 });
 

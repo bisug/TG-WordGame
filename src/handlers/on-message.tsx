@@ -16,7 +16,7 @@ import allFourWords from "../data/all-four.json";
 import { toFancyText } from "../util/to-fancy-text";
 import { requireAllowedTopic, runGuards } from "../util/guards";
 import { formatDailyWordDetails } from "../util/format-word-details";
-import { getCachedGame, deleteCachedGame } from "../util/game-cache";
+import { deleteCachedGame, getCachedGame } from "../util/game-cache";
 import { getCurrentGameDateString } from "../services/daily-wordle-cron";
 
 const composer = new Composer();
@@ -281,69 +281,69 @@ async function handleDailyWordleWin(
     .where("userId", "=", userId)
     .executeTakeFirst();
 
-    const todayDateString = getCurrentGameDateString();
-    const todayDate = new Date(todayDateString + "T00:00:00");
+  const todayDateString = getCurrentGameDateString();
+  const todayDate = new Date(todayDateString + "T00:00:00");
 
-    let newStreak = 1;
-    let highestStreak = 1;
+  let newStreak = 1;
+  let highestStreak = 1;
 
-    if (userStats) {
-      if (userStats.lastGuessed) {
-        const lastGuessedDate = new Date(userStats.lastGuessed);
-        lastGuessedDate.setHours(0, 0, 0, 0);
+  if (userStats) {
+    if (userStats.lastGuessed) {
+      const lastGuessedDate = new Date(userStats.lastGuessed);
+      lastGuessedDate.setHours(0, 0, 0, 0);
 
-        const diffTime = todayDate.getTime() - lastGuessedDate.getTime();
-        const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+      const diffTime = todayDate.getTime() - lastGuessedDate.getTime();
+      const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
 
-        if (diffDays === 1) {
-          newStreak = userStats.currentStreak + 1;
-        } else if (diffDays === 0) {
-          newStreak = userStats.currentStreak;
-        }
+      if (diffDays === 1) {
+        newStreak = userStats.currentStreak + 1;
+      } else if (diffDays === 0) {
+        newStreak = userStats.currentStreak;
       }
-      highestStreak = Math.max(newStreak, userStats.highestStreak);
     }
+    highestStreak = Math.max(newStreak, userStats.highestStreak);
+  }
 
-    await db
-      .insertInto("userStats")
-      .values({
-        userId,
+  await db
+    .insertInto("userStats")
+    .values({
+      userId,
+      currentStreak: newStreak,
+      highestStreak: highestStreak,
+      lastGuessed: new Date().toISOString(),
+    })
+    .onConflict((oc) =>
+      oc.column("userId").doUpdateSet({
         currentStreak: newStreak,
         highestStreak: highestStreak,
         lastGuessed: new Date().toISOString(),
-      })
-      .onConflict((oc) =>
-        oc.column("userId").doUpdateSet({
-          currentStreak: newStreak,
-          highestStreak: highestStreak,
-          lastGuessed: new Date().toISOString(),
-        }),
-      )
-      .execute();
+      }),
+    )
+    .execute();
 
-    const imageBuffer = await generateWordleImage(allGuesses, dailyWord.word);
-    const shareText = generateWordleShareText(
-      dailyWord.dayNumber,
-      allGuesses,
-      dailyWord.word,
-    );
+  const imageBuffer = await generateWordleImage(allGuesses, dailyWord.word);
+  const shareText = generateWordleShareText(
+    dailyWord.dayNumber,
+    allGuesses,
+    dailyWord.word,
+  );
 
-    await ctx.replyWithPhoto(new InputFile(new Uint8Array(imageBuffer)), {
-      caption: `🎉 Congratulations! You guessed it in ${allGuesses.length} ${allGuesses.length === 1 ? "try" : "tries"}!\n\n🔥 Current Streak: ${newStreak}\n⭐ Highest Streak: ${highestStreak}\n\n${formatDailyWordDetails(dailyWord)}`,
-      parse_mode: "HTML",
-      reply_markup: {
-        inline_keyboard: [
-          [
-            {
-              text: "📤 Share",
-              switch_inline_query: shareText,
-            },
-          ],
+  await ctx.replyWithPhoto(new InputFile(new Uint8Array(imageBuffer)), {
+    caption: `🎉 Congratulations! You guessed it in ${allGuesses.length} ${allGuesses.length === 1 ? "try" : "tries"}!\n\n🔥 Current Streak: ${newStreak}\n⭐ Highest Streak: ${highestStreak}\n\n${formatDailyWordDetails(dailyWord)}`,
+    parse_mode: "HTML",
+    reply_markup: {
+      inline_keyboard: [
+        [
+          {
+            text: "📤 Share",
+            switch_inline_query: shareText,
+          },
         ],
-      },
-    });
+      ],
+    },
+  });
 
-    reactWithRandom(ctx);
+  reactWithRandom(ctx);
 }
 
 export function generateWordleShareText(

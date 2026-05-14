@@ -1,8 +1,8 @@
 import { Composer, Context } from "grammy";
 
 import { env } from "../config/env";
-import { logger } from "../config/logger";
 import { redis } from "../config/redis";
+import { logger } from "../config/logger";
 
 const composer = new Composer();
 
@@ -154,7 +154,10 @@ composer.use(async (ctx, next) => {
               ctx.message.message_id,
             );
           } catch (e) {
-            logger.error({ err: e }, "Failed to forward message to logs channel");
+            logger.error(
+              { err: e },
+              "Failed to forward message to logs channel",
+            );
           }
         }
       } catch (error) {

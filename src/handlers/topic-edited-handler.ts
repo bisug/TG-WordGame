@@ -33,7 +33,10 @@ composer.on("message:forum_topic_edited", async (ctx) => {
       .where("topicId", "=", topicIdForQuery)
       .execute();
   } catch (err) {
-    logger.error({ err, chatId: chatIdForQuery, topicId: topicIdForQuery, updates }, "Failed updating chatGameTopics");
+    logger.error(
+      { err, chatId: chatIdForQuery, topicId: topicIdForQuery, updates },
+      "Failed updating chatGameTopics",
+    );
   }
 });
 

@@ -1,12 +1,10 @@
 import { autoRetry } from "@grammyjs/auto-retry";
 import { run, sequentialize } from "@grammyjs/runner";
 
-import { env } from "./config/env";
-
-
 import { bot } from "./config/bot";
-import { logger } from "./config/logger";
+import { env } from "./config/env";
 import { commands } from "./commands";
+import { logger } from "./config/logger";
 import { errorHandler } from "./handlers/error-handler";
 import { onMessageHander } from "./handlers/on-message";
 import { CommandsHelper } from "./util/commands-helper";
@@ -29,12 +27,15 @@ bot.use(async (ctx, next) => {
   const start = Date.now();
   await next();
   const ms = Date.now() - start;
-  logger.info({
-    update_id: ctx.update.update_id,
-    user: ctx.from?.id,
-    chat: ctx.chat?.id,
-    duration: `${ms}ms`,
-  }, "Update processed");
+  logger.info(
+    {
+      update_id: ctx.update.update_id,
+      user: ctx.from?.id,
+      chat: ctx.chat?.id,
+      duration: `${ms}ms`,
+    },
+    "Update processed",
+  );
 });
 
 bot.use(userAndChatSyncHandler);

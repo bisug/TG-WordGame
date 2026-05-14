@@ -8,5 +8,8 @@ export function escapeHtmlEntities(text: string) {
     "/": "&#x2F;", // Slash
   };
 
-  return text.replace(/[<>&"'\/]/g, (char) => entityMap[char as keyof typeof entityMap]);
+  return text.replace(
+    /[<>&"'\/]/g,
+    (char) => entityMap[char as keyof typeof entityMap],
+  );
 }

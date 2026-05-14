@@ -1,4 +1,5 @@
 # WordSeek
+
 <img width="1173" alt="WordSeek Banner" src="https://github.com/user-attachments/assets/bf444d36-2eea-4ad5-83e7-4a99acda2bfe" />
 
 [![Bun](https://img.shields.io/badge/Bun-%23000000.svg?style=for-the-badge&logo=bun&logoColor=white)](https://bun.sh)
@@ -14,23 +15,27 @@ WordSeek is a high-performance Telegram Word Game bot inspired by Wordle. Engine
 ---
 
 ### ◈ Try the Bot
+
 ▸ **[WordSeek I](https://t.me/WordSeekBot)** — Main Instance  
-▸ **[WordSeek II](https://t.me/WordSeek2Bot)** — Backup Instance  
+▸ **[WordSeek II](https://t.me/WordSeek2Bot)** — Backup Instance
 
 ---
 
 ### ◈ Key Features
+
 ▪ **Multiplayer Synergy**: Real-time competition in group chats. The first correct guess wins.  
 ▪ **Daily WordSeek**: Global unique word challenges refreshed every 24 hours (Private Chat).  
 ▪ **Adaptive Lengths**: Play with 4, 5, or 6-letter words seamlessly.  
 ▪ **Forum Optimization**: Dedicated support for Telegram Forum topics with auto-recreation features.  
 ▪ **Comprehensive Analytics**: Global and group-specific leaderboards with detailed user stats.  
-▪ **Advanced Moderation**: Built-in captcha, user authorization, and global banning systems.  
+▪ **Advanced Moderation**: Built-in captcha, user authorization, and global banning systems.
 
 ---
 
 ### ◈ Tech Stack
+
 WordSeek is built with a modern, type-safe, and performant stack:
+
 - **Runtime**: [Bun](https://bun.sh) (High-speed JS/TS runtime)
 - **Framework**: [grammY](https://grammy.dev/) (The ultimate Telegram Bot framework)
 - **Database**: [PostgreSQL](https://www.postgresql.org/) with [Kysely](https://kysely.dev/) (Type-safe SQL query builder)
@@ -42,12 +47,15 @@ WordSeek is built with a modern, type-safe, and performant stack:
 ### ◈ Deployment
 
 #### One-Click Deployment
+
 Deploy your own instance instantly on these platforms:
+
 - [Railway](https://railway.com/new/template?template=https://github.com/bisug/TG-WordGame)
 - [Heroku](https://heroku.com/deploy?template=https://github.com/bisug/TG-WordGame)
 - [Render](https://render.com/deploy?repo=https://github.com/bisug/TG-WordGame)
 
 #### Local Development
+
 1. **Clone the repository**:
    ```bash
    git clone https://github.com/bisug/TG-WordGame
@@ -74,31 +82,36 @@ Deploy your own instance instantly on these platforms:
 ---
 
 ### ◈ Configuration
-| Variable | Description | Default |
-| :--- | :--- | :--- |
-| `BOT_TOKEN` | Your Telegram Bot Token from @BotFather | Required |
-| `DATABASE_URL` | PostgreSQL connection string | Required |
-| `REDIS_URI` | Redis connection URI | Required |
-| `ADMIN_USERS` | Comma-separated list of Admin User IDs | Required |
-| `TIME_ZONE` | Timezone for daily resets (e.g., `UTC`) | `Asia/Kathmandu` |
+
+| Variable       | Description                             | Default          |
+| :------------- | :-------------------------------------- | :--------------- |
+| `BOT_TOKEN`    | Your Telegram Bot Token from @BotFather | Required         |
+| `DATABASE_URL` | PostgreSQL connection string            | Required         |
+| `REDIS_URI`    | Redis connection URI                    | Required         |
+| `ADMIN_USERS`  | Comma-separated list of Admin User IDs  | Required         |
+| `TIME_ZONE`    | Timezone for daily resets (e.g., `UTC`) | `Asia/Kathmandu` |
 
 ---
 
 ### ◈ Documentation
+
 For detailed guides, command references, and developer documentation, visit the **[Project Wiki](https://github.com/bisug/TG-WordGame/wiki)**.
 
 ▸ [Gameplay Guide](https://github.com/bisug/TG-WordGame/wiki/Gameplay-Guide)  
 ▸ [Deployment Guide](https://github.com/bisug/TG-WordGame/wiki/Deployment-Guide)  
-▸ [Developer Guide](https://github.com/bisug/TG-WordGame/wiki/Developer-Guide)  
+▸ [Developer Guide](https://github.com/bisug/TG-WordGame/wiki/Developer-Guide)
 
 ---
 
 ### ◈ Credits
+
 Developed with passion by **[Binamra Lamsal](https://github.com/binamralamsal)**.
+
 - Original Repository: [binamralamsal/WordSeek](https://github.com/binamralamsal/WordSeek)
 - Support the creator: [buymemomo.com/binamra](https://buymemomo.com/binamra)
 
 ---
 
 ### ◈ License
+
 This project is licensed under the **MIT License**. See [LICENSE](LICENSE) for details.

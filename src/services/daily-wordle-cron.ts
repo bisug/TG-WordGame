@@ -1,12 +1,12 @@
-import { CronJob } from "cron";
-import crypto from "crypto";
 import z from "zod";
+import crypto from "crypto";
+import { CronJob } from "cron";
 
-import { SYSTEM_PROMPT } from "../config/constants";
 import { db } from "../config/db";
 import { env } from "../config/env";
 import { logger } from "../config/logger";
 import words from "../data/daily-word-lists.json";
+import { SYSTEM_PROMPT } from "../config/constants";
 import { APIKeyManager } from "../util/key-manager";
 
 const keyManager = new APIKeyManager();
@@ -119,14 +119,17 @@ export function getCurrentGameDateString() {
 
 async function resetStreaksForInactivePlayers(yesterdayDate: string) {
   try {
-    logger.info({ date: yesterdayDate }, `Resetting streaks for inactive players`);
+    logger.info(
+      { date: yesterdayDate },
+      `Resetting streaks for inactive players`,
+    );
 
     // The game day for yesterdayDate started at 06:00 AM in env.TIME_ZONE
     // We should reset streaks for anyone whose lastGuessed is before that.
-    
+
     // To get 06:00 AM yesterday in the target timezone:
-    const yesterdayStartTime = new Date(`${yesterdayDate}T06:00:00Z`); 
-    // Note: This is a simplification. Ideally we'd use a library like luxon, 
+    const yesterdayStartTime = new Date(`${yesterdayDate}T06:00:00Z`);
+    // Note: This is a simplification. Ideally we'd use a library like luxon,
     // but we can estimate or just use the date boundary if we store lastGuessed in UTC.
     // If lastGuessed is ISO string (UTC), then we need the UTC timestamp of 6AM in target TZ.
 
@@ -153,7 +156,10 @@ async function resetStreaksForInactivePlayers(yesterdayDate: string) {
       logger.info("No inactive players found to reset");
     }
   } catch (error) {
-    logger.error({ err: error }, "Error resetting streaks for inactive players");
+    logger.error(
+      { err: error },
+      "Error resetting streaks for inactive players",
+    );
   }
 }
 
@@ -173,7 +179,10 @@ async function generateDailyWordInternal(gameDate: string) {
   const details = await getWordDetails(word);
 
   if (!details) {
-    logger.warn({ word }, `Failed to fetch AI details for word. Inserting with null details.`);
+    logger.warn(
+      { word },
+      `Failed to fetch AI details for word. Inserting with null details.`,
+    );
   }
 
   const insertedWord = await db
@@ -201,7 +210,10 @@ async function generateDailyWordInternal(gameDate: string) {
 async function generateDailyWord() {
   try {
     const gameDate = getCurrentGameDateString();
-    logger.info({ gameDate, time: new Date().toISOString() }, "Generating daily word");
+    logger.info(
+      { gameDate, time: new Date().toISOString() },
+      "Generating daily word",
+    );
 
     // Generate today's word
     await generateDailyWordInternal(gameDate);

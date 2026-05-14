@@ -1,8 +1,8 @@
 import { Composer, InputFile } from "grammy";
 
 import { db } from "../config/db";
-import { logger } from "../config/logger";
 import { redis } from "../config/redis";
+import { logger } from "../config/logger";
 import { CommandsHelper } from "../util/commands-helper";
 import { dailyGameGuards, runGuards } from "../util/guards";
 import { generateWordleImage } from "../handlers/on-message";

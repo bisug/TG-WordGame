@@ -19,7 +19,7 @@ composer.on("message", async (ctx, next) => {
       .selectAll()
       .where("userId", "=", userId)
       .executeTakeFirst();
-    
+
     isUserBanned = !!banRecord;
     await redis.set(banKey, isUserBanned ? "1" : "0", "EX", 3600); // Cache for 1 hour
   }

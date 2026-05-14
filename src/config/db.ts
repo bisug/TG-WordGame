@@ -1,15 +1,15 @@
+import pg from "pg";
+import type { LogEvent } from "kysely";
 import {
   CamelCasePlugin,
   DeduplicateJoinsPlugin,
   Kysely,
   PostgresDialect,
 } from "kysely";
-import type { LogEvent } from "kysely";
-import pg from "pg";
 
-import type { DB } from "../database-schemas";
 import { env } from "./env";
 import { logger } from "./logger";
+import type { DB } from "../database-schemas";
 
 const { Pool } = pg;
 
@@ -38,7 +38,10 @@ export const db = new Kysely<DB>({
   log: (event: LogEvent) => {
     if (env.NODE_ENV === "development") {
       if (event.level === "query") {
-        logger.debug({ sql: event.query.sql, parameters: event.query.parameters }, "Kysely Query");
+        logger.debug(
+          { sql: event.query.sql, parameters: event.query.parameters },
+          "Kysely Query",
+        );
       } else {
         logger.error({ err: event.error }, "Kysely Error");
       }

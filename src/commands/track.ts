@@ -1,6 +1,7 @@
 import { Composer } from "grammy";
-import { redis } from "../config/redis";
+
 import { env } from "../config/env";
+import { redis } from "../config/redis";
 
 const composer = new Composer();
 
@@ -22,7 +23,9 @@ composer.command("track", async (ctx) => {
 
   await redis.set(trackingKey, ctx.chat.id.toString());
 
-  await ctx.reply(`✅ Now tracking chat: ${chatId}\nAll messages will be forwarded here.`);
+  await ctx.reply(
+    `✅ Now tracking chat: ${chatId}\nAll messages will be forwarded here.`,
+  );
 });
 
 composer.command("untrack", async (ctx) => {
@@ -54,7 +57,9 @@ composer.command("tracklist", async (ctx) => {
     return ctx.reply("No chats are currently being tracked");
   }
 
-  const trackedChats = keys.map(key => key.replace("tracking:", "")).join("\n");
+  const trackedChats = keys
+    .map((key) => key.replace("tracking:", ""))
+    .join("\n");
   await ctx.reply(`📋 Currently tracking:\n${trackedChats}`);
 });
 

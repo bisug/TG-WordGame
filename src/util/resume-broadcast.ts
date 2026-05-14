@@ -1,13 +1,16 @@
-import { getBroadcastState, performBroadcast } from "../commands/broadcast";
-import { bot } from "../config/bot";
 import { db } from "../config/db";
+import { bot } from "../config/bot";
 import { logger } from "../config/logger";
+import { getBroadcastState, performBroadcast } from "../commands/broadcast";
 
 export async function resumeBroadcast() {
   const state = await getBroadcastState();
   if (!state) return;
 
-  logger.info({ currentIndex: state.currentIndex, totalChats: state.totalChats }, "Resuming broadcast");
+  logger.info(
+    { currentIndex: state.currentIndex, totalChats: state.totalChats },
+    "Resuming broadcast",
+  );
 
   const chats = await db
     .selectFrom("broadcastChats")

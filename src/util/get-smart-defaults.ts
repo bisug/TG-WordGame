@@ -37,16 +37,15 @@ export async function getSmartDefaults({
   // Fetch all word lengths and their latest guess time in one query
   const stats = await db
     .selectFrom("leaderboard")
-    .select([
-      "wordLength",
-      db.fn.max<Date>("createdAt").as("latestCreatedAt"),
-    ])
+    .select(["wordLength", db.fn.max<Date>("createdAt").as("latestCreatedAt")])
     .where("userId", "=", userId)
     .$if(searchKey === "group", (qb) => qb.where("chatId", "=", chatId))
     .groupBy("wordLength")
     .execute();
 
-  const statsMap = new Map(stats.map(s => [s.wordLength as string, s.latestCreatedAt]));
+  const statsMap = new Map(
+    stats.map((s) => [s.wordLength as string, s.latestCreatedAt]),
+  );
 
   let wordLength: AllowedWordLength = 5;
   if (requestedWordLength) {
@@ -76,7 +75,7 @@ export async function getSmartDefaults({
 
 function deriveTimeKey(latestDate: Date): AllowedChatTimeKey {
   const now = new Date();
-  
+
   if (
     latestDate.getFullYear() === now.getFullYear() &&
     latestDate.getMonth() === now.getMonth() &&
