@@ -37,13 +37,15 @@ import {
   getOtherCommandsMessage,
   getScoresMessage,
 } from "../commands/help";
+import { getStartKeyboard, getStartMessage } from "../commands/start";
 
 const composer = new Composer();
 
 composer.on("callback_query:data", async (ctx) => {
-  condition: if (ctx.callbackQuery.data.startsWith("leaderboard")) {
-    const [, searchKey, timeKey, wordLength] =
-      ctx.callbackQuery.data.split(" ");
+  const data = ctx.callbackQuery.data;
+
+  condition: if (data.startsWith("leaderboard")) {
+    const [, searchKey, timeKey, wordLength] = data.split(" ");
     logger.debug({ searchKey, timeKey, wordLength }, "Leaderboard callback query");
     if (!allowedChatSearchKeys.includes(searchKey as AllowedChatSearchKey))
       break condition;
@@ -80,8 +82,12 @@ composer.on("callback_query:data", async (ctx) => {
         },
       )
       .catch(() => {});
-  } else if (ctx.callbackQuery.data.startsWith("score_list")) {
-    const parts = ctx.callbackQuery.data.split(" ");
+
+    return await ctx.answerCallbackQuery({
+      text: "Leaderboard updated! 🔄",
+    });
+  } else if (data.startsWith("score_list")) {
+    const parts = data.split(" ");
 
     const [, username] = parts;
     if (!username) break condition;
@@ -115,10 +121,10 @@ composer.on("callback_query:data", async (ctx) => {
       .catch(() => {});
 
     return await ctx.answerCallbackQuery();
-  } else if (ctx.callbackQuery.data.startsWith("score")) {
-    const parts = ctx.callbackQuery.data.split(" ");
+  } else if (data.startsWith("score")) {
+    const parts = data.split(" ");
 
-    if (ctx.callbackQuery.data.startsWith("score_select")) {
+    if (data.startsWith("score_select")) {
       const [, userId, username] = parts;
       if (!userId) break condition;
       if (!ctx.chat) break condition;
@@ -218,9 +224,9 @@ composer.on("callback_query:data", async (ctx) => {
       return await ctx.answerCallbackQuery();
     }
     if (
-      ctx.callbackQuery.data.startsWith("score ") &&
-      !ctx.callbackQuery.data.startsWith("score_select") &&
-      !ctx.callbackQuery.data.startsWith("score_list")
+      data.startsWith("score ") &&
+      !data.startsWith("score_select") &&
+      !data.startsWith("score_list")
     ) {
       const [, userId, searchKey, timeKey, wordLength] = parts;
       if (!allowedChatSearchKeys.includes(searchKey as AllowedChatSearchKey))
@@ -320,9 +326,9 @@ composer.on("callback_query:data", async (ctx) => {
       return await ctx.answerCallbackQuery();
     }
     await ctx.answerCallbackQuery();
-  } else if (ctx.callbackQuery.data.startsWith("vote_end")) {
-    const [, chatIdStr] = ctx.callbackQuery.data.split(" ");
-    if (!chatIdStr) return;
+  } else if (data.startsWith("vote_end")) {
+    const [, chatIdStr] = data.split(" ");
+    if (!chatIdStr) return await ctx.answerCallbackQuery();
 
     const chatId = parseInt(chatIdStr);
 
@@ -443,23 +449,33 @@ composer.on("callback_query:data", async (ctx) => {
       },
     );
 
-    await ctx.answerCallbackQuery({
+    return await ctx.answerCallbackQuery({
       text: `Vote recorded! ${votesNeeded} more votes needed.`,
     });
-  } else if (ctx.callbackQuery.data.startsWith("help_")) {
+  } else if (data.startsWith("help_")) {
     type HelpSection = "howto" | "scores" | "group" | "other" | "admin";
 
     if (!ctx.from) {
-      await ctx.answerCallbackQuery();
-      return;
+      return await ctx.answerCallbackQuery();
     }
 
     const shouldShowAdminCommands =
       env.ADMIN_USERS.includes(ctx.from.id) && ctx.chat?.type === "private";
+
+    if (data === "help_start") {
+      const message = getStartMessage();
+      const keyboard = getStartKeyboard(ctx);
+      await ctx.editMessageText(message, {
+        parse_mode: "HTML",
+        reply_markup: keyboard,
+      });
+      return await ctx.answerCallbackQuery();
+    }
+
     let message = "";
     let activeSection: HelpSection = "howto";
 
-    switch (ctx.callbackQuery.data) {
+    switch (data) {
       case "help_main":
       case "help_howto":
         message = getHowToPlayMessage();
@@ -479,18 +495,16 @@ composer.on("callback_query:data", async (ctx) => {
         break;
       case "help_admin":
         if (!shouldShowAdminCommands) {
-          await ctx.answerCallbackQuery({
+          return await ctx.answerCallbackQuery({
             text: "You don't have permission to view this.",
             show_alert: true,
           });
-          return;
         }
         message = getAdminCommandsMessage();
         activeSection = "admin";
         break;
       default:
-        await ctx.answerCallbackQuery();
-        return;
+        return await ctx.answerCallbackQuery();
     }
 
     const keyboard = getMainHelpKeyboard(
@@ -515,21 +529,20 @@ composer.on("callback_query:data", async (ctx) => {
       }
     }
 
-    await ctx.answerCallbackQuery();
-  } else if (ctx.callbackQuery.data.startsWith("captcha_")) {
-    const data = ctx.callbackQuery.data;
+    return await ctx.answerCallbackQuery();
+  } else if (data.startsWith("captcha_")) {
     const userId = ctx.from.id.toString();
     const chatId = ctx.chat?.id.toString();
     const name = ctx.from.first_name;
     const username = ctx.from.username;
 
-    if (!chatId) return;
+    if (!chatId) return await ctx.answerCallbackQuery();
 
     const key = `captcha:${chatId}:${userId}`;
     const raw = await redis.get(key);
 
     if (!raw) {
-      return ctx.answerCallbackQuery({
+      return await ctx.answerCallbackQuery({
         text: "Captcha expired or, this captcha isn't for you.",
         show_alert: true,
       });
@@ -571,7 +584,7 @@ composer.on("callback_query:data", async (ctx) => {
           { parse_mode: "HTML" },
         );
 
-        return ctx
+        await ctx
           .editMessageText(
             buildMessage({
               mention: mentionText,
@@ -583,6 +596,7 @@ composer.on("callback_query:data", async (ctx) => {
             { parse_mode: "HTML" },
           )
           .catch(() => {});
+        return await ctx.answerCallbackQuery();
       }
 
       session.attempts += 1;
@@ -598,7 +612,7 @@ composer.on("callback_query:data", async (ctx) => {
           { parse_mode: "HTML" },
         );
 
-        return ctx
+        await ctx
           .editMessageText(
             buildMessage({
               mention: mentionText,
@@ -610,13 +624,14 @@ composer.on("callback_query:data", async (ctx) => {
             { parse_mode: "HTML" },
           )
           .catch(() => {});
+        return await ctx.answerCallbackQuery();
       }
 
       session.progress = [];
 
       await redis.set(key, JSON.stringify(session), "KEEPTTL");
 
-      return ctx
+      await ctx
         .editMessageText(
           buildMessage({
             mention: mentionText,
@@ -631,6 +646,7 @@ composer.on("callback_query:data", async (ctx) => {
           },
         )
         .catch(() => {});
+      return await ctx.answerCallbackQuery();
     }
 
     await redis.set(key, JSON.stringify(session), "KEEPTTL");
@@ -650,8 +666,9 @@ composer.on("callback_query:data", async (ctx) => {
       )
       .catch(() => {});
 
-    return ctx.answerCallbackQuery();
+    return await ctx.answerCallbackQuery();
   }
+  return await ctx.answerCallbackQuery();
 });
 
 export const callbackQueryHandler = composer;
