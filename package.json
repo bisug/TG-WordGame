@@ -5,7 +5,7 @@
     "dev": "bun run --watch src/index.ts",
     "typecheck": "bunx -p @typescript/native-preview tsgo --noEmit",
     "lint": "prettier --check .",
-    "build": "bun build ./src/index.ts --outdir ./dist",
+    "build": "bun build ./src/index.ts --outdir ./dist --target bun",
     "db:migrate": "kysely migrate",
     "db:seed": "kysely seed",
     "db:codegen": "kysely-codegen --out-file ./src/database-schemas.ts --singularize --camel-case"
