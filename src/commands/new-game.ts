@@ -7,6 +7,8 @@ import { logger } from "../config/logger";
 import { CommandsHelper } from "../util/commands-helper";
 import { regularGameGuards, runGuards } from "../util/guards";
 import { type WordLength, WordSelector } from "../util/word-selector";
+import { setCachedGame } from "../util/game-cache";
+import { getCachedTopics } from "../util/topic-cache";
 
 const composer = new Composer();
 
@@ -25,12 +27,8 @@ async function startGame(
     const guard = await runGuards(ctx, regularGameGuards);
     if (!guard.ok) return ctx.reply(guard.message);
 
-    const topicSettings = await db
-      .selectFrom("chatGameTopics")
-      .selectAll()
-      .where("chatId", "=", chatId.toString())
-      .where("topicId", "=", topicId)
-      .executeTakeFirst();
+    const allTopics = await getCachedTopics(chatId.toString());
+    const topicSettings = allTopics.find(t => t.topicId === topicId);
 
     const allowedLengths: WordLength[] =
       (topicSettings?.allowedLengths as WordLength[]) ?? GLOBAL_VALID_LENGTHS;
@@ -71,7 +69,7 @@ async function startGame(
     const wordSelector = new WordSelector();
     const randomWord = await wordSelector.getRandomWord(chatId, wordLength);
 
-    await db
+    const gameId = await db
       .insertInto("games")
       .values({
         word: randomWord,
@@ -79,7 +77,16 @@ async function startGame(
         topicId,
         startedBy: ctx.from.id.toString(),
       })
-      .execute();
+      .returning("id")
+      .executeTakeFirstOrThrow();
+
+    await setCachedGame(chatId.toString(), topicId, {
+      id: gameId.id,
+      word: randomWord,
+      activeChat: chatId.toString(),
+      topicId,
+      startedBy: ctx.from.id.toString(),
+    });
 
     return ctx.reply(`Game started! Guess the ${wordLength}-letter word!`);
   } catch (error) {

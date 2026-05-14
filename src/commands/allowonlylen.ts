@@ -4,6 +4,7 @@ import { db } from "../config/db";
 import { logger } from "../config/logger";
 import { CommandsHelper } from "../util/commands-helper";
 import { adminOnlyGuards, runGuards } from "../util/guards";
+import { invalidateTopicsCache } from "../util/topic-cache";
 
 const composer = new Composer();
 
@@ -52,6 +53,8 @@ composer.command("allowonlylen", async (ctx) => {
       .where("chatId", "=", ctx.chat.id.toString())
       .where("topicId", "=", topicId)
       .execute();
+
+    await invalidateTopicsCache(ctx.chat.id.toString());
 
     return ctx.reply(
       `Allowed word lengths updated.\nDefault length: ${lengths[0]}\nAllowed: ${lengths.join(", ")}`,

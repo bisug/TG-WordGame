@@ -4,7 +4,7 @@ import { db } from "../config/db";
 import { env } from "../config/env";
 import { redis } from "../config/redis";
 import { CommandsHelper } from "../util/commands-helper";
-// import { formatWordDetails } from "../util/format-word-details";
+import { deleteCachedGame } from "../util/game-cache";
 import { requireAllowedTopic, runGuards } from "../util/guards";
 
 const composer = new Composer();
@@ -28,8 +28,12 @@ export async function endGame(
   const game = await db
     .deleteFrom("games")
     .where("activeChat", "=", String(chatId))
-    .returning("word")
+    .returning(["word", "topicId"])
     .executeTakeFirst();
+
+  if (game) {
+    await deleteCachedGame(String(chatId), game.topicId);
+  }
 
   const wordLength = game?.word ? game.word.length : 5;
 

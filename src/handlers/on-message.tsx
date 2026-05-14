@@ -16,6 +16,7 @@ import allFourWords from "../data/all-four.json";
 import { toFancyText } from "../util/to-fancy-text";
 import { requireAllowedTopic, runGuards } from "../util/guards";
 import { formatDailyWordDetails } from "../util/format-word-details";
+import { getCachedGame, deleteCachedGame } from "../util/game-cache";
 import { getCurrentGameDateString } from "../services/daily-wordle-cron";
 
 const composer = new Composer();
@@ -71,13 +72,9 @@ composer.on("message:text", async (ctx) => {
   }
 
   const currentTopicId = ctx.msg.message_thread_id?.toString() || "general";
+  const chatIdStr = ctx.chat.id.toString();
 
-  const currentGame = await db
-    .selectFrom("games")
-    .selectAll()
-    .where("activeChat", "=", ctx.chat.id.toString())
-    .where("topicId", "=", currentTopicId)
-    .executeTakeFirst();
+  const currentGame = await getCachedGame(chatIdStr, currentTopicId);
 
   if (!currentGame) return;
 
@@ -146,6 +143,7 @@ composer.on("message:text", async (ctx) => {
 
     reactWithRandom(ctx);
     await db.deleteFrom("games").where("id", "=", currentGame.id).execute();
+    await deleteCachedGame(chatIdStr, currentTopicId);
     return;
   }
 
@@ -167,6 +165,7 @@ composer.on("message:text", async (ctx) => {
 
   if (allGuesses.length === 30) {
     await db.deleteFrom("games").where("id", "=", currentGame.id).execute();
+    await deleteCachedGame(chatIdStr, currentTopicId);
     return ctx.reply(
       "Game Over! The word was " +
         currentGame.word +
