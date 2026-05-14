@@ -55,8 +55,9 @@ export class WordSelector {
       const usedWords = results[0][1] as string[];
       const setSize = results[1][1] as number;
 
+      const usedWordsSet = new Set(usedWords.map((w) => w.toLowerCase()));
       const availableWords = wordList.filter(
-        (word) => !usedWords.includes(word.toLowerCase()),
+        (word) => !usedWordsSet.has(word.toLowerCase()),
       );
 
       if (availableWords.length < this.config.resetThreshold) {

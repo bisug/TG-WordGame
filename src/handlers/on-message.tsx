@@ -23,10 +23,10 @@ const composer = new Composer();
 
 type WordLength = 4 | 5 | 6;
 
-const ALL_WORDS: Record<WordLength, string[]> = {
-  4: allFourWords,
-  5: allFiveWords,
-  6: allSixWords,
+const ALL_WORDS_SET: Record<WordLength, Set<string>> = {
+  4: new Set(allFourWords),
+  5: new Set(allFiveWords),
+  6: new Set(allSixWords),
 };
 
 const MODE_LABEL: Record<WordLength, string> = {
@@ -82,11 +82,11 @@ composer.on("message:text", async (ctx) => {
   if (!guard.ok) return;
 
   const wordLength = currentGame.word.length as WordLength;
-  const validWords = ALL_WORDS[wordLength];
+  const validWords = ALL_WORDS_SET[wordLength];
 
   if (currentGuess.length !== wordLength) return;
 
-  if (!validWords.includes(currentGuess))
+  if (!validWords.has(currentGuess))
     return ctx.reply(
       `${currentGuess} is not a valid ${wordLength}-letter word.`,
     );
@@ -186,7 +186,7 @@ composer.on("message:text", async (ctx) => {
 async function handleDailyWordleGuess(ctx: Context, currentGuess: string) {
   const userId = ctx.from!.id.toString();
 
-  if (!allFiveWords.includes(currentGuess)) {
+  if (!ALL_WORDS_SET[5].has(currentGuess)) {
     return ctx.reply(`${currentGuess.toUpperCase()} is not a valid word.`);
   }
 
