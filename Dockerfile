@@ -6,7 +6,7 @@ FROM oven/bun:1.3.13-debian AS deps
 WORKDIR /app
 
 # Copy only the files needed for install (better layer caching)
-COPY package.json bun.lockb bunfig.toml ./
+COPY package.json bun.lock bunfig.toml ./
 
 # Install production dependencies only
 RUN bun install --frozen-lockfile --production

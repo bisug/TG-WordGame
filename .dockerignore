@@ -22,7 +22,7 @@ logs/
 node_modules/
 
 # Bun lock (copied explicitly in Dockerfile)
-# bun.lockb is included — do NOT ignore it
+# bun.lock is included — do NOT ignore it
 
 # OS artifacts
 .DS_Store
