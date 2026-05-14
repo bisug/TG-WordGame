@@ -83,7 +83,7 @@ composer.command("daily", async (ctx) => {
         dailyWord.word,
       );
 
-      return ctx.replyWithPhoto(new InputFile(imageBuffer), {
+      return ctx.replyWithPhoto(new InputFile(new Uint8Array(imageBuffer)), {
         caption: `Welcome back! You have ${attemptsLeft} ${attemptsLeft === 1 ? "attempt" : "attempts"} left for today's WordSeek. Keep guessing!`,
       });
     }
