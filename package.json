@@ -4,6 +4,8 @@
     "start": "bun run src/index.ts",
     "dev": "bun run --watch src/index.ts",
     "typecheck": "bunx -p @typescript/native-preview tsgo --noEmit",
+    "lint": "prettier --check .",
+    "build": "bun build ./src/index.ts --outdir ./dist",
     "db:migrate": "kysely migrate",
     "db:seed": "kysely seed",
     "db:codegen": "kysely-codegen --out-file ./src/database-schemas.ts --singularize --camel-case"
@@ -12,7 +14,8 @@
     "@trivago/prettier-plugin-sort-imports": "^6.0.2",
     "@types/bun": "1.3.8",
     "@types/pg": "^8.20.0",
-    "kysely-codegen": "^0.19.0"
+    "kysely-codegen": "^0.19.0",
+    "prettier": "^3.0.0"
   },
   "peerDependencies": {
     "typescript": "^5.5.4"
