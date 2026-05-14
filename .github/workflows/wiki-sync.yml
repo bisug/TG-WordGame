@@ -1,0 +1,19 @@
+name: Wiki Sync
+
+on:
+  push:
+    paths:
+      - 'wiki_drafts/**'
+    branches:
+      - master
+
+jobs:
+  sync-wiki:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Sync Wiki
+        uses: Andrew-Chen-Wang/github-wiki-action@v4
+        with:
+          wiki_folder: wiki_drafts
+          github_token: ${{ secrets.GITHUB_TOKEN }}
