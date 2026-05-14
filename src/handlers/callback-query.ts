@@ -397,7 +397,7 @@ composer.on("callback_query:data", async (ctx) => {
       }
 
       await ctx.deleteMessage();
-      await endGame(ctx, chatId, existingGame.word, reason);
+      await endGame(ctx, chatId, existingGame.topicId, existingGame.word, reason);
 
       return await ctx.answerCallbackQuery({
         text: "Game ended by admin/game starter! 🎯",
@@ -411,7 +411,7 @@ composer.on("callback_query:data", async (ctx) => {
 
       const reason = "<b>Game ended - 3 players voted to end the game</b>";
       await ctx.deleteMessage();
-      await endGame(ctx, chatId, existingGame.word, reason);
+      await endGame(ctx, chatId, existingGame.topicId, existingGame.word, reason);
 
       return await ctx.answerCallbackQuery({
         text: "Game ended! Voting threshold reached. 🎯",

@@ -22,12 +22,14 @@ export async function isUserAuthorized(userId: string, chatId: string) {
 export async function endGame(
   ctx: Context,
   chatId: number,
+  topicId: string,
   word: string,
   reason: string,
 ) {
   const game = await db
     .deleteFrom("games")
     .where("activeChat", "=", String(chatId))
+    .where("topicId", "=", topicId)
     .returning(["word", "topicId"])
     .executeTakeFirst();
 
@@ -100,7 +102,7 @@ composer.command("end", async (ctx) => {
       reason = `<b>Ended by: </b>${userLink}`;
     }
 
-    return await endGame(ctx, chatId, currentGame.word, reason);
+    return await endGame(ctx, chatId, currentGame.topicId, currentGame.word, reason);
   }
 
   const voteKey = `vote:${chatId}`;

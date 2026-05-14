@@ -30,7 +30,7 @@ export async function getCachedGame(chatId: string, topicId: string): Promise<Ca
     await redis.set(key, JSON.stringify(game), "EX", CACHE_TTL);
     return game;
   } else {
-    await redis.set(key, "none", "EX", CACHE_TTL);
+    await redis.set(key, "none", "EX", 300); // 5 minutes negative cache
     return null;
   }
 }
@@ -42,5 +42,5 @@ export async function setCachedGame(chatId: string, topicId: string, game: NonNu
 
 export async function deleteCachedGame(chatId: string, topicId: string) {
   const key = `game:${chatId}:${topicId}`;
-  await redis.set(key, "none", "EX", CACHE_TTL);
+  await redis.del(key);
 }

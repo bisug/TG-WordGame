@@ -216,16 +216,21 @@ async function handleDailyWordleGuess(ctx: Context, currentGuess: string) {
     return ctx.reply("You've already guessed this word. Try a different one!");
   }
 
-  const attemptNumber = existingGuesses.length + 1;
-  await db
-    .insertInto("dailyGuesses")
-    .values({
-      userId,
-      dailyWordId: dailyWord.id,
-      guess: currentGuess,
-      attemptNumber,
-    })
-    .execute();
+  try {
+    const attemptNumber = existingGuesses.length + 1;
+    await db
+      .insertInto("dailyGuesses")
+      .values({
+        userId,
+        dailyWordId: dailyWord.id,
+        guess: currentGuess,
+        attemptNumber,
+      })
+      .execute();
+  } catch (error) {
+    // Handle race condition where two messages arrive nearly simultaneously
+    return ctx.reply("You've already guessed this word. Try a different one!");
+  }
 
   const allGuesses = await db
     .selectFrom("dailyGuesses")
@@ -276,36 +281,44 @@ async function handleDailyWordleWin(
     .where("userId", "=", userId)
     .executeTakeFirst();
 
-  if (userStats) {
     const todayDateString = getCurrentGameDateString();
     const todayDate = new Date(todayDateString + "T00:00:00");
 
     let newStreak = 1;
+    let highestStreak = 1;
 
-    if (userStats.lastGuessed) {
-      const lastGuessedDate = new Date(userStats.lastGuessed);
-      lastGuessedDate.setHours(0, 0, 0, 0);
+    if (userStats) {
+      if (userStats.lastGuessed) {
+        const lastGuessedDate = new Date(userStats.lastGuessed);
+        lastGuessedDate.setHours(0, 0, 0, 0);
 
-      const diffTime = todayDate.getTime() - lastGuessedDate.getTime();
-      const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+        const diffTime = todayDate.getTime() - lastGuessedDate.getTime();
+        const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
 
-      if (diffDays === 1) {
-        newStreak = userStats.currentStreak + 1;
-      } else if (diffDays === 0) {
-        newStreak = userStats.currentStreak;
+        if (diffDays === 1) {
+          newStreak = userStats.currentStreak + 1;
+        } else if (diffDays === 0) {
+          newStreak = userStats.currentStreak;
+        }
       }
+      highestStreak = Math.max(newStreak, userStats.highestStreak);
     }
 
-    const newHighestStreak = Math.max(newStreak, userStats.highestStreak);
-
     await db
-      .updateTable("userStats")
-      .set({
+      .insertInto("userStats")
+      .values({
+        userId,
         currentStreak: newStreak,
-        highestStreak: newHighestStreak,
+        highestStreak: highestStreak,
         lastGuessed: new Date().toISOString(),
       })
-      .where("userId", "=", userId)
+      .onConflict((oc) =>
+        oc.column("userId").doUpdateSet({
+          currentStreak: newStreak,
+          highestStreak: highestStreak,
+          lastGuessed: new Date().toISOString(),
+        }),
+      )
       .execute();
 
     const imageBuffer = await generateWordleImage(allGuesses, dailyWord.word);
@@ -316,7 +329,7 @@ async function handleDailyWordleWin(
     );
 
     await ctx.replyWithPhoto(new InputFile(new Uint8Array(imageBuffer)), {
-      caption: `🎉 Congratulations! You guessed it in ${allGuesses.length} ${allGuesses.length === 1 ? "try" : "tries"}!\n\n🔥 Current Streak: ${newStreak}\n⭐ Highest Streak: ${newHighestStreak}\n\n${formatDailyWordDetails(dailyWord)}`,
+      caption: `🎉 Congratulations! You guessed it in ${allGuesses.length} ${allGuesses.length === 1 ? "try" : "tries"}!\n\n🔥 Current Streak: ${newStreak}\n⭐ Highest Streak: ${highestStreak}\n\n${formatDailyWordDetails(dailyWord)}`,
       parse_mode: "HTML",
       reply_markup: {
         inline_keyboard: [
@@ -331,7 +344,6 @@ async function handleDailyWordleWin(
     });
 
     reactWithRandom(ctx);
-  }
 }
 
 export function generateWordleShareText(
@@ -386,12 +398,18 @@ async function handleDailyWordleLoss(
   await redis.del(`daily_wordle:${userId}`);
 
   await db
-    .updateTable("userStats")
-    .set({
+    .insertInto("userStats")
+    .values({
+      userId,
       currentStreak: 0,
       lastGuessed: new Date().toISOString(),
     })
-    .where("userId", "=", userId)
+    .onConflict((oc) =>
+      oc.column("userId").doUpdateSet({
+        currentStreak: 0,
+        lastGuessed: new Date().toISOString(),
+      }),
+    )
     .execute();
 
   const imageBuffer = await generateWordleImage(allGuesses, dailyWord.word);
