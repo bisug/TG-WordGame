@@ -1,4 +1,5 @@
 import { promises as fs } from "fs";
+import { logger } from "../config/logger";
 
 // Input JSON file
 const inputFilePath = "words.json";
@@ -25,7 +26,7 @@ async function fetchWordDetails(word: string) {
       example: example,
     };
   } catch (error) {
-    console.error(`Error fetching details for ${word}:`, (error as any).message);
+    logger.error({ err: error, word }, `Error fetching details for word`);
     return {
       meaning: "",
       pronunciation: "",
@@ -49,7 +50,7 @@ async function processWords() {
 
     for (const word of words) {
       if (!result[word]) {
-        console.log(`Fetching details for: ${word}`);
+        logger.info({ word }, `Fetching details for word`);
         result[word] = await fetchWordDetails(word);
         await fs.writeFile(
           outputFilePath,
@@ -58,13 +59,13 @@ async function processWords() {
         );
         await delay(1000); // Delay to avoid rate limiting
       } else {
-        console.log(`Details already exist for: ${word}`);
+        logger.info({ word }, `Details already exist for word`);
       }
     }
 
-    console.log("Processing complete.");
+    logger.info("Processing complete.");
   } catch (error) {
-    console.error("Error during processing:", error);
+    logger.error({ err: error }, "Error during processing");
   }
 }
 

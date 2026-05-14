@@ -9,6 +9,7 @@ import pg from "pg";
 
 import type { DB } from "../database-schemas";
 import { env } from "./env";
+import { logger } from "./logger";
 
 const { Pool } = pg;
 
@@ -37,12 +38,10 @@ export const db = new Kysely<DB>({
   log: (event: LogEvent) => {
     if (env.NODE_ENV === "development") {
       if (event.level === "query") {
-        console.log("SQL:", event.query.sql);
-        console.log("Parameters:", event.query.parameters);
+        logger.debug({ sql: event.query.sql, parameters: event.query.parameters }, "Kysely Query");
       } else {
-        console.error("Error:", event.error);
+        logger.error({ err: event.error }, "Kysely Error");
       }
-      console.log("-------------");
     }
   },
   plugins: [new CamelCasePlugin(), new DeduplicateJoinsPlugin()],

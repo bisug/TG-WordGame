@@ -4,6 +4,7 @@ import { sql } from "kysely";
 
 import { db } from "../config/db";
 import { env } from "../config/env";
+import { logger } from "../config/logger";
 import { redis } from "../config/redis";
 import { captchaSchema } from "../schemas";
 import { getUserScores } from "../services/get-user-scores";
@@ -43,7 +44,7 @@ composer.on("callback_query:data", async (ctx) => {
   condition: if (ctx.callbackQuery.data.startsWith("leaderboard")) {
     const [, searchKey, timeKey, wordLength] =
       ctx.callbackQuery.data.split(" ");
-    console.log(searchKey, timeKey, wordLength);
+    logger.debug({ searchKey, timeKey, wordLength }, "Leaderboard callback query");
     if (!allowedChatSearchKeys.includes(searchKey as AllowedChatSearchKey))
       break condition;
     if (!allowedChatTimeKeys.includes(timeKey as AllowedChatTimeKey))

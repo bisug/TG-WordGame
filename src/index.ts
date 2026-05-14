@@ -5,8 +5,8 @@ import { env } from "./config/env";
 
 
 import { bot } from "./config/bot";
+import { logger } from "./config/logger";
 import { commands } from "./commands";
-import { captchaQueue } from "./queues/captcha-queue";
 import { errorHandler } from "./handlers/error-handler";
 import { onMessageHander } from "./handlers/on-message";
 import { CommandsHelper } from "./util/commands-helper";
@@ -23,6 +23,20 @@ import {
 } from "./services/daily-wordle-cron";
 
 bot.api.config.use(autoRetry());
+
+// Log incoming updates
+bot.use(async (ctx, next) => {
+  const start = Date.now();
+  await next();
+  const ms = Date.now() - start;
+  logger.info({
+    update_id: ctx.update.update_id,
+    user: ctx.from?.id,
+    chat: ctx.chat?.id,
+    duration: `${ms}ms`,
+  }, "Update processed");
+});
+
 bot.use(userAndChatSyncHandler);
 bot.use(topicEditedHandler);
 bot.use(trackMessagesHandler);
@@ -52,7 +66,7 @@ await bot.api.deleteWebhook({ drop_pending_updates: true });
 // Resume any pending broadcast before starting the bot
 
 run(bot);
-console.log("Bot started");
+logger.info("Bot started");
 
 // Health check for or other cloud providers
 if (env.WEB_SERVICE) {

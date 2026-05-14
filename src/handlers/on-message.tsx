@@ -98,7 +98,7 @@ composer.on("message:text", async (ctx) => {
     .selectFrom("guesses")
     .selectAll()
     .where("guess", "=", currentGuess)
-    .where("chatId", "=", ctx.chat.id.toString())
+    .where("gameId", "=", currentGame.id)
     .executeTakeFirst();
 
   if (guessExists)

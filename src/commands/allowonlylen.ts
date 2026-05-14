@@ -1,6 +1,7 @@
 import { Composer } from "grammy";
 
 import { db } from "../config/db";
+import { logger } from "../config/logger";
 import { CommandsHelper } from "../util/commands-helper";
 import { adminOnlyGuards, runGuards } from "../util/guards";
 
@@ -56,7 +57,7 @@ composer.command("allowonlylen", async (ctx) => {
       `Allowed word lengths updated.\nDefault length: ${lengths[0]}\nAllowed: ${lengths.join(", ")}`,
     );
   } catch (err) {
-    console.error(err);
+    logger.error({ err }, "Failed to update allowed lengths");
     return ctx.reply("Failed to update allowed lengths.");
   }
 });

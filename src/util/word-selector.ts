@@ -1,6 +1,7 @@
 import { randomInt } from "crypto";
 
 import { redis } from "../config/redis";
+import { logger } from "../config/logger";
 import commonSixWords from "../data/common-six.json";
 import commonFiveWords from "../data/common-five.json";
 import commonFourWords from "../data/common-four.json";
@@ -85,7 +86,7 @@ export class WordSelector {
 
       return randomWord;
     } catch (error) {
-      console.error("Redis error, using fallback:", error);
+      logger.error({ err: error }, "Redis error, using fallback word");
       return wordList[randomInt(0, wordList.length)].toLowerCase();
     }
   }
@@ -113,7 +114,7 @@ export class WordSelector {
     try {
       return await redis.smembers(this.historyKey(chatId, wordLength));
     } catch (error) {
-      console.error("Error getting recent words:", error);
+      logger.error({ err: error }, "Error getting recent words");
       return [];
     }
   }

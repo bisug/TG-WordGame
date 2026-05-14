@@ -1,15 +1,16 @@
 import { BotError, Context, GrammyError, HttpError } from "grammy";
 
 import { db } from "../config/db";
+import { logger } from "../config/logger";
 import { redis } from "../config/redis";
 
 export async function errorHandler(error: BotError<Context>) {
   const ctx = error.ctx;
-  console.error(`Error while handling update ${ctx.update.update_id}:`);
+  logger.error({ update_id: ctx.update.update_id }, `Error while handling update:`);
   const e = error.error;
 
   if (e instanceof GrammyError) {
-    console.error("Error in request:", e.description);
+    logger.error({ description: e.description }, "Error in request:");
 
     // Specific case: bot doesn't have permission to send messages
     conditions: if (
@@ -20,11 +21,11 @@ export async function errorHandler(error: BotError<Context>) {
     ) {
       try {
         if (ctx.chat) {
-          console.log(`Leaving chat ${ctx.chat.id} due to missing rights.`);
+          logger.info({ chat_id: ctx.chat.id }, `Leaving chat due to missing rights.`);
           await ctx.api.leaveChat(ctx.chat.id);
         }
       } catch (leaveErr) {
-        console.error("Failed to leave chat:", leaveErr);
+        logger.error({ err: leaveErr }, "Failed to leave chat");
       }
     } else if (
       e.description.includes("message thread not found") &&
@@ -89,8 +90,8 @@ export async function errorHandler(error: BotError<Context>) {
       }
     }
   } else if (e instanceof HttpError) {
-    console.error("Could not contact Telegram:", e);
+    logger.error({ err: e }, "Could not contact Telegram");
   } else {
-    console.error("Unknown error:", e);
+    logger.error({ err: e }, "Unknown error");
   }
 }

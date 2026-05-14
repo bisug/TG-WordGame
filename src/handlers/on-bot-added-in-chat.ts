@@ -1,6 +1,7 @@
 import { Composer } from "grammy";
 
 import { db } from "../config/db";
+import { logger } from "../config/logger";
 import { getGeneralKeyboard } from "../util/get-general-keyboard";
 
 const composer = new Composer();
@@ -43,7 +44,7 @@ That's all I need:  no other permissions are necessary.`,
       .where("id", "=", chat.id.toString())
       .execute();
 
-    console.log(`Bot was removed/blocked from chat ${chat.id}`);
+    logger.info({ chat_id: chat.id }, "Bot was removed/blocked from chat");
   }
 });
 

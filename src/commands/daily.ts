@@ -1,6 +1,7 @@
 import { Composer, InputFile } from "grammy";
 
 import { db } from "../config/db";
+import { logger } from "../config/logger";
 import { redis } from "../config/redis";
 import { CommandsHelper } from "../util/commands-helper";
 import { dailyGameGuards, runGuards } from "../util/guards";
@@ -83,7 +84,7 @@ composer.command("daily", async (ctx) => {
         dailyWord.word,
       );
 
-      return ctx.replyWithPhoto(new InputFile(imageBuffer), {
+      return ctx.replyWithPhoto(new InputFile(new Uint8Array(imageBuffer)), {
         caption: `Welcome back! You have ${attemptsLeft} ${attemptsLeft === 1 ? "attempt" : "attempts"} left for today's WordSeek. Keep guessing!`,
       });
     }
@@ -92,7 +93,7 @@ composer.command("daily", async (ctx) => {
       "🎯 WordSeek of the Day started! Guess the 5-letter word. You have 6 attempts. Good luck!",
     );
   } catch (error) {
-    console.error("Error starting daily wordle:", error);
+    logger.error({ err: error }, "Error starting daily wordle");
     ctx.reply("Something went wrong. Please try again.");
   }
 });
@@ -119,7 +120,7 @@ composer.command("pausedaily", async (ctx) => {
       "✅ Your WordSeek of the Day game has been paused. You can now play regular WordSeek.\n\nTo play today's WordSeek again, use /daily (your previous attempts will still count).",
     );
   } catch (error) {
-    console.error("Error pausing daily wordle:", error);
+    logger.error({ err: error }, "Error pausing daily wordle");
     ctx.reply("Something went wrong. Please try again.");
   }
 });

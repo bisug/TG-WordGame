@@ -2,6 +2,7 @@ import { Queue } from "bullmq";
 import { Worker } from "bullmq";
 
 import { bot } from "../config/bot";
+import { logger } from "../config/logger";
 import { redis } from "../config/redis";
 import { captchaSchema } from "../schemas";
 import { formatUserMention } from "../commands/captcha";
@@ -39,7 +40,7 @@ new Worker(
         { parse_mode: "HTML" },
       );
     } catch (e) {
-      console.error("Edit failed:", e);
+      logger.error({ err: e, chatId, messageId }, "Edit timeout message failed");
     }
 
     try {
@@ -49,7 +50,7 @@ new Worker(
         { parse_mode: "HTML" },
       );
     } catch (e) {
-      console.error("Admin notify failed:", e);
+      logger.error({ err: e, adminId: session.adminId }, "Admin captcha notify failed");
     }
   },
   {

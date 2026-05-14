@@ -1,6 +1,8 @@
 import { Composer } from "grammy";
 
 import { db } from "../config/db";
+import { logger } from "../config/logger";
+import { redis } from "../config/redis";
 
 const composer = new Composer();
 
@@ -17,14 +19,10 @@ composer.use(async (ctx, next) => {
 
       (async () => {
         try {
-          // if (userUsername) {
-          //   await db
-          //     .updateTable("users")
-          //     .set({ username: null })
-          //     .where("username", "=", userUsername)
-          //     .where("id", "!=", userId)
-          //     .execute();
-          // }
+          const syncKey = `sync:user:${userId}`;
+          if (await redis.get(syncKey)) return;
+          await redis.set(syncKey, "1", "EX", 3600 * 24); // Sync once a day
+
           await db
             .insertInto("users")
             .values({
@@ -40,7 +38,7 @@ composer.use(async (ctx, next) => {
             )
             .execute();
         } catch (error) {
-          console.error("Error in user sync:", error);
+          logger.error({ err: error, userId }, "Error in user sync");
         }
       })();
     }
@@ -57,14 +55,10 @@ composer.use(async (ctx, next) => {
 
       (async () => {
         try {
-          // if (chatUsername) {
-          //   await db
-          //     .updateTable("broadcastChats")
-          //     .set({ username: null })
-          //     .where("username", "=", chatUsername)
-          //     .where("id", "!=", chatId)
-          //     .execute();
-          // }
+          const syncKey = `sync:chat:${chatId}`;
+          if (await redis.get(syncKey)) return;
+          await redis.set(syncKey, "1", "EX", 3600 * 24); // Sync once a day
+
           await db
             .insertInto("broadcastChats")
             .values({
@@ -80,12 +74,12 @@ composer.use(async (ctx, next) => {
             )
             .execute();
         } catch (error) {
-          console.error("Error in chat sync:", error);
+          logger.error({ err: error, chatId: chat.id }, "Error in chat sync");
         }
       })();
     }
   } catch (error) {
-    console.error("Error in sync middleware:", error);
+    logger.error({ err: error }, "Error in sync middleware");
   }
 
   return next();
