@@ -1,0 +1,5 @@
+[phases.setup]
+nixPkgs = ["...", "vips"]
+
+[phases.build]
+cmds = ["bun install --frozen-lockfile", "bun run build"]
