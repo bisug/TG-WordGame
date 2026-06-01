@@ -5,12 +5,13 @@
 [![Bun](https://img.shields.io/badge/Bun-%23000000.svg?style=for-the-badge&logo=bun&logoColor=white)](https://bun.sh)
 [![TypeScript](https://img.shields.io/badge/typescript-%23007ACC.svg?style=for-the-badge&logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
 [![PostgreSQL](https://img.shields.io/badge/PostgreSQL-316192?style=for-the-badge&logo=postgresql&logoColor=white)](https://www.postgresql.org/)
-[![Redis](https://img.shields.io/badge/redis-%23DD0031.svg?style=for-the-badge&logo=redis&logoColor=white)](https://redis.io/)
+[![Valkey](https://img.shields.io/badge/Valkey-5B36F2?style=for-the-badge)](https://valkey.io/)
+[![Redis](https://img.shields.io/badge/Redis-DC382D?style=for-the-badge&logo=redis&logoColor=white)](https://redis.io/)
 
 WordSeek is a Telegram word game bot inspired by Wordle. It supports private
 games, group multiplayer rounds, daily global challenges, Telegram Forum topic
 controls, leaderboards, moderation tools, and production deployment on Bun,
-PostgreSQL, and Redis.
+PostgreSQL, and a Redis-protocol cache such as Valkey or Redis.
 
 This repository is a maintained fork of
 [binamralamsal/WordSeek](https://github.com/binamralamsal/WordSeek).
@@ -39,7 +40,7 @@ This repository is a maintained fork of
 - 4-letter, 5-letter, and 6-letter game modes.
 - Telegram Forum topic support, including topic-specific game settings.
 - Global, group, and time-period leaderboards.
-- PostgreSQL-backed durable state with Redis-backed cache and queues.
+- PostgreSQL-backed durable state with Valkey/Redis-backed cache and queues.
 - Local dictionary data for daily word meanings, pronunciations, and examples
   when available.
 - Admin authorization, global bans, captcha checks, broadcasts, and tracking.
@@ -52,7 +53,8 @@ This repository is a maintained fork of
 - Bot framework: [grammY](https://grammy.dev/)
 - Database: [PostgreSQL](https://www.postgresql.org/) with
   [Kysely](https://kysely.dev/)
-- Cache and queues: [Redis](https://redis.io/) with
+- Cache and queues: [Valkey](https://valkey.io/) or [Redis](https://redis.io/)
+  with
   [BullMQ](https://docs.bullmq.io/)
 - Validation: [Zod](https://zod.dev/)
 
@@ -174,9 +176,10 @@ These commands are restricted to Telegram user IDs listed in `ADMIN_USERS`.
 
 ### Security Practices
 
-- Keep `BOT_TOKEN`, database URLs, Redis credentials, and API keys out of Git.
+- Keep `BOT_TOKEN`, database URLs, Valkey/Redis credentials, and API keys out
+  of Git.
 - Keep `ADMIN_USERS` limited to trusted Telegram user IDs.
-- Use a private Redis instance; do not expose Redis directly to the public
+- Use a private Valkey/Redis instance; do not expose it directly to the public
   internet.
 - Use `DATABASE_SSL=true` for managed databases that require TLS.
 - Keep `DATABASE_SSL_REJECT_UNAUTHORIZED=false` only when your provider does not
@@ -190,7 +193,7 @@ These commands are restricted to Telegram user IDs listed in `ADMIN_USERS`.
 
 - Bun 1.3.x
 - PostgreSQL
-- Redis
+- Valkey or Redis
 - A Telegram bot token
 - A configured `.env` file
 
@@ -210,8 +213,15 @@ Use `bun run start` instead of `bun run dev` when you do not need hot reload.
 ### Docker / VPS
 
 The Compose setup is intended for self-hosted VPS deployments. It includes the
-bot, PostgreSQL, Redis, persistent volumes, health checks, and a one-shot
-migration service.
+bot, PostgreSQL, a Valkey/Redis-compatible cache, persistent volumes, health
+checks, and a one-shot migration service.
+
+Default Docker images are pinned to stable releases available in May 2026:
+
+- PostgreSQL `18.4` via `postgres:18.4-alpine3.23`.
+- Valkey `9.1.0` via `valkey/valkey:9.1.0-alpine3.23`.
+- Redis Open Source `8.8.0` is also supported by setting
+  `CACHE_IMAGE=redis:8.8.0-alpine3.23`.
 
 ```bash
 cp .env.docker.example .env
@@ -224,6 +234,13 @@ For Docker deployments using managed PostgreSQL or Redis, set
 `WORDSEEK_DATABASE_URL` or `WORDSEEK_REDIS_URI` in `.env`. Keep
 `DATABASE_SSL=false` for the bundled Compose PostgreSQL service. Set
 `DATABASE_SSL=true` for managed databases that require TLS.
+
+PostgreSQL 18 uses the official image's versioned data directory
+`/var/lib/postgresql/18/docker` and mounts the parent directory
+`/var/lib/postgresql`. If you already have a Compose volume from PostgreSQL 16
+or 17, do not switch the image directly on production data. Take a `pg_dump`
+backup, start a fresh PostgreSQL 18 volume, run migrations, and restore the
+backup.
 
 ### Railway
 
@@ -272,39 +289,42 @@ pm2 start src/index.ts --interpreter bun --name wordseek
 
 ### Latency Guidance
 
-For South Asia users, keep the bot, PostgreSQL, and Redis in the same region
-whenever possible. Code-level caching helps, but it cannot remove network
+For South Asia users, keep the bot, PostgreSQL, and Valkey/Redis in the same
+region whenever possible. Code-level caching helps, but it cannot remove network
 round-trip latency between India, Europe, and the United States. The lowest
 latency setup is usually:
 
 - App server in India, Singapore, or another nearby South Asia/Southeast Asia
   region.
 - PostgreSQL in the same region as the app.
-- Redis in the same region as the app.
+- Valkey/Redis in the same region as the app.
 - Telegram Bot API root left as `https://api.telegram.org` unless you operate a
   local Bot API server close to the app.
 
 ## Configuration
 
-| Variable                           | Required | Default                     | Description                                             |
-| :--------------------------------- | :------- | :-------------------------- | :------------------------------------------------------ |
-| `BOT_TOKEN`                        | Yes      | None                        | Telegram bot token from BotFather.                      |
-| `DAILY_WORDLE_SECRET`              | Yes      | None                        | Secret used for daily challenge verification.           |
-| `DATABASE_URL`                     | Yes      | None                        | PostgreSQL connection string.                           |
-| `REDIS_URI`                        | Yes      | `redis://127.0.0.1:6379`    | Redis connection URI. Falls back to `REDIS_URL`.        |
-| `ADMIN_USERS`                      | Yes      | Empty                       | Comma-separated Telegram user IDs with owner access.    |
-| `NODE_ENV`                         | No       | `development`               | Use `production` in hosted environments.                |
-| `WEB_SERVICE`                      | No       | `false`                     | Starts a small health-check HTTP server when `true`.    |
-| `TIME_ZONE`                        | No       | `UTC`                       | Timezone for daily reset logic and scheduled jobs.      |
-| `DAILY_WORDLE_START_DATE`          | No       | `2025-01-01`                | Start date for the daily word rotation.                 |
-| `DATABASE_SSL`                     | No       | Auto                        | Overrides PostgreSQL SSL usage.                         |
-| `DATABASE_SSL_REJECT_UNAUTHORIZED` | No       | `false`                     | Enables strict PostgreSQL TLS certificate verification. |
-| `CUSTOM_API_ROOT`                  | No       | `https://api.telegram.org`  | Telegram Bot API endpoint.                              |
-| `LOGS_CHANNEL`                     | No       | None                        | Telegram channel ID for selected operational logs.      |
-| `UPDATES_CHANNEL`                  | No       | `https://t.me/WordSeek`     | Link shown in bot keyboards.                            |
-| `DISCUSSION_GROUP`                 | No       | `https://t.me/WordGuesser`  | Link shown in bot keyboards.                            |
-| `WORDSEEK_DATABASE_URL`            | Docker   | Internal Compose PostgreSQL | Compose-only override mapped to `DATABASE_URL`.         |
-| `WORDSEEK_REDIS_URI`               | Docker   | Internal Compose Redis      | Compose-only override mapped to `REDIS_URI`.            |
+| Variable                           | Required | Default                          | Description                                             |
+| :--------------------------------- | :------- | :------------------------------- | :------------------------------------------------------ |
+| `BOT_TOKEN`                        | Yes      | None                             | Telegram bot token from BotFather.                      |
+| `DAILY_WORDLE_SECRET`              | Yes      | None                             | Secret used for daily challenge verification.           |
+| `DATABASE_URL`                     | Yes      | None                             | PostgreSQL connection string.                           |
+| `REDIS_URI`                        | Yes      | `redis://127.0.0.1:6379`         | Valkey/Redis URI. Falls back to `REDIS_URL`.            |
+| `ADMIN_USERS`                      | Yes      | Empty                            | Comma-separated Telegram user IDs with owner access.    |
+| `NODE_ENV`                         | No       | `development`                    | Use `production` in hosted environments.                |
+| `WEB_SERVICE`                      | No       | `false`                          | Starts a small health-check HTTP server when `true`.    |
+| `TIME_ZONE`                        | No       | `UTC`                            | Timezone for daily reset logic and scheduled jobs.      |
+| `DAILY_WORDLE_START_DATE`          | No       | `2025-01-01`                     | Start date for the daily word rotation.                 |
+| `DATABASE_SSL`                     | No       | Auto                             | Overrides PostgreSQL SSL usage.                         |
+| `DATABASE_SSL_REJECT_UNAUTHORIZED` | No       | `false`                          | Enables strict PostgreSQL TLS certificate verification. |
+| `CUSTOM_API_ROOT`                  | No       | `https://api.telegram.org`       | Telegram Bot API endpoint.                              |
+| `LOGS_CHANNEL`                     | No       | None                             | Telegram channel ID for selected operational logs.      |
+| `UPDATES_CHANNEL`                  | No       | `https://t.me/WordSeek`          | Link shown in bot keyboards.                            |
+| `DISCUSSION_GROUP`                 | No       | `https://t.me/WordGuesser`       | Link shown in bot keyboards.                            |
+| `POSTGRES_IMAGE`                   | Docker   | `postgres:18.4-alpine3.23`       | Compose PostgreSQL image.                               |
+| `POSTGRES_PGDATA`                  | Docker   | `/var/lib/postgresql/18/docker`  | Compose PostgreSQL data directory.                      |
+| `CACHE_IMAGE`                      | Docker   | `valkey/valkey:9.1.0-alpine3.23` | Compose cache image; Redis `8.8.0` is supported.        |
+| `WORDSEEK_DATABASE_URL`            | Docker   | Internal Compose PostgreSQL      | Compose-only override mapped to `DATABASE_URL`.         |
+| `WORDSEEK_REDIS_URI`               | Docker   | Internal Compose Valkey          | Compose-only override mapped to `REDIS_URI`.            |
 
 ## Development
 
@@ -379,11 +399,12 @@ bun run db:codegen
   service.
 - For managed Postgres, set `DATABASE_SSL=true` if the provider requires TLS.
 
-### Redis Connection Errors
+### Valkey / Redis Connection Errors
 
-- Confirm Redis is running and reachable from the app.
+- Confirm Valkey or Redis is running and reachable from the app.
 - Check `REDIS_URI`.
-- Do not expose Redis publicly on a VPS; keep it on a private network.
+- Do not expose Valkey or Redis publicly on a VPS; keep it on a private
+  network.
 
 ### Migration Failures
 
@@ -394,9 +415,9 @@ bun run db:codegen
 
 ### High Latency
 
-- Keep the app, Redis, and PostgreSQL in the same region.
-- Avoid running the app in Europe or the United States while Redis/PostgreSQL or
-  users are in South Asia.
+- Keep the app, Valkey/Redis, and PostgreSQL in the same region.
+- Avoid running the app in Europe or the United States while Valkey/Redis,
+  PostgreSQL, or users are in South Asia.
 - Use the Docker/VPS path in a nearby region if your platform does not offer
   South Asia infrastructure.
 

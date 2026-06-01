@@ -37,14 +37,15 @@ services:
         condition: service_healthy
 
   postgres:
-    image: postgres:16-alpine
+    image: ${POSTGRES_IMAGE:-postgres:18.4-alpine3.23}
     restart: unless-stopped
     environment:
       POSTGRES_DB: ${POSTGRES_DB:-wordseek}
       POSTGRES_USER: ${POSTGRES_USER:-wordseek}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-wordseek_change_me}
+      PGDATA: ${POSTGRES_PGDATA:-/var/lib/postgresql/18/docker}
     volumes:
-      - postgres_data:/var/lib/postgresql/data
+      - postgres_data:/var/lib/postgresql
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
       interval: 10s
@@ -52,13 +53,24 @@ services:
       retries: 10
 
   redis:
-    image: redis:7-alpine
+    image: ${CACHE_IMAGE:-valkey/valkey:9.1.0-alpine3.23}
     restart: unless-stopped
-    command: ["redis-server", "--appendonly", "yes"]
+    command:
+      - sh
+      - -c
+      - |
+        if command -v valkey-server >/dev/null 2>&1; then
+          exec valkey-server --appendonly yes
+        fi
+        exec redis-server --appendonly yes
     volumes:
       - redis_data:/data
     healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
+      test:
+        [
+          "CMD-SHELL",
+          "if command -v valkey-cli >/dev/null 2>&1; then valkey-cli ping; else redis-cli ping; fi",
+        ]
       interval: 10s
       timeout: 5s
       retries: 10
