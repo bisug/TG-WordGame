@@ -3,6 +3,7 @@
   "description": "A fun and competitive Wordle-style game for Telegram",
   "repository": "https://github.com/bisug/TG-WordGame",
   "logo": "https://github.com/user-attachments/assets/bf444d36-2eea-4ad5-83e7-4a99acda2bfe",
+  "stack": "container",
   "keywords": [
     "telegram",
     "bot",
@@ -16,6 +17,7 @@
     "postgres",
     "redis"
   ],
+  "addons": ["heroku-postgresql", "heroku-redis"],
   "env": {
     "BOT_TOKEN": {
       "description": "Your Telegram Bot Token from @BotFather",
@@ -45,11 +47,10 @@
     "DISCUSSION_GROUP": {
       "description": "Link to the discussion group",
       "value": "https://t.me/WordGuesser"
+    },
+    "WEB_SERVICE": {
+      "description": "Set false for worker-style long polling on Heroku",
+      "value": "false"
     }
-  },
-  "buildpacks": [
-    {
-      "url": "https://github.com/bisug/heroku-buildpack-bun"
-    }
-  ]
+  }
 }

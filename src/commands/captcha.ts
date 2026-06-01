@@ -6,6 +6,7 @@ import { redis } from "../config/redis";
 import { captchaSchema } from "../schemas";
 import { SLOT_SYMBOLS } from "../config/constants";
 import { captchaQueue } from "../queues/captcha-queue";
+import { safeJsonParse } from "../util/safe-json-parse";
 
 const composer = new Composer();
 
@@ -104,11 +105,11 @@ composer.command("captcha", async (ctx) => {
   const existing = await redis.get(key);
 
   if (existing) {
-    const session = JSON.parse(existing);
+    const session = safeJsonParse<{ attempts?: number }>(existing, {});
 
     return ctx.reply(
       `⚠️ A captcha is already active for this user.\n\n` +
-        `Attempts: ${session.attempts}/3\n` +
+        `Attempts: ${session.attempts ?? 0}/3\n` +
         `Status: Not yet completed`,
     );
   }

@@ -6,6 +6,11 @@ import { redis } from "../config/redis";
 import { deleteCachedGame } from "../util/game-cache";
 import { CommandsHelper } from "../util/commands-helper";
 import { requireAllowedTopic, runGuards } from "../util/guards";
+import {
+  formatUserLink,
+  getCurrentTopicId,
+  getEndVoteKey,
+} from "../util/end-vote";
 
 const composer = new Composer();
 
@@ -55,6 +60,7 @@ export async function endGame(
 composer.command("end", async (ctx) => {
   const chatId = ctx.chat.id;
   if (!ctx.message) return;
+  const topicId = getCurrentTopicId(ctx);
 
   const guard = await runGuards(ctx, [requireAllowedTopic]);
   if (!guard.ok) return ctx.reply(guard.message);
@@ -63,6 +69,7 @@ composer.command("end", async (ctx) => {
     .selectFrom("games")
     .selectAll()
     .where("activeChat", "=", String(ctx.chat.id))
+    .where("topicId", "=", topicId)
     .executeTakeFirst();
 
   if (!currentGame) return ctx.reply("There is no game in progress.");
@@ -81,10 +88,11 @@ composer.command("end", async (ctx) => {
     isAdmin || isSystemAdmin || isGameStarter || isAuthorized || isPrivate;
 
   if (isPermitted) {
-    const userName =
-      ctx.from.first_name +
-      (ctx.from.last_name ? " " + ctx.from.last_name : "");
-    const userLink = `<a href="tg://user?id=${ctx.from.id}">${userName}</a>`;
+    const userLink = formatUserLink(
+      ctx.from.id,
+      ctx.from.first_name,
+      ctx.from.last_name,
+    );
 
     let reason = "";
 
@@ -111,7 +119,7 @@ composer.command("end", async (ctx) => {
     );
   }
 
-  const voteKey = `vote:${chatId}`;
+  const voteKey = getEndVoteKey(chatId, topicId);
   const existingVotes = await redis.get(voteKey);
 
   if (existingVotes) {
@@ -127,12 +135,15 @@ composer.command("end", async (ctx) => {
 
   await redis.setex(voteKey, 300, JSON.stringify(voteData)); // 5 minutes expiry
 
-  const userName =
-    ctx.from.first_name + (ctx.from.last_name ? " " + ctx.from.last_name : "");
+  const userLink = formatUserLink(
+    ctx.from.id,
+    ctx.from.first_name,
+    ctx.from.last_name,
+  );
 
   await ctx.reply(
     `<b>🗳️ Vote to End Game</b>\n\n` +
-      `<a href="tg://user?id=${ctx.from.id}">${userName}</a> wants to end the game.\n\n` +
+      `${userLink} wants to end the game.\n\n` +
       `<b>Votes needed: 3 out of remaining players</b>\n` +
       `<b>Current votes: 1/3</b>\n\n` +
       `React with the button below to vote for ending the game.`,
@@ -143,7 +154,7 @@ composer.command("end", async (ctx) => {
           [
             {
               text: "✅ Vote to End (1/3)",
-              callback_data: `vote_end ${chatId}`,
+              callback_data: `vote_end ${chatId} ${topicId}`,
             },
           ],
         ],

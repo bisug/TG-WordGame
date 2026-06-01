@@ -101,6 +101,9 @@ web_modules/
 # dotenv environment variable files
 
 .env
+.env.*
+!.env.example
+!.env.docker.example
 .env.development.local
 .env.test.local
 .env.production.local
@@ -174,4 +177,5 @@ dist
 # Finder (MacOS) folder config
 .DS_Store
 sqlite.db
-wiki_drafts/
+migration.sql
+words_with_details.json

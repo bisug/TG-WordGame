@@ -14,6 +14,7 @@ import allSixWords from "../data/all-six.json";
 import allFiveWords from "../data/all-five.json";
 import allFourWords from "../data/all-four.json";
 import { toFancyText } from "../util/to-fancy-text";
+import { safeJsonParse } from "../util/safe-json-parse";
 import { requireAllowedTopic, runGuards } from "../util/guards";
 import { formatDailyWordDetails } from "../util/format-word-details";
 import { deleteCachedGame, getCachedGame } from "../util/game-cache";
@@ -55,7 +56,7 @@ composer.on("message:text", async (ctx) => {
   if (ctx.chat.type === "private") {
     const dailyGameData = await redis.get(`daily_wordle:${userId}`);
     const result = dailyWordleSchema.safeParse(
-      JSON.parse(dailyGameData || "{}"),
+      safeJsonParse(dailyGameData, {}),
     );
     if (result.success) {
       const todayDate = getCurrentGameDateString();
@@ -91,28 +92,22 @@ composer.on("message:text", async (ctx) => {
       `${currentGuess} is not a valid ${wordLength}-letter word.`,
     );
 
-  const guessExists = await db
+  const existingGuesses = await db
     .selectFrom("guesses")
     .selectAll()
-    .where("guess", "=", currentGuess)
     .where("gameId", "=", currentGame.id)
-    .executeTakeFirst();
+    .orderBy("createdAt", "asc")
+    .execute();
 
-  if (guessExists)
+  if (existingGuesses.some((g) => g.guess === currentGuess))
     return ctx.reply(
       "Someone has already guessed your word. Please try another one!",
     );
 
   if (currentGuess === currentGame.word) {
     if (!ctx.from.is_bot) {
-      const allGuesses = await db
-        .selectFrom("guesses")
-        .selectAll()
-        .where("gameId", "=", currentGame.id)
-        .execute();
-
-      const score = 30 - allGuesses.length;
-      const additionalMessage = `Added ${30 - allGuesses.length} to the leaderboard.`;
+      const score = 30 - existingGuesses.length;
+      const additionalMessage = `Added ${score} to the leaderboard.`;
 
       await db
         .insertInto("leaderboard")
@@ -147,21 +142,16 @@ composer.on("message:text", async (ctx) => {
     return;
   }
 
-  await db
+  const insertedGuess = await db
     .insertInto("guesses")
     .values({
       gameId: currentGame.id,
       guess: currentGuess,
       chatId,
     })
-    .execute();
-
-  const allGuesses = await db
-    .selectFrom("guesses")
-    .selectAll()
-    .where("gameId", "=", currentGame.id)
-    .orderBy("createdAt", "asc")
-    .execute();
+    .returningAll()
+    .executeTakeFirstOrThrow();
+  const allGuesses = [...existingGuesses, insertedGuess];
 
   if (allGuesses.length === 30) {
     await db.deleteFrom("games").where("id", "=", currentGame.id).execute();

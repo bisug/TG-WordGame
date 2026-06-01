@@ -61,6 +61,9 @@ async function performBroadcast(
   state: BroadcastState,
 ) {
   for (let i = state.currentIndex; i < chats.length; i++) {
+    const latestState = await getBroadcastState();
+    if (!latestState) return;
+
     const chat = chats[i];
 
     try {
@@ -224,7 +227,10 @@ composer.command("broadcast_status", async (ctx) => {
   }
 
   const elapsed = Date.now() - state.startTime;
-  const estimatedTotal = (elapsed / state.currentIndex) * state.totalChats;
+  const estimatedTotal =
+    state.currentIndex === 0
+      ? state.totalChats * 200
+      : (elapsed / state.currentIndex) * state.totalChats;
   const estimatedRemaining = estimatedTotal - elapsed;
 
   await ctx.reply(

@@ -17,6 +17,7 @@ RUN bun install --frozen-lockfile --production
 FROM oven/bun:1.3.13-debian AS runner
 
 WORKDIR /app
+ENV NODE_ENV=production
 
 # Install system libraries required by sharp
 RUN apt-get update && apt-get install -y --no-install-recommends \
@@ -30,12 +31,14 @@ COPY --from=deps /app/node_modules ./node_modules
 COPY src/ ./src/
 COPY migrations/ ./migrations/
 COPY kysely.config.ts ./
+COPY tsconfig.json ./
 COPY package.json ./
 COPY bunfig.toml ./
-COPY .bun-version ./
 
 # Use non-root user for security (bun image ships with this user)
 USER bun
+
+EXPOSE 3000
 
 # Run the bot
 CMD ["bun", "run", "src/index.ts"]

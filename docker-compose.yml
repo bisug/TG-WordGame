@@ -1,23 +1,68 @@
-services:
-  wordseek-bot:
-    build: .
-    container_name: wordseek-bot
-    restart: always
-    env_file:
-      - .env
-    # Uncomment the following if you need to run DB/Redis in Docker too
-    # depends_on:
-    #   - postgres
-    #   - redis
-# Example for local DB/Redis (optional)
-# postgres:
-#   image: postgres:15-alpine
-#   restart: always
-#   environment:
-#     POSTGRES_PASSWORD: password
-#   volumes:
-#     - ./data/postgres:/var/lib/postgresql/data
+x-wordseek-app: &wordseek-app
+  image: wordseek-bot:local
+  build:
+    context: .
+    dockerfile: Dockerfile
+    target: runner
+  env_file:
+    - .env
+  environment: &wordseek-env
+    NODE_ENV: ${NODE_ENV:-production}
+    WEB_SERVICE: ${WEB_SERVICE:-false}
+    DATABASE_URL: ${WORDSEEK_DATABASE_URL:-postgresql://wordseek:wordseek_change_me@postgres:5432/wordseek}
+    DATABASE_SSL: ${DATABASE_SSL:-false}
+    DATABASE_SSL_REJECT_UNAUTHORIZED: ${DATABASE_SSL_REJECT_UNAUTHORIZED:-false}
+    REDIS_URI: ${WORDSEEK_REDIS_URI:-redis://redis:6379}
+  depends_on:
+    postgres:
+      condition: service_healthy
+    redis:
+      condition: service_healthy
 
-# redis:
-#   image: redis:alpine
-#   restart: always
+services:
+  wordseek-migrate:
+    <<: *wordseek-app
+    restart: "no"
+    command: ["bun", "run", "db:migrate"]
+
+  wordseek-bot:
+    <<: *wordseek-app
+    restart: unless-stopped
+    depends_on:
+      wordseek-migrate:
+        condition: service_completed_successfully
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-wordseek}
+      POSTGRES_USER: ${POSTGRES_USER:-wordseek}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-wordseek_change_me}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    command: ["redis-server", "--appendonly", "yes"]
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  postgres_data:
+  redis_data:

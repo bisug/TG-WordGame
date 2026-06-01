@@ -1,9 +1,37 @@
 import { z } from "zod";
 
+const optionalBoolean = z
+  .string()
+  .optional()
+  .transform((value, ctx) => {
+    if (value === undefined || value.trim() === "") return undefined;
+
+    const normalized = value.trim().toLowerCase();
+    if (normalized === "true") return true;
+    if (normalized === "false") return false;
+
+    ctx.addIssue({
+      code: "custom",
+      message: "Expected true or false",
+    });
+    return z.NEVER;
+  });
+
+const rawEnv = {
+  ...process.env,
+  REDIS_URI: process.env.REDIS_URI ?? process.env.REDIS_URL,
+};
+
 export const env = z
   .object({
     BOT_TOKEN: z.string().min(1, { message: "BOT_TOKEN is required" }),
     DATABASE_URL: z.string().min(1, { message: "DATABASE_URL is required" }),
+    DATABASE_SSL: optionalBoolean,
+    DATABASE_SSL_REJECT_UNAUTHORIZED: z
+      .string()
+      .optional()
+      .default("false")
+      .transform((val) => val.trim().toLowerCase() !== "false"),
     NODE_ENV: z.enum(["development", "production"]).default("development"),
     ADMIN_USERS: z
       .string()
@@ -41,4 +69,4 @@ export const env = z
       .default("false")
       .transform((val) => val.toLowerCase() === "true"),
   })
-  .parse(process.env);
+  .parse(rawEnv);

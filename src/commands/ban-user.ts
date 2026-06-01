@@ -2,7 +2,7 @@ import { Composer } from "grammy";
 
 import { db } from "../config/db";
 import { env } from "../config/env";
-import { redis } from "../config/redis";
+import { setCachedBanStatus } from "../util/ban-cache";
 
 const composer = new Composer();
 
@@ -41,7 +41,7 @@ composer.command("ban", async (ctx) => {
     })
     .execute();
 
-  await redis.set(`ban:${user.id}`, "1", "EX", 3600); // 1 hour
+  await setCachedBanStatus(user.id, true);
 
   ctx.reply(`Banned ${user.name} from the bot`);
 });

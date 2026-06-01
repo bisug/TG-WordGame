@@ -4,9 +4,31 @@ import { sql } from "kysely";
 
 import { db } from "../config/db";
 import { env } from "../config/env";
+import { ensureUser } from "../util/sync-entities";
 import { CommandsHelper } from "../util/commands-helper";
+import { escapeHtmlEntities } from "../util/escape-html-entities";
 
 const composer = new Composer();
+
+function formatUserLabel(user: { name: string; username?: string | null }) {
+  const name = escapeHtmlEntities(user.name);
+  return user.username
+    ? `@${escapeHtmlEntities(user.username)} (${name})`
+    : name;
+}
+
+function formatLinkedUser(user: {
+  id: string;
+  name: string;
+  username?: string | null;
+}) {
+  const username = user.username
+    ? ` (@${escapeHtmlEntities(user.username)})`
+    : "";
+  return `<a href="tg://user?id=${user.id}">${escapeHtmlEntities(
+    user.name,
+  )}</a>${username}`;
+}
 
 export async function getTargetUser(
   ctx: Context,
@@ -19,13 +41,7 @@ export async function getTargetUser(
     ctx.from &&
     ctx.chatId?.toString() === ctx.from.id.toString()
   ) {
-    const user = ctx.from;
-
-    return {
-      id: user.id.toString(),
-      name: user.first_name + (user.last_name ? " " + user.last_name : ""),
-      username: user.username,
-    };
+    return ensureUser(ctx.from);
   }
 
   const replyToMessage = ctx.message?.reply_to_message;
@@ -36,25 +52,11 @@ export async function getTargetUser(
     !replyToMessageFrom.is_bot &&
     !replyToMessage.is_topic_message
   ) {
-    const user = replyToMessageFrom;
-
-    return {
-      id: user.id.toString(),
-      name: user.first_name + (user.last_name ? " " + user.last_name : ""),
-      username: user.username,
-    };
+    return ensureUser(replyToMessageFrom);
   }
 
   if (fallback && !identifier) {
-    const user = ctx.from;
-
-    if (!user) return null;
-
-    return {
-      id: user.id.toString(),
-      name: user.first_name + (user.last_name ? " " + user.last_name : ""),
-      username: user.username,
-    };
+    return ensureUser(ctx.from);
   }
 
   const entities = ctx.message?.entities || [];
@@ -65,24 +67,7 @@ export async function getTargetUser(
     if (entity.offset < argStart) continue;
 
     if (entity.type === "text_mention") {
-      const user = entity.user;
-      const userData = {
-        id: user.id.toString(),
-        name: user.first_name + (user.last_name ? " " + user.last_name : ""),
-        username: user.username,
-      };
-
-      await db
-        .insertInto("users")
-        .values(userData)
-        .onConflict((oc) =>
-          oc.column("id").doUpdateSet({
-            name: userData.name,
-            username: userData.username,
-          }),
-        )
-        .execute();
-      return userData;
+      return ensureUser(entity.user);
     }
 
     if (identifier && entity.type === "mention") {
@@ -102,13 +87,7 @@ export async function getTargetUser(
     try {
       const member = await ctx.getChatMember(parseInt(identifier));
       if (member.user) {
-        return {
-          id: member.user.id.toString(),
-          name:
-            member.user.first_name +
-            (member.user.last_name ? " " + member.user.last_name : ""),
-          username: member.user.username,
-        };
+        return ensureUser(member.user);
       }
     } catch {
       // Fall through to database
@@ -169,10 +148,7 @@ composer.command("seekauth", async (ctx) => {
     }
 
     const userList = authorizedUsers
-      .map(
-        (user) =>
-          `• <a href="tg://user?id=${user.id}">${user.name}</a>${user.username ? ` (@${user.username})` : ""}`,
-      )
+      .map((user) => `• ${formatLinkedUser(user)}`)
       .join("\n");
 
     return await ctx.reply(
@@ -198,9 +174,7 @@ composer.command("seekauth", async (ctx) => {
       return await ctx.reply("❌ This user is not authorized.", replyConfig);
     }
 
-    const userName = targetUser.username
-      ? `@${targetUser.username} (${targetUser.name})`
-      : targetUser.name;
+    const userName = formatUserLabel(targetUser);
 
     return await ctx.reply(
       `✅ <b>${userName}</b> is no longer authorized to end the game.`,
@@ -225,7 +199,9 @@ composer.command("seekauth", async (ctx) => {
 
   if (existing) {
     return await ctx.reply(
-      `⚠️ <b>${targetUser.name}</b> is already authorized to end the game in this chat.`,
+      `⚠️ <b>${escapeHtmlEntities(
+        targetUser.name,
+      )}</b> is already authorized to end the game in this chat.`,
       replyConfig,
     );
   }
@@ -239,9 +215,7 @@ composer.command("seekauth", async (ctx) => {
     })
     .execute();
 
-  const userName = targetUser.username
-    ? `@${targetUser.username} (${targetUser.name})`
-    : targetUser.name;
+  const userName = formatUserLabel(targetUser);
 
   return await ctx.reply(
     `✅ <b>${userName}</b> is now authorized to end the game without voting!`,

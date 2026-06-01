@@ -2,6 +2,11 @@ import { Composer } from "grammy";
 
 import { env } from "../config/env";
 import { redis } from "../config/redis";
+import {
+  getTrackingAdminChatId,
+  setTrackedChat,
+  unsetTrackedChat,
+} from "../util/tracking-cache";
 
 const composer = new Composer();
 
@@ -14,14 +19,13 @@ composer.command("track", async (ctx) => {
     return ctx.reply("Usage: /track <chat_id>");
   }
 
-  const trackingKey = `tracking:${chatId}`;
-  const existingTracking = await redis.get(trackingKey);
+  const existingTracking = await getTrackingAdminChatId(chatId);
 
   if (existingTracking) {
     return ctx.reply(`⚠️ Chat ${chatId} is already being tracked`);
   }
 
-  await redis.set(trackingKey, ctx.chat.id.toString());
+  await setTrackedChat(chatId, ctx.chat.id.toString());
 
   await ctx.reply(
     `✅ Now tracking chat: ${chatId}\nAll messages will be forwarded here.`,
@@ -37,8 +41,7 @@ composer.command("untrack", async (ctx) => {
     return ctx.reply("Usage: /untrack <chat_id>");
   }
 
-  const trackingKey = `tracking:${chatId}`;
-  const deleted = await redis.del(trackingKey);
+  const deleted = await unsetTrackedChat(chatId);
 
   if (deleted === 0) {
     return ctx.reply(`⚠️ Chat ${chatId} is not being tracked`);

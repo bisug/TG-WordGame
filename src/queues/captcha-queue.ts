@@ -6,6 +6,7 @@ import { redis } from "../config/redis";
 import { logger } from "../config/logger";
 import { captchaSchema } from "../schemas";
 import { formatUserMention } from "../commands/captcha";
+import { safeJsonParse } from "../util/safe-json-parse";
 
 export const captchaQueue = new Queue("captcha-expiry", {
   connection: redis,
@@ -22,7 +23,13 @@ new Worker(
 
     if (!raw) return;
 
-    const session = captchaSchema.parse(JSON.parse(raw));
+    const sessionResult = captchaSchema.safeParse(safeJsonParse(raw, null));
+    if (!sessionResult.success) {
+      await redis.del(key);
+      return;
+    }
+
+    const session = sessionResult.data;
 
     await redis.del(key);
 

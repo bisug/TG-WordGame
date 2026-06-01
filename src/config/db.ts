@@ -10,26 +10,15 @@ import {
 import { env } from "./env";
 import { logger } from "./logger";
 import type { DB } from "../database-schemas";
+import { getDbConnectionString, getDbSslConfig } from "./database-url";
 
 const { Pool } = pg;
-
-// Strip sslmode from the URL
-// so our explicit ssl config is the only one pg sees.
-function getDbConnectionString() {
-  try {
-    const url = new URL(env.DATABASE_URL);
-    url.searchParams.delete("sslmode");
-    return url.toString();
-  } catch {
-    return env.DATABASE_URL;
-  }
-}
 
 const dialect = new PostgresDialect({
   pool: new Pool({
     connectionString: getDbConnectionString(),
     max: 10,
-    ssl: env.NODE_ENV === "production" ? { rejectUnauthorized: false } : false,
+    ssl: getDbSslConfig(),
   }),
 });
 

@@ -5,6 +5,7 @@ services:
     runtime: docker
     dockerfilePath: Dockerfile
     dockerContext: .
+    preDeployCommand: bun run db:migrate
     envVars:
       - key: WEB_SERVICE
         value: "true"

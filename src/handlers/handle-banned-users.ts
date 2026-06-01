@@ -1,28 +1,12 @@
 import { Composer, InlineKeyboard } from "grammy";
 
-import { db } from "../config/db";
-import { redis } from "../config/redis";
+import { getCachedBanStatus } from "../util/ban-cache";
 
 const composer = new Composer();
 
 composer.on("message", async (ctx, next) => {
   const userId = ctx.from.id.toString();
-  const banKey = `ban:${userId}`;
-  let isUserBanned: boolean;
-
-  const cachedBan = await redis.get(banKey);
-  if (cachedBan) {
-    isUserBanned = cachedBan === "1";
-  } else {
-    const banRecord = await db
-      .selectFrom("bannedUsers")
-      .selectAll()
-      .where("userId", "=", userId)
-      .executeTakeFirst();
-
-    isUserBanned = !!banRecord;
-    await redis.set(banKey, isUserBanned ? "1" : "0", "EX", 3600); // Cache for 1 hour
-  }
+  const isUserBanned = await getCachedBanStatus(userId);
 
   if (!isUserBanned) return await next();
 

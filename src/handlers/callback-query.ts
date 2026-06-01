@@ -7,6 +7,7 @@ import { env } from "../config/env";
 import { redis } from "../config/redis";
 import { logger } from "../config/logger";
 import { captchaSchema } from "../schemas";
+import { safeJsonParse } from "../util/safe-json-parse";
 import { getUserScores } from "../services/get-user-scores";
 import { getSmartDefaults } from "../util/get-smart-defaults";
 import { endGame, isUserAuthorized } from "../commands/end-game";
@@ -18,6 +19,11 @@ import { formatUserScoreMessage } from "../util/format-user-score-message";
 import { formatLeaderboardMessage } from "../util/format-leaderboard-message";
 import { generateLeaderboardKeyboard } from "../util/generate-leaderboard-keyboard";
 import { generateUserSelectionKeyboard } from "../util/generate-user-selection-keyboard";
+import {
+  formatUserLink,
+  getEndVoteKey,
+  parseEndVoteData,
+} from "../util/end-vote";
 import {
   buildCaptchaKeyboard,
   buildMessage,
@@ -330,7 +336,7 @@ composer.on("callback_query:data", async (ctx) => {
     }
     await ctx.answerCallbackQuery();
   } else if (data.startsWith("vote_end")) {
-    const [, chatIdStr] = data.split(" ");
+    const [, chatIdStr, topicId = "general"] = data.split(" ");
     if (!chatIdStr) return await ctx.answerCallbackQuery();
 
     const chatId = parseInt(chatIdStr);
@@ -346,6 +352,7 @@ composer.on("callback_query:data", async (ctx) => {
       .selectFrom("games")
       .selectAll()
       .where("activeChat", "=", chatId.toString())
+      .where("topicId", "=", topicId)
       .executeTakeFirst();
 
     if (!existingGame) {
@@ -356,17 +363,17 @@ composer.on("callback_query:data", async (ctx) => {
     }
 
     const userId = ctx.from.id.toString();
-    const voteKey = `vote:${chatId}`;
+    const voteKey = getEndVoteKey(chatId, topicId);
     const voteDataStr = await redis.get(voteKey);
+    const voteData = parseEndVoteData(voteDataStr);
 
-    if (!voteDataStr) {
+    if (!voteData) {
+      if (voteDataStr) await redis.del(voteKey);
       return await ctx.answerCallbackQuery({
         text: "The voting session has expired.",
         show_alert: true,
       });
     }
-
-    const voteData = JSON.parse(voteDataStr);
 
     if (voteData.voters.includes(userId)) {
       return await ctx.answerCallbackQuery({
@@ -385,10 +392,11 @@ composer.on("callback_query:data", async (ctx) => {
       isAdmin || isSystemAdmin || isGameStarter || isAuthorized || isPrivate;
 
     if (isPermitted) {
-      const userName =
-        ctx.from.first_name +
-        (ctx.from.last_name ? " " + ctx.from.last_name : "");
-      const userLink = `<a href="tg://user?id=${ctx.from.id}">${userName}</a>`;
+      const userLink = formatUserLink(
+        ctx.from.id,
+        ctx.from.first_name,
+        ctx.from.last_name,
+      );
 
       let reason = "";
       if (isPrivate) {
@@ -405,6 +413,7 @@ composer.on("callback_query:data", async (ctx) => {
         reason = `<b>Ended by: </b>${userLink}`;
       }
 
+      await redis.del(voteKey);
       await ctx.deleteMessage();
       await endGame(
         ctx,
@@ -455,7 +464,7 @@ composer.on("callback_query:data", async (ctx) => {
             [
               {
                 text: `✅ Vote to End (${voteData.voters.length}/3)`,
-                callback_data: `vote_end ${chatId}`,
+                callback_data: `vote_end ${chatId} ${topicId}`,
               },
             ],
           ],
@@ -563,7 +572,17 @@ composer.on("callback_query:data", async (ctx) => {
       });
     }
 
-    const session = captchaSchema.parse(JSON.parse(raw));
+    const sessionResult = captchaSchema.safeParse(safeJsonParse(raw, null));
+
+    if (!sessionResult.success) {
+      await redis.del(key);
+      return await ctx.answerCallbackQuery({
+        text: "Captcha expired or, this captcha isn't for you.",
+        show_alert: true,
+      });
+    }
+
+    const session = sessionResult.data;
 
     const mentionText = formatUserMention({
       id: userId,

@@ -1,8 +1,8 @@
 import { Composer, Context } from "grammy";
 
 import { env } from "../config/env";
-import { redis } from "../config/redis";
 import { logger } from "../config/logger";
+import { getTrackingAdminChatId } from "../util/tracking-cache";
 
 const composer = new Composer();
 
@@ -190,8 +190,7 @@ composer.use(async (ctx, next) => {
     }
   }
 
-  const trackingKey = `tracking:${ctx.chat?.id}`;
-  const adminChatId = await redis.get(trackingKey);
+  const adminChatId = await getTrackingAdminChatId(ctx.chat.id);
 
   if (adminChatId) {
     try {

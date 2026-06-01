@@ -6,25 +6,16 @@ import {
   PostgresDialect,
 } from "kysely";
 
-import { env } from "./src/config/env";
-
-// Strip sslmode from DATABASE_URL so pg-connection-string doesn't
-// override our explicit ssl option with verify-full semantics.
-function getDbConnectionString() {
-  try {
-    const url = new URL(env.DATABASE_URL);
-    url.searchParams.delete("sslmode");
-    return url.toString();
-  } catch {
-    return env.DATABASE_URL;
-  }
-}
+import {
+  getDbConnectionString,
+  getDbSslConfig,
+} from "./src/config/database-url";
 
 const dialect = new PostgresDialect({
   pool: new Pool({
     connectionString: getDbConnectionString(),
     max: 10,
-    ssl: env.NODE_ENV === "production" ? { rejectUnauthorized: false } : false,
+    ssl: getDbSslConfig(),
   }),
 });
 

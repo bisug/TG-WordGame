@@ -9,10 +9,11 @@
     "start": "bun run src/index.ts",
     "dev": "bun run --watch src/index.ts",
     "typecheck": "bunx -p @typescript/native-preview tsgo --noEmit",
-    "lint": "prettier --check .",
+    "lint": "prettier --check \"src/**/*.{ts,tsx}\" \"migrations/**/*.ts\" \"*.{json,md,yml,yaml}\" \".github/**/*.yml\"",
+    "test": "bun test",
     "build": "bun build ./src/index.ts --outdir ./dist --target bun",
-    "db:migrate": "kysely latest",
-    "db:seed": "kysely seed",
+    "db:migrate": "kysely migrate:latest",
+    "db:seed": "kysely seed:run",
     "db:codegen": "kysely-codegen --out-file ./src/database-schemas.ts --singularize --camel-case"
   },
   "devDependencies": {
