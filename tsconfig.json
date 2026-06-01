@@ -9,6 +9,7 @@
     "forceConsistentCasingInFileNames": true,
     "allowJs": true,
     "noEmit": true,
+    "types": ["bun"],
     "paths": {
       "*": ["./src/*"]
     },

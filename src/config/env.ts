@@ -56,11 +56,6 @@ export const env = z
     DAILY_WORDLE_SECRET: z
       .string()
       .min(1, { message: "DAILY_WORDLE_SECRET is required" }),
-    GEMINI_API_KEYS: z
-      .string()
-      .transform((val) => val.split(" ").filter(Boolean))
-      .optional()
-      .default([]),
     UPDATES_CHANNEL: z.string().url().default("https://t.me/WordSeek"),
     DISCUSSION_GROUP: z.string().url().default("https://t.me/WordGuesser"),
     WEB_SERVICE: z

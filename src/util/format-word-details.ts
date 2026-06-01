@@ -35,31 +35,13 @@ function renderWordDetails(input: WordDetailsInput, escape = true) {
   return `<blockquote>${parts.join("\n")}</blockquote>`;
 }
 
-// export function formatWordDetails(word: string) {
-//   const wordDetails = commonWords[word] ?? {
-//     meaning: null,
-//     pronunciation: null,
-//     example: null,
-//   };
-
-//   return renderWordDetails({
-//     word,
-//     meaning: wordDetails.meaning,
-//     phonetic: wordDetails.pronunciation,
-//     sentence: wordDetails.example,
-//   });
-// }
-
 export function formatDailyWordDetails(data: WordDetailsInput) {
-  return renderWordDetails(
-    {
-      word: data.word,
-      meaning: data.meaning,
-      phonetic: data.phonetic,
-      sentence: data.sentence,
-    },
-    false,
-  );
+  return renderWordDetails({
+    word: data.word,
+    meaning: data.meaning,
+    phonetic: data.phonetic,
+    sentence: data.sentence,
+  });
 }
 
 function capitalizeFirstLetter(string: string) {

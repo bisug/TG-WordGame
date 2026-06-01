@@ -1,0 +1,538 @@
+{
+  "their": {
+    "meaning": "Belonging to or associated with people or things already mentioned.",
+    "example": "The players checked their scores after the game."
+  },
+  "words": {
+    "meaning": "Plural of word; units of language that carry meaning.",
+    "example": "Choose your words carefully."
+  },
+  "years": {
+    "meaning": "Plural of year; periods of twelve months.",
+    "example": "The project continued for several years."
+  },
+  "asked": {
+    "meaning": "Past tense of ask; requested information, help, or permission.",
+    "example": "She asked a clear question."
+  },
+  "parts": {
+    "meaning": "Plural of part; pieces, sections, or portions of a whole.",
+    "example": "The machine has many moving parts."
+  },
+  "times": {
+    "meaning": "Plural of time; occasions, periods, or repeated instances.",
+    "example": "He called three times."
+  },
+  "means": {
+    "meaning": "A method, resource, or way of doing something.",
+    "example": "Practice is a reliable means of improvement."
+  },
+  "miles": {
+    "meaning": "Plural of mile; units of distance.",
+    "example": "The town is five miles away."
+  },
+  "lines": {
+    "meaning": "Plural of line; long narrow marks, rows, or written text.",
+    "example": "Read the first two lines aloud."
+  },
+  "trees": {
+    "meaning": "Plural of tree; tall plants with trunks, branches, and leaves.",
+    "example": "The park is full of old trees."
+  },
+  "hands": {
+    "meaning": "Plural of hand; the body parts at the end of the arms.",
+    "example": "Wash your hands before eating."
+  },
+  "kinds": {
+    "meaning": "Plural of kind; types, classes, or varieties.",
+    "example": "There are many kinds of puzzles."
+  },
+  "makes": {
+    "meaning": "Third-person singular of make; creates, forms, or causes.",
+    "example": "Practice makes the game easier."
+  },
+  "comes": {
+    "meaning": "Third-person singular of come; moves toward or arrives.",
+    "example": "The answer comes after careful thought."
+  },
+  "lived": {
+    "meaning": "Past tense of live; existed, resided, or experienced life.",
+    "example": "They lived near the river."
+  },
+  "shows": {
+    "meaning": "Third-person singular of show; displays, presents, or demonstrates.",
+    "example": "The chart shows the final score."
+  },
+  "birds": {
+    "meaning": "Plural of bird; animals with feathers, wings, and beaks.",
+    "example": "Birds gathered near the lake."
+  },
+  "girls": {
+    "meaning": "Plural of girl; young female people.",
+    "example": "The girls joined the word game."
+  },
+  "added": {
+    "meaning": "Past tense of add; joined, included, or increased something.",
+    "example": "She added one more clue."
+  },
+  "hours": {
+    "meaning": "Plural of hour; periods of sixty minutes.",
+    "example": "The match lasted for two hours."
+  },
+  "moved": {
+    "meaning": "Past tense of move; changed position or caused something to change position.",
+    "example": "He moved the chair closer."
+  },
+  "names": {
+    "meaning": "Plural of name; words by which people, places, or things are known.",
+    "example": "The list contains all player names."
+  },
+  "forms": {
+    "meaning": "Plural of form; shapes, documents, or types of something.",
+    "example": "Words can take many forms."
+  },
+  "ideas": {
+    "meaning": "Plural of idea; thoughts, plans, or mental suggestions.",
+    "example": "The team shared new ideas."
+  },
+  "named": {
+    "meaning": "Past tense of name; gave a name to someone or something.",
+    "example": "They named the group after the game."
+  },
+  "books": {
+    "meaning": "Plural of book; written or printed works made of pages.",
+    "example": "The shelf holds several books."
+  },
+  "takes": {
+    "meaning": "Third-person singular of take; gets, uses, carries, or requires.",
+    "example": "The puzzle takes patience."
+  },
+  "seems": {
+    "meaning": "Third-person singular of seem; appears or gives the impression of being.",
+    "example": "The answer seems correct."
+  },
+  "sides": {
+    "meaning": "Plural of side; edges, surfaces, or opposing groups.",
+    "example": "Both sides agreed to play again."
+  },
+  "tells": {
+    "meaning": "Third-person singular of tell; says, informs, or reveals.",
+    "example": "The clue tells you where to start."
+  },
+  "gives": {
+    "meaning": "Third-person singular of give; provides, offers, or hands over.",
+    "example": "The bot gives feedback after each guess."
+  },
+  "looks": {
+    "meaning": "Third-person singular of look; sees, appears, or directs attention.",
+    "example": "The word looks familiar."
+  },
+  "lives": {
+    "meaning": "Plural of life, or third-person singular of live; existences or living actions.",
+    "example": "The story follows the lives of several friends."
+  },
+  "steps": {
+    "meaning": "Plural of step; movements made by lifting and setting down the feet, or stages in a process.",
+    "example": "Follow the steps to solve the puzzle."
+  },
+  "areas": {
+    "meaning": "Plural of area; spaces, regions, or fields of activity.",
+    "example": "Some areas of the map were still hidden."
+  },
+  "cells": {
+    "meaning": "Plural of cell; small biological units, rooms, or compartments.",
+    "example": "Cells are the basic units of living things."
+  },
+  "pages": {
+    "meaning": "Plural of page; sides of paper or digital screens containing information.",
+    "example": "The book has several missing pages."
+  },
+  "ships": {
+    "meaning": "Plural of ship; large vessels used for travel or transport on water.",
+    "example": "The ships waited near the harbor."
+  },
+  "needs": {
+    "meaning": "Plural of need, or third-person singular of need; requirements or necessities.",
+    "example": "Every team needs a clear plan."
+  },
+  "rocks": {
+    "meaning": "Plural of rock; solid mineral pieces or masses.",
+    "example": "The path was covered with rocks."
+  },
+  "stars": {
+    "meaning": "Plural of star; bright celestial bodies or highly admired performers.",
+    "example": "The stars were visible after sunset."
+  },
+  "terms": {
+    "meaning": "Plural of term; words, conditions, periods, or expressions.",
+    "example": "The rules explain all important terms."
+  },
+  "works": {
+    "meaning": "Plural of work, or third-person singular of work; tasks, creations, or functioning actions.",
+    "example": "The system works after the update."
+  },
+  "songs": {
+    "meaning": "Plural of song; short musical compositions with words or melody.",
+    "example": "The children learned three songs."
+  },
+  "waves": {
+    "meaning": "Plural of wave; moving ridges of water, air, light, or sound.",
+    "example": "Large waves reached the shore."
+  },
+  "weeks": {
+    "meaning": "Plural of week; periods of seven days.",
+    "example": "The tournament lasted two weeks."
+  },
+  "lands": {
+    "meaning": "Plural of land, or third-person singular of land; territories or arriving actions.",
+    "example": "The plane lands at noon."
+  },
+  "liked": {
+    "meaning": "Past tense of like; found pleasant, agreeable, or enjoyable.",
+    "example": "She liked the final clue."
+  },
+  "waxes": {
+    "meaning": "Plural of wax, or third-person singular of wax; substances used for polish or actions of growing.",
+    "example": "The moon waxes before it becomes full."
+  },
+  "knows": {
+    "meaning": "Third-person singular of know; understands, recognizes, or is aware of.",
+    "example": "The winner knows the answer."
+  },
+  "homes": {
+    "meaning": "Plural of home; places where people live.",
+    "example": "Many homes were built near the river."
+  },
+  "facts": {
+    "meaning": "Plural of fact; things known or proven to be true.",
+    "example": "The report lists the key facts."
+  },
+  "rules": {
+    "meaning": "Plural of rule; instructions, laws, or principles that guide behavior.",
+    "example": "Read the rules before you play."
+  },
+  "notes": {
+    "meaning": "Plural of note; short written records, musical tones, or comments.",
+    "example": "She wrote notes during the lesson."
+  },
+  "units": {
+    "meaning": "Plural of unit; single parts of a larger whole or standard measures.",
+    "example": "The class studied units of length."
+  },
+  "verbs": {
+    "meaning": "Plural of verb; words that express actions, states, or occurrences.",
+    "example": "The sentence contains two verbs."
+  },
+  "seeds": {
+    "meaning": "Plural of seed; small plant embryos or starting points for growth.",
+    "example": "The farmer planted seeds in spring."
+  },
+  "helps": {
+    "meaning": "Third-person singular of help; assists or makes something easier.",
+    "example": "A good clue helps the player."
+  },
+  "woods": {
+    "meaning": "Plural of wood, or a wooded area; trees, timber, or forest land.",
+    "example": "They walked through the woods."
+  },
+  "walls": {
+    "meaning": "Plural of wall; vertical structures that enclose or divide spaces.",
+    "example": "The walls were painted white."
+  },
+  "wings": {
+    "meaning": "Plural of wing; parts used for flight or side sections of a building.",
+    "example": "The bird spread its wings."
+  },
+  "cases": {
+    "meaning": "Plural of case; examples, situations, containers, or legal matters.",
+    "example": "These cases need careful review."
+  },
+  "foods": {
+    "meaning": "Plural of food; substances eaten for nourishment.",
+    "example": "The market sells many foods."
+  },
+  "crops": {
+    "meaning": "Plural of crop; plants grown and harvested for food or other use.",
+    "example": "Rain helped the crops grow."
+  },
+  "wants": {
+    "meaning": "Plural of want, or third-person singular of want; desires or lacks.",
+    "example": "The player wants another round."
+  },
+  "nouns": {
+    "meaning": "Plural of noun; words that name people, places, things, or ideas.",
+    "example": "The sentence begins with two nouns."
+  },
+  "bones": {
+    "meaning": "Plural of bone; hard parts of a skeleton.",
+    "example": "Bones protect many organs."
+  },
+  "turns": {
+    "meaning": "Plural of turn, or third-person singular of turn; chances, changes, or rotating actions.",
+    "example": "Players take turns guessing."
+  },
+  "moves": {
+    "meaning": "Plural of move, or third-person singular of move; actions or changes of position.",
+    "example": "The game moves quickly."
+  },
+  "touch": {
+    "meaning": "To put a hand or object against something; a small amount or detail.",
+    "example": "Do not touch the wet paint."
+  },
+  "based": {
+    "meaning": "Founded on, supported by, or located in a particular place.",
+    "example": "The game is based on word guessing."
+  },
+  "marks": {
+    "meaning": "Plural of mark; signs, scores, grades, or visible traces.",
+    "example": "The paper had pencil marks."
+  },
+  "tired": {
+    "meaning": "In need of rest or sleep; weary.",
+    "example": "The tired player paused for a moment."
+  },
+  "farms": {
+    "meaning": "Plural of farm; areas of land used to grow crops or raise animals.",
+    "example": "The valley contains many farms."
+  },
+  "shoes": {
+    "meaning": "Plural of shoe; coverings worn on the feet.",
+    "example": "His shoes were muddy."
+  },
+  "goods": {
+    "meaning": "Items, merchandise, or possessions that can be bought or sold.",
+    "example": "The store sells household goods."
+  },
+  "cents": {
+    "meaning": "Plural of cent; small units of money equal to one hundredth of a dollar.",
+    "example": "The item costs fifty cents."
+  },
+  "pairs": {
+    "meaning": "Plural of pair; sets of two matching or related things.",
+    "example": "The drawer holds three pairs of socks."
+  },
+  "roots": {
+    "meaning": "Plural of root; plant parts below ground, origins, or base forms.",
+    "example": "The roots reached deep into the soil."
+  },
+  "heads": {
+    "meaning": "Plural of head; upper body parts, leaders, or front parts.",
+    "example": "The team heads met after the match."
+  },
+  "signs": {
+    "meaning": "Plural of sign; marks, notices, symbols, or indications.",
+    "example": "The signs pointed toward the exit."
+  },
+  "hills": {
+    "meaning": "Plural of hill; raised areas of land smaller than mountains.",
+    "example": "Green hills surrounded the village."
+  },
+  "types": {
+    "meaning": "Plural of type; kinds, categories, or classes.",
+    "example": "There are several types of clues."
+  },
+  "loved": {
+    "meaning": "Past tense of love; felt deep affection for or enjoyed greatly.",
+    "example": "They loved the new game mode."
+  },
+  "faces": {
+    "meaning": "Plural of face, or third-person singular of face; front parts or confronts.",
+    "example": "The player faces a hard puzzle."
+  },
+  "boats": {
+    "meaning": "Plural of boat; small or medium vessels used on water.",
+    "example": "The boats crossed the lake."
+  },
+  "towns": {
+    "meaning": "Plural of town; populated places smaller than cities.",
+    "example": "Several towns joined the event."
+  },
+  "plans": {
+    "meaning": "Plural of plan, or third-person singular of plan; intended actions or arrangements.",
+    "example": "The group plans another match."
+  },
+  "yards": {
+    "meaning": "Plural of yard; outdoor areas or units of length equal to three feet.",
+    "example": "The field is many yards long."
+  },
+  "tools": {
+    "meaning": "Plural of tool; instruments or resources used to do work.",
+    "example": "The builder packed his tools."
+  },
+  "boxes": {
+    "meaning": "Plural of box; containers with flat sides and a lid or opening.",
+    "example": "The boxes were stacked by the door."
+  },
+  "roads": {
+    "meaning": "Plural of road; routes or surfaces used for travel.",
+    "example": "The roads were busy after sunset."
+  },
+  "winds": {
+    "meaning": "Plural of wind, or third-person singular of wind; moving air or twisting actions.",
+    "example": "Strong winds shook the trees."
+  },
+  "mixed": {
+    "meaning": "Combined, blended, or made from different parts.",
+    "example": "The colors were mixed together."
+  },
+  "games": {
+    "meaning": "Plural of game; activities played for fun, skill, or competition.",
+    "example": "Word games improve vocabulary."
+  },
+  "falls": {
+    "meaning": "Plural of fall, or third-person singular of fall; drops, declines, or autumns.",
+    "example": "The rain falls softly."
+  },
+  "plays": {
+    "meaning": "Plural of play, or third-person singular of play; performances or game actions.",
+    "example": "She plays every evening."
+  },
+  "atoms": {
+    "meaning": "Plural of atom; the smallest units of chemical elements.",
+    "example": "Atoms combine to form molecules."
+  },
+  "grows": {
+    "meaning": "Third-person singular of grow; increases, develops, or becomes larger.",
+    "example": "The plant grows quickly."
+  },
+  "saved": {
+    "meaning": "Past tense of save; rescued, preserved, or stored for later use.",
+    "example": "The file was saved automatically."
+  },
+  "keeps": {
+    "meaning": "Third-person singular of keep; holds, continues, or preserves.",
+    "example": "The player keeps trying."
+  },
+  "edges": {
+    "meaning": "Plural of edge; borders, margins, or sharp sides.",
+    "example": "The paper edges were torn."
+  },
+  "bells": {
+    "meaning": "Plural of bell; hollow metal objects that ring when struck.",
+    "example": "The bells rang at noon."
+  },
+  "ended": {
+    "meaning": "Past tense of end; finished, stopped, or brought to a close.",
+    "example": "The round ended after six guesses."
+  },
+  "holes": {
+    "meaning": "Plural of hole; openings, gaps, or hollow spaces.",
+    "example": "The old socks had holes."
+  },
+  "holds": {
+    "meaning": "Third-person singular of hold; grips, contains, or keeps.",
+    "example": "The box holds many cards."
+  },
+  "fixed": {
+    "meaning": "Repaired, fastened, or made stable and unchanging.",
+    "example": "The bug was fixed before release."
+  },
+  "costs": {
+    "meaning": "Plural of cost, or third-person singular of cost; prices or required amounts.",
+    "example": "The ticket costs five dollars."
+  },
+  "calls": {
+    "meaning": "Plural of call, or third-person singular of call; requests, visits, or spoken signals.",
+    "example": "The coach calls the team together."
+  },
+  "tones": {
+    "meaning": "Plural of tone; sounds, qualities of voice, or color shades.",
+    "example": "The song uses soft tones."
+  },
+  "gases": {
+    "meaning": "Plural of gas; substances that expand freely to fill a space.",
+    "example": "Some gases are lighter than air."
+  },
+  "doors": {
+    "meaning": "Plural of door; movable barriers used to open or close entrances.",
+    "example": "The doors opened slowly."
+  },
+  "poles": {
+    "meaning": "Plural of pole; long rods or opposite ends of an axis.",
+    "example": "Flags hung from tall poles."
+  },
+  "tears": {
+    "meaning": "Plural of tear; drops from the eyes or rips in material.",
+    "example": "Tears filled her eyes."
+  },
+  "tests": {
+    "meaning": "Plural of test, or third-person singular of test; trials, checks, or examinations.",
+    "example": "The teacher tests spelling every week."
+  },
+  "items": {
+    "meaning": "Plural of item; individual things in a list or collection.",
+    "example": "The bag contained five items."
+  },
+  "hoped": {
+    "meaning": "Past tense of hope; wanted or expected something to happen.",
+    "example": "They hoped for a quick win."
+  },
+  "lakes": {
+    "meaning": "Plural of lake; large bodies of water surrounded by land.",
+    "example": "The region has many lakes."
+  },
+  "rooms": {
+    "meaning": "Plural of room; spaces inside buildings.",
+    "example": "The hotel has twenty rooms."
+  },
+  "likes": {
+    "meaning": "Plural of like, or third-person singular of like; preferences or enjoys.",
+    "example": "She likes word puzzles."
+  },
+  "knees": {
+    "meaning": "Plural of knee; joints between the thigh and lower leg.",
+    "example": "His knees hurt after the climb."
+  },
+  "drops": {
+    "meaning": "Plural of drop, or third-person singular of drop; small amounts of liquid or falling actions.",
+    "example": "Rain drops fell on the window."
+  },
+  "banks": {
+    "meaning": "Plural of bank; financial institutions or land beside water.",
+    "example": "Trees lined the river banks."
+  },
+  "tight": {
+    "meaning": "Firmly held, closely fitted, or allowing little space.",
+    "example": "The lid was too tight to open."
+  },
+  "flies": {
+    "meaning": "Plural of fly, or third-person singular of fly; insects or moves through the air.",
+    "example": "The kite flies above the field."
+  },
+  "feels": {
+    "meaning": "Third-person singular of feel; senses, touches, or experiences emotion.",
+    "example": "The fabric feels soft."
+  },
+  "flows": {
+    "meaning": "Third-person singular of flow; moves steadily like water or air.",
+    "example": "The river flows past the town."
+  },
+  "owned": {
+    "meaning": "Past tense of own; possessed or had legal control of something.",
+    "example": "The family owned a small shop."
+  },
+  "yours": {
+    "meaning": "Belonging to or associated with the person being addressed.",
+    "example": "This book is yours."
+  },
+  "sizes": {
+    "meaning": "Plural of size; measurements or extents of things.",
+    "example": "The shirts come in many sizes."
+  },
+  "noted": {
+    "meaning": "Observed, recorded, or well known.",
+    "example": "The judge noted the final score."
+  },
+  "lungs": {
+    "meaning": "Plural of lung; organs used for breathing air.",
+    "example": "Healthy lungs help the body get oxygen."
+  },
+  "bears": {
+    "meaning": "Plural of bear, or third-person singular of bear; large mammals or carries.",
+    "example": "Bears live in the forest."
+  },
+  "kings": {
+    "meaning": "Plural of king; male rulers or highest-ranking pieces in chess.",
+    "example": "The old tale tells of brave kings."
+  }
+}

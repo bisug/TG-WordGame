@@ -40,6 +40,8 @@ This repository is a maintained fork of
 - Telegram Forum topic support, including topic-specific game settings.
 - Global, group, and time-period leaderboards.
 - PostgreSQL-backed durable state with Redis-backed cache and queues.
+- Local dictionary data for daily word meanings, pronunciations, and examples
+  when available.
 - Admin authorization, global bans, captcha checks, broadcasts, and tracking.
 - Docker, Heroku, Render, Railway, and direct VPS deployment support.
 
@@ -86,6 +88,8 @@ This repository is a maintained fork of
 - Supported leaderboard scopes include group and global views.
 - Supported periods include today, week, month, year, and all time.
 - Daily mode tracks streaks independently from regular group rounds.
+- Daily word details are loaded from the bundled local dictionary. No AI or
+  external dictionary API is required at runtime.
 
 ### Gameplay Tips
 
@@ -299,7 +303,6 @@ latency setup is usually:
 | `LOGS_CHANNEL`                     | No       | None                        | Telegram channel ID for selected operational logs.      |
 | `UPDATES_CHANNEL`                  | No       | `https://t.me/WordSeek`     | Link shown in bot keyboards.                            |
 | `DISCUSSION_GROUP`                 | No       | `https://t.me/WordGuesser`  | Link shown in bot keyboards.                            |
-| `GEMINI_API_KEYS`                  | No       | Empty                       | Space-separated Gemini keys for daily word generation.  |
 | `WORDSEEK_DATABASE_URL`            | Docker   | Internal Compose PostgreSQL | Compose-only override mapped to `DATABASE_URL`.         |
 | `WORDSEEK_REDIS_URI`               | Docker   | Internal Compose Redis      | Compose-only override mapped to `REDIS_URI`.            |
 

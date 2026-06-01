@@ -1,4 +1,3 @@
-import z from "zod";
 import crypto from "crypto";
 import { CronJob } from "cron";
 
@@ -6,81 +5,7 @@ import { db } from "../config/db";
 import { env } from "../config/env";
 import { logger } from "../config/logger";
 import words from "../data/daily-word-lists.json";
-import { SYSTEM_PROMPT } from "../config/constants";
-import { APIKeyManager } from "../util/key-manager";
-
-const keyManager = new APIKeyManager();
-
-keyManager.initialize();
-
-const FREE_MODELS = [
-  "gemini-3.1-flash-lite",
-  "gemini-3.1-flash",
-  "gemini-2.5-flash-lite",
-  "gemini-3-flash",
-  "gemini-2.5-flash",
-];
-
-const allowedTags = ["b", "i", "u"];
-
-function sanitizeMeaning(input: string) {
-  return input.replace(
-    /<\/?([a-zA-Z0-9]+)([^>]*)>/g,
-    (match, tagName: string) => {
-      if (allowedTags.includes(tagName.toLowerCase())) {
-        return match.replace(/ .*>/, ">");
-      }
-      return "";
-    },
-  );
-}
-
-const wordDetailsSchema = z.object({
-  word: z.string(),
-  phonetic: z.string(),
-  meaning: z.string().transform((val) => sanitizeMeaning(val)),
-  sentence: z.string(),
-});
-
-async function getWordDetails(
-  word: string,
-  maxRetries: number = env.GEMINI_API_KEYS.length * FREE_MODELS.length * 2,
-) {
-  for (let attempt = 1; attempt <= maxRetries; attempt++) {
-    let currentKey: string | undefined;
-    try {
-      const { key, genAI } = await keyManager.getWorkingKey();
-      currentKey = key;
-
-      const modelIndex = (attempt - 1) % FREE_MODELS.length;
-      const modelName = FREE_MODELS[modelIndex];
-      if (!modelName) continue;
-
-      const ai = genAI.getGenerativeModel({ model: modelName });
-
-      const prompt = `${SYSTEM_PROMPT}\n **THE WORD TO CREATE HINTS FOR:** ${word}`;
-      const result = await ai.generateContent(prompt);
-
-      let text = result.response.text();
-      text = text.replace(/```json|```/g, "").trim();
-
-      const parsed = JSON.parse(text);
-      const validated = wordDetailsSchema.parse(parsed);
-
-      return validated;
-    } catch (error) {
-      if (currentKey && isAPIKeyError(error as Error)) {
-        await keyManager.markKeyAsFailed(currentKey);
-      } else {
-        await new Promise((resolve) => setTimeout(resolve, 1000));
-      }
-
-      if (attempt === maxRetries || keyManager.getAvailableKeysCount() === 0) {
-        break;
-      }
-    }
-  }
-}
+import { getLocalWordDetails } from "../util/local-word-details";
 
 function getDateStringFromDate(d: Date) {
   // Use UTC parts to ensure consistency if the date was created with UTC midnight
@@ -175,24 +100,16 @@ async function generateDailyWordInternal(gameDate: string) {
   const seed = seedFromSecret(env.DAILY_WORDLE_SECRET);
   const shuffled = deterministicShuffle(seed);
   const word = getWordOfTheDay(shuffled, gameDate);
-
-  const details = await getWordDetails(word);
-
-  if (!details) {
-    logger.warn(
-      { word },
-      `Failed to fetch AI details for word. Inserting with null details.`,
-    );
-  }
+  const details = getLocalWordDetails(word);
 
   const insertedWord = await db
     .insertInto("dailyWords")
     .values({
       word,
       date: gameDate,
-      meaning: details?.meaning ?? null,
-      phonetic: details?.phonetic ?? null,
-      sentence: details?.sentence ?? null,
+      meaning: details.meaning,
+      phonetic: details.phonetic,
+      sentence: details.sentence,
     })
     .returningAll()
     .executeTakeFirstOrThrow();
@@ -203,7 +120,10 @@ async function generateDailyWordInternal(gameDate: string) {
 
   await resetStreaksForInactivePlayers(yesterdayString);
 
-  logger.info({ word, date: gameDate }, `Successfully generated daily word`);
+  logger.info(
+    { word, date: gameDate, hasDetails: Boolean(details.meaning) },
+    `Successfully generated daily word`,
+  );
   return insertedWord;
 }
 
@@ -280,20 +200,3 @@ export const dailyWordleCron = new CronJob(
   false,
   env.TIME_ZONE,
 );
-
-function isAPIKeyError(error: Error): boolean {
-  const errorStr = error.toString().toLowerCase();
-  const apiKeyErrorPatterns = [
-    "api key",
-    "unauthorized",
-    "invalid key",
-    "quota exceeded",
-    "rate limit",
-    "forbidden",
-    "401",
-    "403",
-    "429",
-  ];
-
-  return apiKeyErrorPatterns.some((pattern) => errorStr.includes(pattern));
-}
