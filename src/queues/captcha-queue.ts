@@ -36,7 +36,7 @@ export const captchaQueue = new Queue("captcha-expiry", {
   skipVersionCheck: true,
 });
 
-new Worker(
+export const captchaWorker = new Worker(
   "captcha-expiry",
   async (job) => {
     const { chatId, userId, messageId } = job.data;
@@ -92,5 +92,17 @@ new Worker(
   {
     connection,
     skipVersionCheck: true,
+    // Keep the Redis keyspace bounded: drop finished jobs after an hour and
+    // failed jobs after a week instead of retaining them forever.
+    removeOnComplete: { age: 3600, count: 1000 },
+    removeOnFail: { age: 7 * 24 * 3600, count: 5000 },
   },
 );
+
+captchaWorker.on("failed", (job, err) => {
+  logger.error({ err, jobId: job?.id }, "Captcha expiry job failed");
+});
+
+captchaWorker.on("error", (err) => {
+  logger.error({ err }, "Captcha expiry worker error");
+});

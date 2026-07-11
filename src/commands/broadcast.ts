@@ -29,6 +29,7 @@ type BroadcastState = z.infer<typeof broadcastStateSchema>;
 
 const BROADCAST_KEY = "broadcast:state";
 const BROADCAST_LOCK_KEY = "broadcast:lock";
+const BROADCAST_PROCESSED_KEY = "broadcast:processed";
 
 async function saveBroadcastState(state: BroadcastState) {
   await redis.set(BROADCAST_KEY, JSON.stringify(state), "EX", 86400);
@@ -49,9 +50,10 @@ async function getBroadcastState() {
 async function clearBroadcastState() {
   await redis.del(BROADCAST_KEY);
   await redis.del(BROADCAST_LOCK_KEY);
+  await redis.del(BROADCAST_PROCESSED_KEY);
 }
 
-async function acquireBroadcastLock() {
+export async function acquireBroadcastLock() {
   const result = await redis.set(BROADCAST_LOCK_KEY, "1", "EX", 3600, "NX");
   return result === "OK";
 }
@@ -60,9 +62,21 @@ async function performBroadcast(
   chats: { id: string }[],
   state: BroadcastState,
 ) {
-  for (let i = state.currentIndex; i < chats.length; i++) {
-    const latestState = await getBroadcastState();
-    if (!latestState) return;
+  // Iterate from the start every time (live run or resumed run) and skip chats
+  // already recorded in processedChatIds. This keeps progress correct across a
+  // restart even when blocked chats were removed from the DB mid-broadcast.
+  for (let i = 0; i < chats.length; i++) {
+    // Skip chats already delivered in this (or a resumed) run. Membership lives
+    // in a redis SET so the JSON state stays constant-size instead of O(n^2)
+    // re-serializing a growing array on every chat.
+    if (await redis.sismember(BROADCAST_PROCESSED_KEY, chats[i].id)) {
+      state.currentIndex = i + 1;
+      continue;
+    }
+
+    // Cancellation is signalled by deleting the broadcast state key. A plain
+    // EXISTS avoids re-parsing the full state on every chat.
+    if (!(await redis.exists(BROADCAST_KEY))) return;
 
     const chat = chats[i];
 
@@ -81,17 +95,16 @@ async function performBroadcast(
         state.unknownErrorCount++;
       }
 
-      (async () => {
-        try {
-          await db
-            .deleteFrom("broadcastChats")
-            .where("id", "=", chat.id)
-            .execute();
-          state.deletedCount++;
-        } catch (deleteError) {}
-      })();
+      try {
+        await db
+          .deleteFrom("broadcastChats")
+          .where("id", "=", chat.id)
+          .execute();
+        state.deletedCount++;
+      } catch (deleteError) {}
     }
 
+    await redis.sadd(BROADCAST_PROCESSED_KEY, chat.id);
     state.currentIndex = i + 1;
     await saveBroadcastState(state);
 
@@ -212,6 +225,9 @@ Use /broadcast_status to check status or /broadcast_cancel to cancel.`,
   };
 
   await saveBroadcastState(initialState);
+  // Start fresh: clear any processed set left by a previous crashed run so we
+  // don't skip chats. Resumed runs (resumeBroadcast) intentionally keep it.
+  await redis.del(BROADCAST_PROCESSED_KEY);
   await performBroadcast(chats, initialState);
 });
 

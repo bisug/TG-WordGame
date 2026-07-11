@@ -18,7 +18,17 @@ import { safeJsonParse } from "../util/safe-json-parse";
 import { requireAllowedTopic, runGuards } from "../util/guards";
 import { formatDailyWordDetails } from "../util/format-word-details";
 import { deleteCachedGame, getCachedGame } from "../util/game-cache";
-import { getCurrentGameDateString } from "../services/daily-wordle-cron";
+import {
+  getGameDateString,
+  toUtcMidnight,
+} from "../services/daily-wordle-cron";
+
+const FONT_PATH = join(process.cwd(), "src", "fonts", "roboto.ttf");
+let fontDataPromise: Promise<Buffer> | null = null;
+function getFontData(): Promise<Buffer> {
+  if (!fontDataPromise) fontDataPromise = readFile(FONT_PATH);
+  return fontDataPromise;
+}
 
 const composer = new Composer();
 
@@ -59,7 +69,7 @@ composer.on("message:text", async (ctx) => {
       safeJsonParse(dailyGameData, {}),
     );
     if (result.success) {
-      const todayDate = getCurrentGameDateString();
+      const todayDate = getGameDateString();
 
       if (result.data.date !== todayDate) {
         await redis.del(`daily_wordle:${userId}`);
@@ -105,6 +115,16 @@ composer.on("message:text", async (ctx) => {
     );
 
   if (currentGuess === currentGame.word) {
+    // Atomically claim the win: only the first correct guess deletes the game
+    // and scores, preventing a double award under concurrent correct guesses.
+    const deletedGame = await db
+      .deleteFrom("games")
+      .where("id", "=", currentGame.id)
+      .returning("id")
+      .executeTakeFirst();
+
+    if (!deletedGame) return;
+
     if (!ctx.from.is_bot) {
       const score = 30 - existingGuesses.length;
       const additionalMessage = `Added ${score} to the leaderboard.`;
@@ -137,7 +157,6 @@ composer.on("message:text", async (ctx) => {
     }
 
     reactWithRandom(ctx);
-    await db.deleteFrom("games").where("id", "=", currentGame.id).execute();
     await deleteCachedGame(chatIdStr, currentTopicId);
     return;
   }
@@ -180,12 +199,12 @@ async function handleDailyWordleGuess(ctx: Context, currentGuess: string) {
     return ctx.reply(`${currentGuess.toUpperCase()} is not a valid word.`);
   }
 
-  const todayDate = getCurrentGameDateString();
+  const todayDate = getGameDateString();
 
   const dailyWord = await db
     .selectFrom("dailyWords")
     .selectAll()
-    .where("date", "=", new Date(todayDate))
+    .where("date", "=", toUtcMidnight(todayDate))
     .executeTakeFirst();
 
   if (!dailyWord) {
@@ -206,9 +225,10 @@ async function handleDailyWordleGuess(ctx: Context, currentGuess: string) {
     return ctx.reply("You've already guessed this word. Try a different one!");
   }
 
+  let insertedGuess: GuessEntry;
   try {
     const attemptNumber = existingGuesses.length + 1;
-    await db
+    insertedGuess = await db
       .insertInto("dailyGuesses")
       .values({
         userId,
@@ -216,19 +236,15 @@ async function handleDailyWordleGuess(ctx: Context, currentGuess: string) {
         guess: currentGuess,
         attemptNumber,
       })
-      .execute();
+      .returningAll()
+      .executeTakeFirstOrThrow();
   } catch (error) {
     // Handle race condition where two messages arrive nearly simultaneously
+    // (or a duplicate guess slips past the in-memory check).
     return ctx.reply("You've already guessed this word. Try a different one!");
   }
 
-  const allGuesses = await db
-    .selectFrom("dailyGuesses")
-    .selectAll()
-    .where("userId", "=", userId)
-    .where("dailyWordId", "=", dailyWord.id)
-    .orderBy("attemptNumber", "asc")
-    .execute();
+  const allGuesses = [...existingGuesses, insertedGuess];
 
   if (currentGuess === dailyWord.word) {
     await handleDailyWordleWin(ctx, dailyWord, allGuesses);
@@ -271,25 +287,23 @@ async function handleDailyWordleWin(
     .where("userId", "=", userId)
     .executeTakeFirst();
 
-  const todayDateString = getCurrentGameDateString();
-  const todayDate = new Date(todayDateString + "T00:00:00");
+  const todayGameDay = getGameDateString();
+  const yesterdayGameDay = getGameDateString(
+    new Date(Date.now() - 24 * 60 * 60 * 1000),
+  );
 
   let newStreak = 1;
   let highestStreak = 1;
 
-  if (userStats) {
-    if (userStats.lastGuessed) {
-      const lastGuessedDate = new Date(userStats.lastGuessed);
-      lastGuessedDate.setHours(0, 0, 0, 0);
+  if (userStats && userStats.lastGuessed) {
+    const lastGuessGameDay = getGameDateString(new Date(userStats.lastGuessed));
 
-      const diffTime = todayDate.getTime() - lastGuessedDate.getTime();
-      const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
-
-      if (diffDays === 1) {
-        newStreak = userStats.currentStreak + 1;
-      } else if (diffDays === 0) {
-        newStreak = userStats.currentStreak;
-      }
+    if (lastGuessGameDay === todayGameDay) {
+      newStreak = userStats.currentStreak;
+    } else if (lastGuessGameDay === yesterdayGameDay) {
+      newStreak = userStats.currentStreak + 1;
+    } else {
+      newStreak = 1;
     }
     highestStreak = Math.max(newStreak, userStats.highestStreak);
   }
@@ -506,8 +520,7 @@ export async function generateWordleImage(
     return "#3a3a3c";
   };
 
-  const fontPath = join(process.cwd(), "src", "fonts", "roboto.ttf");
-  const fontData = await readFile(fontPath);
+  const fontData = await getFontData();
 
   const tileSize = 60;
   const gap = 8;

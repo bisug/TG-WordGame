@@ -1,6 +1,8 @@
 import { sql } from "kysely";
 
 import { db } from "../config/db";
+import { env } from "../config/env";
+import { getZonedPeriodStart } from "../util/timezone";
 import { AllowedWordLength } from "../config/constants";
 import type { AllowedChatSearchKey, AllowedChatTimeKey } from "../types";
 
@@ -17,81 +19,68 @@ export async function getUserScores({
   timeKey: AllowedChatTimeKey;
   wordLength?: AllowedWordLength;
 }) {
-  const userQuery = db
-    .selectFrom((eb) => {
-      let innerQuery = eb
-        .selectFrom("leaderboard")
-        .where((eb) =>
-          eb.not(
-            eb.exists(
-              eb
-                .selectFrom("bannedUsers")
-                .select("userId")
-                .whereRef("bannedUsers.userId", "=", "leaderboard.userId"),
-            ),
-          ),
-        )
-        .select("leaderboard.userId")
-        .select(sql<number>`sum(leaderboard.score)`.as("totalScore"))
-        .groupBy("leaderboard.userId")
-        .select(
-          sql<number>`rank() over (order by sum(leaderboard.score) desc)`.as(
-            "rank",
-          ),
-        )
-        .where(
-          "leaderboard.wordLength",
-          "=",
-          wordLength.toString() as "4" | "5" | "6",
-        );
+  const start =
+    timeKey !== "all" ? getZonedPeriodStart(timeKey, env.TIME_ZONE) : null;
 
-      if (searchKey === "group") {
-        innerQuery = innerQuery.where("leaderboard.chatId", "=", chatId);
-      }
+  const excludeBanned = (eb: any) =>
+    eb.not(
+      eb.exists(
+        eb
+          .selectFrom("bannedUsers")
+          .select("userId")
+          .whereRef("bannedUsers.userId", "=", "leaderboard.userId"),
+      ),
+    );
 
-      if (timeKey !== "all") {
-        innerQuery = innerQuery.where((eb) => {
-          if (timeKey === "today")
-            return eb(
-              sql`date_trunc('day', ${eb.ref("leaderboard.createdAt")})`,
-              "=",
-              sql<Date>`date_trunc('day', now())`,
-            );
-          else if (timeKey === "week")
-            return eb(
-              sql`date_trunc('week', ${eb.ref("leaderboard.createdAt")})`,
-              "=",
-              sql<Date>`date_trunc('week', now())`,
-            );
-          else if (timeKey === "month")
-            return eb(
-              sql`date_trunc('month', ${eb.ref("leaderboard.createdAt")})`,
-              "=",
-              sql<Date>`date_trunc('month', now())`,
-            );
-          else
-            return eb(
-              sql`date_trunc('year', ${eb.ref("leaderboard.createdAt")})`,
-              "=",
-              sql<Date>`date_trunc('year', now())`,
-            );
-        });
-      }
+  // The user's own total within the competing scope. coalesce keeps it 0 even
+  // when there is no row, but we still treat "no row" as undefined below to
+  // preserve the original contract (callers show a "no scores yet" message).
+  const myRow = await db
+    .selectFrom("leaderboard")
+    .select(
+      sql<number>`coalesce(sum(${sql.ref("leaderboard.score")}), 0)`.as(
+        "totalScore",
+      ),
+    )
+    .where("wordLength", "=", wordLength.toString() as "4" | "5" | "6")
+    .$if(searchKey === "group", (q) => q.where("chatId", "=", chatId))
+    .$if(start !== null, (q) => q.where("createdAt", ">=", start!))
+    .where(excludeBanned)
+    .where("userId", "=", userId)
+    .executeTakeFirst();
 
-      return innerQuery.as("lb");
-    })
-    .innerJoin("users", "users.id", "lb.userId")
+  if (!myRow) return undefined;
+
+  const totalScore = Number(myRow.totalScore);
+
+  // Competition rank = (# competitors with strictly greater score) + 1. This is
+  // O(indexed aggregates) instead of the old O(N log N) rank() window over the
+  // entire leaderboard, and yields identical ranking including ties.
+  const betterRows = await db
+    .selectFrom("leaderboard")
+    .select(sql<number>`count(*)`.as("cnt"))
+    .where("wordLength", "=", wordLength.toString() as "4" | "5" | "6")
+    .$if(searchKey === "group", (q) => q.where("chatId", "=", chatId))
+    .$if(start !== null, (q) => q.where("createdAt", ">=", start!))
+    .where(excludeBanned)
+    .groupBy("userId")
+    .having(sql`sum(${sql.ref("leaderboard.score")})`, ">", totalScore)
+    .execute();
+
+  const rank = betterRows.length + 1;
+
+  const profile = await db
+    .selectFrom("users")
     .leftJoin("userStats", "userStats.userId", "users.id")
     .select([
       "users.id",
       "users.name",
       "users.username",
-      "lb.totalScore",
-      "lb.rank",
       "userStats.highestStreak",
       "userStats.currentStreak",
     ])
-    .where("users.id", "=", userId);
+    .where("users.id", "=", userId)
+    .executeTakeFirst();
 
-  return await userQuery.executeTakeFirst();
+  return profile ? { ...profile, totalScore, rank } : undefined;
 }

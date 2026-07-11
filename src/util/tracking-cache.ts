@@ -1,5 +1,5 @@
-import { redis } from "../config/redis";
 import { MemoryTtlCache } from "./memory-cache";
+import { safeDel, safeGet, safeSet } from "../config/redis";
 
 const POSITIVE_CACHE_MS = 60 * 1000;
 const NEGATIVE_CACHE_MS = 15 * 1000;
@@ -14,7 +14,7 @@ export async function getTrackingAdminChatId(chatId: string | number) {
   const memoryValue = memoryCache.get(key);
   if (memoryValue !== undefined) return memoryValue;
 
-  const adminChatId = await redis.get(key);
+  const adminChatId = await safeGet(key);
   if (adminChatId) {
     memoryCache.set(key, adminChatId);
     return adminChatId;
@@ -30,11 +30,11 @@ export async function setTrackedChat(
 ) {
   const key = keyFor(chatId);
   memoryCache.set(key, adminChatId);
-  await redis.set(key, adminChatId);
+  await safeSet(key, adminChatId);
 }
 
 export async function unsetTrackedChat(chatId: string | number) {
   const key = keyFor(chatId);
   memoryCache.set(key, null, NEGATIVE_CACHE_MS);
-  return redis.del(key);
+  return safeDel(key);
 }

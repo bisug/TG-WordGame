@@ -1,8 +1,8 @@
 import { db } from "../config/db";
-import { redis } from "../config/redis";
 import { MemoryTtlCache } from "./memory-cache";
 import { safeJsonParse } from "./safe-json-parse";
 import type { WordLength } from "./word-selector";
+import { safeDel, safeGet, safeSet } from "../config/redis";
 
 const CACHE_TTL = 3600 * 24; // 24 hours
 const MEMORY_CACHE_TTL_MS = 60 * 1000;
@@ -20,7 +20,7 @@ export async function getCachedTopics(chatId: string): Promise<CachedTopic[]> {
   const memoryValue = memoryCache.get(key);
   if (memoryValue) return memoryValue;
 
-  const cached = await redis.get(key);
+  const cached = await safeGet(key);
 
   if (cached) {
     const parsed = safeJsonParse<CachedTopic[] | undefined>(cached, undefined);
@@ -28,7 +28,7 @@ export async function getCachedTopics(chatId: string): Promise<CachedTopic[]> {
       memoryCache.set(key, parsed);
       return parsed;
     }
-    await redis.del(key);
+    await safeDel(key);
   }
 
   // Cache miss, query DB
@@ -38,7 +38,7 @@ export async function getCachedTopics(chatId: string): Promise<CachedTopic[]> {
     .where("chatId", "=", chatId)
     .execute();
 
-  await redis.set(key, JSON.stringify(topics), "EX", CACHE_TTL);
+  await safeSet(key, JSON.stringify(topics), CACHE_TTL);
   memoryCache.set(key, topics);
   return topics;
 }
@@ -46,5 +46,5 @@ export async function getCachedTopics(chatId: string): Promise<CachedTopic[]> {
 export async function invalidateTopicsCache(chatId: string) {
   const key = `topics:${chatId}`;
   memoryCache.delete(key);
-  await redis.del(key);
+  await safeDel(key);
 }

@@ -80,6 +80,7 @@ composer.use(async (ctx, next) => {
     return;
   }
 
+  // --- Synchronous suspicious-pattern detection (no I/O) ---
   let isSuspicious = false;
   let suspiciousReason = "";
   let messageText = "";
@@ -135,41 +136,15 @@ composer.use(async (ctx, next) => {
     }
   }
 
+  // Alerting is best-effort and already self-contained; fire it off without
+  // making the user's own command wait on a Telegram send.
   if (isSuspicious) {
-    if (env.LOGS_CHANNEL) {
-      // Send to logs channel
-      try {
-        await sendSuspiciousAlert(
-          ctx,
-          env.LOGS_CHANNEL,
-          suspiciousReason,
-          messageText,
-        );
-
-        if (ctx.message?.message_id) {
-          try {
-            await ctx.api.forwardMessage(
-              env.LOGS_CHANNEL,
-              chatId,
-              ctx.message.message_id,
-            );
-          } catch (e) {
-            logger.error(
-              { err: e },
-              "Failed to forward message to logs channel",
-            );
-          }
-        }
-      } catch (error) {
-        logger.error({ err: error }, "Failed to send alert to logs channel");
-      }
-    } else {
-      // Fallback to admin users
-      for (const adminId of env.ADMIN_USERS) {
+    void (async () => {
+      if (env.LOGS_CHANNEL) {
         try {
           await sendSuspiciousAlert(
             ctx,
-            adminId,
+            env.LOGS_CHANNEL,
             suspiciousReason,
             messageText,
           );
@@ -177,140 +152,172 @@ composer.use(async (ctx, next) => {
           if (ctx.message?.message_id) {
             try {
               await ctx.api.forwardMessage(
-                adminId,
+                env.LOGS_CHANNEL,
                 chatId,
                 ctx.message.message_id,
               );
-            } catch (e) {}
+            } catch (e) {
+              logger.error(
+                { err: e },
+                "Failed to forward message to logs channel",
+              );
+            }
           }
         } catch (error) {
-          logger.error({ err: error, adminId }, "Failed to alert admin");
+          logger.error({ err: error }, "Failed to send alert to logs channel");
+        }
+      } else {
+        for (const adminId of env.ADMIN_USERS) {
+          try {
+            await sendSuspiciousAlert(
+              ctx,
+              adminId,
+              suspiciousReason,
+              messageText,
+            );
+
+            if (ctx.message?.message_id) {
+              try {
+                await ctx.api.forwardMessage(
+                  adminId,
+                  chatId,
+                  ctx.message.message_id,
+                );
+              } catch (e) {}
+            }
+          } catch (error) {
+            logger.error({ err: error, adminId }, "Failed to alert admin");
+          }
         }
       }
-    }
+    })();
   }
 
-  const adminChatId = await getTrackingAdminChatId(ctx.chat.id);
+  // Single cheap redis GET — keep it before next() so we don't race the reply.
+  const adminChatId = await getTrackingAdminChatId(chatId);
+
+  // Respond to the user immediately; tracking forwards happen afterwards.
+  await next();
 
   if (adminChatId) {
-    try {
-      if (ctx.message) {
-        const msg = ctx.message;
+    void (async () => {
+      try {
+        if (ctx.message) {
+          const msg = ctx.message;
 
-        if (
-          msg.text ||
-          msg.photo ||
-          msg.video ||
-          msg.document ||
-          msg.audio ||
-          msg.voice ||
-          msg.sticker ||
-          msg.animation ||
-          msg.video_note ||
-          msg.poll ||
-          msg.location ||
-          msg.venue ||
-          msg.contact
-        ) {
+          if (
+            msg.text ||
+            msg.photo ||
+            msg.video ||
+            msg.document ||
+            msg.audio ||
+            msg.voice ||
+            msg.sticker ||
+            msg.animation ||
+            msg.video_note ||
+            msg.poll ||
+            msg.location ||
+            msg.venue ||
+            msg.contact
+          ) {
+            try {
+              await ctx.api.forwardMessage(
+                Number(adminChatId),
+                chatId,
+                msg.message_id,
+              );
+            } catch (error) {
+              const from = msg.from
+                ? `${msg.from.first_name}${msg.from.username ? ` (@${msg.from.username})` : ""}`
+                : "Unknown";
+              let messageType = "message";
+
+              if (msg.photo) messageType = "📷 Photo";
+              else if (msg.video) messageType = "🎥 Video";
+              else if (msg.document) messageType = "📄 Document";
+              else if (msg.audio) messageType = "🎵 Audio";
+              else if (msg.voice) messageType = "🎤 Voice";
+              else if (msg.sticker) messageType = "🎭 Sticker";
+              else if (msg.animation) messageType = "🎬 GIF";
+              else if (msg.video_note) messageType = "📹 Video Note";
+              else if (msg.poll) messageType = "📊 Poll";
+              else if (msg.location) messageType = "📍 Location";
+              else if (msg.venue) messageType = "🏢 Venue";
+              else if (msg.contact) messageType = "👤 Contact";
+
+              await ctx.api.sendMessage(
+                Number(adminChatId),
+                `🔔 New ${messageType} in chat ${chatId}\nFrom: ${from}\n\nMessage ID: ${msg.message_id}${msg.text ? `\n\n${msg.text}` : ""}`,
+              );
+            }
+          }
+        } else if (ctx.channelPost) {
+          const post = ctx.channelPost;
           try {
             await ctx.api.forwardMessage(
               Number(adminChatId),
-              ctx.chat.id,
-              msg.message_id,
+              chatId,
+              post.message_id,
             );
           } catch (error) {
-            const from = msg.from
-              ? `${msg.from.first_name}${msg.from.username ? ` (@${msg.from.username})` : ""}`
-              : "Unknown";
-            let messageType = "message";
-
-            if (msg.photo) messageType = "📷 Photo";
-            else if (msg.video) messageType = "🎥 Video";
-            else if (msg.document) messageType = "📄 Document";
-            else if (msg.audio) messageType = "🎵 Audio";
-            else if (msg.voice) messageType = "🎤 Voice";
-            else if (msg.sticker) messageType = "🎭 Sticker";
-            else if (msg.animation) messageType = "🎬 GIF";
-            else if (msg.video_note) messageType = "📹 Video Note";
-            else if (msg.poll) messageType = "📊 Poll";
-            else if (msg.location) messageType = "📍 Location";
-            else if (msg.venue) messageType = "🏢 Venue";
-            else if (msg.contact) messageType = "👤 Contact";
-
             await ctx.api.sendMessage(
               Number(adminChatId),
-              `🔔 New ${messageType} in chat ${ctx.chat.id}\nFrom: ${from}\n\nMessage ID: ${msg.message_id}${msg.text ? `\n\n${msg.text}` : ""}`,
+              `🔔 New channel post in chat ${chatId}\nPost ID: ${post.message_id}`,
             );
           }
-        }
-      } else if (ctx.channelPost) {
-        const post = ctx.channelPost;
-        try {
-          await ctx.api.forwardMessage(
-            Number(adminChatId),
-            ctx.chat.id,
-            post.message_id,
-          );
-        } catch (error) {
+        } else if (ctx.editedMessage) {
+          const edited = ctx.editedMessage;
+          const from = edited.from
+            ? `${edited.from.first_name}${edited.from.username ? ` (@${edited.from.username})` : ""}`
+            : "Unknown";
+          const text = edited.text || edited.caption || "[Media message]";
+
           await ctx.api.sendMessage(
             Number(adminChatId),
-            `🔔 New channel post in chat ${ctx.chat.id}\nPost ID: ${post.message_id}`,
+            `✏️ Message edited in chat ${chatId}\nFrom: ${from}\nNew text: ${text.substring(0, 200)}${text.length > 200 ? "..." : ""}`,
+          );
+        } else if (ctx.chatMember) {
+          const update = ctx.chatMember;
+          const user = update.new_chat_member.user;
+          const oldStatus = update.old_chat_member.status;
+          const newStatus = update.new_chat_member.status;
+
+          await ctx.api.sendMessage(
+            Number(adminChatId),
+            `👥 Member status change in chat ${chatId}\nUser: ${user.first_name}${user.username ? ` (@${user.username})` : ""}\n${oldStatus} → ${newStatus}`,
+          );
+        } else if (ctx.myChatMember) {
+          const update = ctx.myChatMember;
+          const oldStatus = update.old_chat_member.status;
+          const newStatus = update.new_chat_member.status;
+
+          await ctx.api.sendMessage(
+            Number(adminChatId),
+            `🤖 Bot status change in chat ${chatId}\n${oldStatus} → ${newStatus}`,
+          );
+        } else if (ctx.callbackQuery) {
+          const query = ctx.callbackQuery;
+          const from = query.from;
+          const data = query.data || "No data";
+
+          await ctx.api.sendMessage(
+            Number(adminChatId),
+            `🔘 Button clicked in chat ${chatId}\nFrom: ${from.first_name}${from.username ? ` (@${from.username})` : ""}\nData: ${data}`,
+          );
+        } else if (ctx.inlineQuery) {
+          const query = ctx.inlineQuery;
+          const from = query.from;
+
+          await ctx.api.sendMessage(
+            Number(adminChatId),
+            `🔍 Inline query in chat ${chatId}\nFrom: ${from.first_name}${from.username ? ` (@${from.username})` : ""}\nQuery: ${query.query}`,
           );
         }
-      } else if (ctx.editedMessage) {
-        const edited = ctx.editedMessage;
-        const from = edited.from
-          ? `${edited.from.first_name}${edited.from.username ? ` (@${edited.from.username})` : ""}`
-          : "Unknown";
-        const text = edited.text || edited.caption || "[Media message]";
-
-        await ctx.api.sendMessage(
-          Number(adminChatId),
-          `✏️ Message edited in chat ${ctx.chat.id}\nFrom: ${from}\nNew text: ${text.substring(0, 200)}${text.length > 200 ? "..." : ""}`,
-        );
-      } else if (ctx.chatMember) {
-        const update = ctx.chatMember;
-        const user = update.new_chat_member.user;
-        const oldStatus = update.old_chat_member.status;
-        const newStatus = update.new_chat_member.status;
-
-        await ctx.api.sendMessage(
-          Number(adminChatId),
-          `👥 Member status change in chat ${ctx.chat.id}\nUser: ${user.first_name}${user.username ? ` (@${user.username})` : ""}\n${oldStatus} → ${newStatus}`,
-        );
-      } else if (ctx.myChatMember) {
-        const update = ctx.myChatMember;
-        const oldStatus = update.old_chat_member.status;
-        const newStatus = update.new_chat_member.status;
-
-        await ctx.api.sendMessage(
-          Number(adminChatId),
-          `🤖 Bot status change in chat ${ctx.chat.id}\n${oldStatus} → ${newStatus}`,
-        );
-      } else if (ctx.callbackQuery) {
-        const query = ctx.callbackQuery;
-        const from = query.from;
-        const data = query.data || "No data";
-
-        await ctx.api.sendMessage(
-          Number(adminChatId),
-          `🔘 Button clicked in chat ${ctx.chat.id}\nFrom: ${from.first_name}${from.username ? ` (@${from.username})` : ""}\nData: ${data}`,
-        );
-      } else if (ctx.inlineQuery) {
-        const query = ctx.inlineQuery;
-        const from = query.from;
-
-        await ctx.api.sendMessage(
-          Number(adminChatId),
-          `🔍 Inline query in chat ${ctx.chat.id}\nFrom: ${from.first_name}${from.username ? ` (@${from.username})` : ""}\nQuery: ${query.query}`,
-        );
+      } catch (error) {
+        logger.error({ err: error }, "Tracking error");
       }
-    } catch (error) {
-      logger.error({ err: error }, "Tracking error");
-    }
+    })();
   }
-
-  await next();
 });
 
 export const trackMessagesHandler = composer;

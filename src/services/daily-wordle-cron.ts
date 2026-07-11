@@ -5,19 +5,21 @@ import { db } from "../config/db";
 import { env } from "../config/env";
 import { logger } from "../config/logger";
 import words from "../data/daily-word-lists.json";
+import { getZonedInstant } from "../util/timezone";
 import { getLocalWordDetails } from "../util/local-word-details";
 
 function getDateStringFromDate(d: Date) {
-  // Use UTC parts to ensure consistency if the date was created with UTC midnight
-  const year = d.getUTCFullYear();
-  const month = String(d.getUTCMonth() + 1).padStart(2, "0");
-  const day = String(d.getUTCDate()).padStart(2, "0");
+  const year = d.getFullYear();
+  const month = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
   return `${year}-${month}-${day}`;
 }
 
-export function getCurrentGameDateString() {
-  const now = new Date();
-
+// The game day is defined as starting at 06:00 local time in env.TIME_ZONE.
+// Returns the "YYYY-MM-DD" game-day string for the given instant (defaults to
+// now). Uses local calendar arithmetic so it is correct regardless of the
+// server's own timezone.
+export function getGameDateString(date: Date = new Date()): string {
   const formatter = new Intl.DateTimeFormat("en-CA", {
     timeZone: env.TIME_ZONE,
     year: "numeric",
@@ -27,19 +29,29 @@ export function getCurrentGameDateString() {
     hour12: false,
   });
 
-  const parts = formatter.formatToParts(now);
+  const parts = formatter.formatToParts(date);
   const get = (t: string) => parts.find((p) => p.type === t)!.value;
 
   const dateString = `${get("year")}-${get("month")}-${get("day")}`;
   const hour = parseInt(get("hour"), 10);
 
   if (hour < 6) {
-    const d = new Date(dateString + "T12:00:00");
-    d.setDate(d.getDate() - 1);
-    return getDateStringFromDate(d);
+    const [y, m, d] = dateString.split("-").map(Number);
+    const shifted = new Date(y, m - 1, d);
+    shifted.setDate(shifted.getDate() - 1);
+    return getDateStringFromDate(shifted);
   }
 
   return dateString;
+}
+
+export const getCurrentGameDateString = getGameDateString;
+
+// Build a UTC-midnight Date for a "YYYY-MM-DD" game-day string. Used for both
+// inserting and querying dailyWords.date so the two always agree regardless of
+// the Postgres session timezone.
+export function toUtcMidnight(datePart: string): Date {
+  return new Date(`${datePart}T00:00:00Z`);
 }
 
 async function resetStreaksForInactivePlayers(yesterdayDate: string) {
@@ -49,14 +61,14 @@ async function resetStreaksForInactivePlayers(yesterdayDate: string) {
       `Resetting streaks for inactive players`,
     );
 
-    // The game day for yesterdayDate started at 06:00 AM in env.TIME_ZONE
-    // We should reset streaks for anyone whose lastGuessed is before that.
-
-    // To get 06:00 AM yesterday in the target timezone:
-    const yesterdayStartTime = new Date(`${yesterdayDate}T06:00:00Z`);
-    // Note: This is a simplification. Ideally we'd use a library like luxon,
-    // but we can estimate or just use the date boundary if we store lastGuessed in UTC.
-    // If lastGuessed is ISO string (UTC), then we need the UTC timestamp of 6AM in target TZ.
+    // The game day for yesterdayDate started at 06:00 local in env.TIME_ZONE.
+    // Compare lastGuessed (stored as a UTC ISO instant) against the UTC instant
+    // of that local 06:00 so streaks reset correctly for any timezone.
+    const yesterdayStartTime = getZonedInstant(
+      yesterdayDate,
+      "06:00:00",
+      env.TIME_ZONE,
+    );
 
     const result = await db
       .updateTable("userStats")
@@ -92,7 +104,7 @@ async function generateDailyWordInternal(gameDate: string) {
   const existingWord = await db
     .selectFrom("dailyWords")
     .selectAll()
-    .where("date", "=", new Date(gameDate))
+    .where("date", "=", toUtcMidnight(gameDate))
     .executeTakeFirst();
 
   if (existingWord) return existingWord;
@@ -106,7 +118,7 @@ async function generateDailyWordInternal(gameDate: string) {
     .insertInto("dailyWords")
     .values({
       word,
-      date: gameDate,
+      date: toUtcMidnight(gameDate),
       meaning: details.meaning,
       phonetic: details.phonetic,
       sentence: details.sentence,

@@ -11,6 +11,7 @@ import { safeJsonParse } from "../util/safe-json-parse";
 import { getUserScores } from "../services/get-user-scores";
 import { getSmartDefaults } from "../util/get-smart-defaults";
 import { endGame, isUserAuthorized } from "../commands/end-game";
+import { formatUserLink, getEndVoteKey } from "../util/end-vote";
 import { AllowedChatSearchKey, AllowedChatTimeKey } from "../types";
 import { getStartKeyboard, getStartMessage } from "../commands/start";
 import { formatNoScoresMessage } from "../util/format-no-scores-message";
@@ -19,11 +20,6 @@ import { formatUserScoreMessage } from "../util/format-user-score-message";
 import { formatLeaderboardMessage } from "../util/format-leaderboard-message";
 import { generateLeaderboardKeyboard } from "../util/generate-leaderboard-keyboard";
 import { generateUserSelectionKeyboard } from "../util/generate-user-selection-keyboard";
-import {
-  formatUserLink,
-  getEndVoteKey,
-  parseEndVoteData,
-} from "../util/end-vote";
 import {
   buildCaptchaKeyboard,
   buildMessage,
@@ -364,18 +360,9 @@ composer.on("callback_query:data", async (ctx) => {
 
     const userId = ctx.from.id.toString();
     const voteKey = getEndVoteKey(chatId, topicId);
-    const voteDataStr = await redis.get(voteKey);
-    const voteData = parseEndVoteData(voteDataStr);
 
-    if (!voteData) {
-      if (voteDataStr) await redis.del(voteKey);
-      return await ctx.answerCallbackQuery({
-        text: "The voting session has expired.",
-        show_alert: true,
-      });
-    }
-
-    if (voteData.voters.includes(userId)) {
+    const alreadyVoted = await redis.sismember(voteKey, userId);
+    if (alreadyVoted) {
       return await ctx.answerCallbackQuery({
         text: "You have already voted.",
       });
@@ -428,9 +415,23 @@ composer.on("callback_query:data", async (ctx) => {
       });
     }
 
-    voteData.voters.push(userId);
+    // Atomic add: SADD returns 0 if the voter was already recorded (e.g. two
+    // rapid clicks), so the count can never silently lose a vote. Pipeline the
+    // SADD + EXPIRE so a crash can't leave the key without a TTL.
+    const votePipe = redis.pipeline();
+    votePipe.sadd(voteKey, userId);
+    votePipe.expire(voteKey, 300);
+    const voteRes = await votePipe.exec();
+    const added = Number(voteRes?.[0]?.[1] ?? 1);
+    if (added === 0) {
+      return await ctx.answerCallbackQuery({
+        text: "You have already voted.",
+      });
+    }
 
-    if (voteData.voters.length >= 3) {
+    const voterCount = await redis.scard(voteKey);
+
+    if (voterCount >= 3) {
       await redis.del(voteKey);
 
       const reason = "<b>Game ended - 3 players voted to end the game</b>";
@@ -448,22 +449,18 @@ composer.on("callback_query:data", async (ctx) => {
       });
     }
 
-    await redis.setex(voteKey, 300, JSON.stringify(voteData));
-
-    const votesNeeded = 3 - voteData.voters.length;
-
     await ctx.editMessageText(
       `<b>🗳️ Vote to End Game</b>\n\n` +
         `Players are voting to end the game.\n\n` +
         `<b>Votes needed: 3 total</b>\n` +
-        `<b>Current votes: ${voteData.voters.length}/3</b>\n\n` +
+        `<b>Current votes: ${voterCount}/3</b>\n\n` +
         `React with the button below to vote for ending the game.`,
       {
         reply_markup: {
           inline_keyboard: [
             [
               {
-                text: `✅ Vote to End (${voteData.voters.length}/3)`,
+                text: `✅ Vote to End (${voterCount}/3)`,
                 callback_data: `vote_end ${chatId} ${topicId}`,
               },
             ],
@@ -474,7 +471,7 @@ composer.on("callback_query:data", async (ctx) => {
     );
 
     return await ctx.answerCallbackQuery({
-      text: `Vote recorded! ${votesNeeded} more votes needed.`,
+      text: `Vote recorded! ${3 - voterCount} more votes needed.`,
     });
   } else if (data.startsWith("help_")) {
     type HelpSection = "howto" | "scores" | "group" | "other" | "admin";

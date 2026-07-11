@@ -17,8 +17,18 @@ const { Pool } = pg;
 const dialect = new PostgresDialect({
   pool: new Pool({
     connectionString: getDbConnectionString(),
-    max: 10,
+    // Sized to comfortably exceed steady-state in-flight connections from the
+    // runner (run(bot, { concurrency: 15 })) plus headroom. Raise this together
+    // with runner concurrency if benchmarking shows saturation — never one alone.
+    max: 20,
+    connectionTimeoutMillis: 10000,
+    idleTimeoutMillis: 30000,
+    allowExitOnIdle: false,
+    application_name: "tg-wordgame",
     ssl: getDbSslConfig(),
+    // Kill runaway queries (e.g. a pre-index leaderboard aggregate) instead of
+    // letting them pin a connection indefinitely.
+    options: "-c statement_timeout=15000",
   }),
 });
 

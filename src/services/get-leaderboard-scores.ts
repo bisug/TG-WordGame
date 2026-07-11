@@ -1,6 +1,8 @@
 import { sql } from "kysely";
 
 import { db } from "../config/db";
+import { env } from "../config/env";
+import { getZonedPeriodStart } from "../util/timezone";
 import { AllowedWordLength } from "../config/constants";
 import { AllowedChatSearchKey, AllowedChatTimeKey } from "../types";
 
@@ -53,32 +55,14 @@ export async function getLeaderboardScores({
     );
 
   if (timeKey !== "all") {
-    leaderboardQuery = leaderboardQuery.where((eb) => {
-      if (timeKey === "today")
-        return eb(
-          sql`date_trunc('day', ${eb.ref("leaderboard.createdAt")})`,
-          "=",
-          sql<Date>`date_trunc('day', now())`,
-        );
-      else if (timeKey === "week")
-        return eb(
-          sql`date_trunc('week', ${eb.ref("leaderboard.createdAt")})`,
-          "=",
-          sql<Date>`date_trunc('week', now())`,
-        );
-      else if (timeKey === "month")
-        return eb(
-          sql`date_trunc('month', ${eb.ref("leaderboard.createdAt")})`,
-          "=",
-          sql<Date>`date_trunc('month', now())`,
-        );
-      else
-        return eb(
-          sql`date_trunc('year', ${eb.ref("leaderboard.createdAt")})`,
-          "=",
-          sql<Date>`date_trunc('year', now())`,
-        );
-    });
+    // Sargable range bound anchored to env.TIME_ZONE, so the window matches the
+    // app's notion of day/week/month/year regardless of the Postgres server tz.
+    const start = getZonedPeriodStart(timeKey, env.TIME_ZONE);
+    leaderboardQuery = leaderboardQuery.where(
+      "leaderboard.createdAt",
+      ">=",
+      start,
+    );
   }
 
   return await leaderboardQuery.execute();

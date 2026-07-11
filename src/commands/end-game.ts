@@ -38,11 +38,13 @@ export async function endGame(
     .returning(["word", "topicId"])
     .executeTakeFirst();
 
-  if (game) {
-    await deleteCachedGame(String(chatId), game.topicId);
-  }
+  // A concurrent end (admin + vote, or two near-simultaneous votes) may have
+  // already deleted the game; the second caller must not post again.
+  if (!game) return;
 
-  const wordLength = game?.word ? game.word.length : 5;
+  await deleteCachedGame(String(chatId), game.topicId);
+
+  const wordLength = game.word.length;
 
   //   await ctx.reply(
   //     `<blockquote>🎮 <b>Game Ended</b></blockquote>
@@ -120,20 +122,21 @@ composer.command("end", async (ctx) => {
   }
 
   const voteKey = getEndVoteKey(chatId, topicId);
-  const existingVotes = await redis.get(voteKey);
+  const existingVotes = await redis.scard(voteKey);
 
-  if (existingVotes) {
+  if (existingVotes > 0) {
     return await ctx.reply(
       "⏳ A vote to end the game is already in progress. Please wait for it to complete.",
     );
   }
 
-  const voteData = {
-    voters: [userId],
-    initiatedAt: Date.now(),
-  };
-
-  await redis.setex(voteKey, 300, JSON.stringify(voteData)); // 5 minutes expiry
+  // Store voters as a Redis SET so concurrent votes are counted atomically.
+  // Pipeline the three ops so a crash can't leave the key without a TTL.
+  const voteSetup = redis.pipeline();
+  voteSetup.del(voteKey);
+  voteSetup.sadd(voteKey, userId);
+  voteSetup.expire(voteKey, 300); // 5 minutes expiry
+  await voteSetup.exec();
 
   const userLink = formatUserLink(
     ctx.from.id,

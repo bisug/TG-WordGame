@@ -12,12 +12,13 @@ export class MemoryTtlCache<T> {
       return undefined;
     }
 
-    return entry.value;
+    // Return an independent copy so a caller can't mutate the shared entry.
+    return structuredClone(entry.value);
   }
 
   set(key: string, value: T, ttlMs = this.defaultTtlMs) {
     this.store.set(key, {
-      value,
+      value: structuredClone(value),
       expiresAt: Date.now() + ttlMs,
     });
   }

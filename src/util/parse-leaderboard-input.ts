@@ -9,7 +9,7 @@ import {
 type ParseResult = {
   searchKey: AllowedChatSearchKey | undefined;
   timeKey: AllowedChatTimeKey | undefined;
-  wordLength: AllowedWordLength;
+  wordLength: AllowedWordLength | undefined;
   target: string | undefined;
 };
 
@@ -17,7 +17,6 @@ export function parseLeaderboardInput(
   input: string,
   defaultSearchKey?: AllowedChatSearchKey,
   defaultTimeKey?: AllowedChatTimeKey | null,
-  defaultWordLength: AllowedWordLength = 5,
 ): ParseResult {
   const parts = input.toLowerCase().trim().split(/\s+/).filter(Boolean);
 
@@ -55,7 +54,9 @@ export function parseLeaderboardInput(
   const searchKey = foundSearchKey || defaultSearchKey;
   const timeKey =
     foundTimeKey || (defaultTimeKey === null ? undefined : defaultTimeKey);
-  const wordLength = foundWordLength ?? defaultWordLength;
+  // `undefined` means "no length requested" so callers can fall back to a
+  // smart default (e.g. the user's most-played length) instead of always 5.
+  const wordLength = foundWordLength;
 
   return { searchKey, timeKey, wordLength, target };
 }
