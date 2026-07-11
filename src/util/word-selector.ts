@@ -92,39 +92,4 @@ export class WordSelector {
     }
   }
 
-  async resetChat(chatId: string | number, wordLength: WordLength = 5) {
-    await redis.del(this.historyKey(chatId, wordLength));
-  }
-
-  async getChatStats(chatId: string | number, wordLength: WordLength = 5) {
-    const wordList = WORD_LIST[wordLength];
-    const totalCount = wordList.length;
-    try {
-      const usedCount = await redis.scard(this.historyKey(chatId, wordLength));
-      return {
-        usedCount,
-        availableCount: totalCount - usedCount,
-        totalCount,
-      };
-    } catch (error) {
-      return { usedCount: 0, availableCount: totalCount, totalCount };
-    }
-  }
-
-  async getRecentWords(chatId: string | number, wordLength: WordLength = 5) {
-    try {
-      return await redis.smembers(this.historyKey(chatId, wordLength));
-    } catch (error) {
-      logger.error({ err: error }, "Error getting recent words");
-      return [];
-    }
-  }
-
-  getConfig() {
-    return { ...this.config };
-  }
-
-  updateConfig(newConfig: Partial<WordSelectorConfig>) {
-    this.config = { ...this.config, ...newConfig };
-  }
 }
