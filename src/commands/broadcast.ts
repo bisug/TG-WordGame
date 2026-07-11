@@ -1,4 +1,4 @@
-import { Api, Composer } from "grammy";
+import { Composer } from "grammy";
 
 import { z } from "zod";
 

@@ -91,5 +91,4 @@ export class WordSelector {
       return wordList[randomInt(0, wordList.length)].toLowerCase();
     }
   }
-
 }
