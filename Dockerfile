@@ -1,7 +1,7 @@
 # ─────────────────────────────────────────────
 # Stage 1: Install dependencies
 # ─────────────────────────────────────────────
-FROM oven/bun:1.3.13-debian AS deps
+FROM oven/bun:1.3.14-debian AS deps
 
 WORKDIR /app
 
@@ -14,7 +14,7 @@ RUN bun install --frozen-lockfile --production
 # ─────────────────────────────────────────────
 # Stage 2: Final runtime image
 # ─────────────────────────────────────────────
-FROM oven/bun:1.3.13-debian AS runner
+FROM oven/bun:1.3.14-debian AS runner
 
 WORKDIR /app
 ENV NODE_ENV=production

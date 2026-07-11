@@ -116,7 +116,7 @@ composer.command("seekauth", async (ctx) => {
   const isSystemAdmin = env.ADMIN_USERS.includes(userId);
 
   const replyConfig = {
-    reply_to_message_id: ctx.msgId,
+    reply_parameters: { message_id: ctx.msgId },
     parse_mode: "HTML" as const,
   };
 

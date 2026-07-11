@@ -1,15 +1,38 @@
-import { Queue } from "bullmq";
-import { Worker } from "bullmq";
+import { Queue, Worker } from "bullmq";
 
 import { bot } from "../config/bot";
+import { env } from "../config/env";
 import { redis } from "../config/redis";
 import { logger } from "../config/logger";
 import { captchaSchema } from "../schemas";
 import { formatUserMention } from "../commands/captcha";
 import { safeJsonParse } from "../util/safe-json-parse";
 
+// Bullmq bundles its own copy of ioredis, so passing our shared ioredis
+// instance would cross two module copies and fail type-checking. We instead
+// hand bullmq plain connection options (same target Redis) to keep a single
+// source of truth for the connection and stay on the latest ioredis.
+function getRedisConnectionOptions() {
+  const url = new URL(env.REDIS_URI);
+  const useTls = url.protocol === "rediss:";
+  return {
+    host: url.hostname || "127.0.0.1",
+    port: url.port ? Number(url.port) : 6379,
+    username: url.username || undefined,
+    password: url.password || undefined,
+    db:
+      url.pathname && url.pathname !== "/"
+        ? Number(url.pathname.replace(/^\//, ""))
+        : undefined,
+    ...(useTls ? { tls: {} } : {}),
+    maxRetriesPerRequest: null,
+  };
+}
+
+const connection = getRedisConnectionOptions();
+
 export const captchaQueue = new Queue("captcha-expiry", {
-  connection: redis,
+  connection,
   skipVersionCheck: true,
 });
 
@@ -67,7 +90,7 @@ new Worker(
     }
   },
   {
-    connection: redis,
+    connection,
     skipVersionCheck: true,
   },
 );

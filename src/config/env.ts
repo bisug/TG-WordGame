@@ -39,8 +39,7 @@ export const env = z
       .transform((val) => val.split(",").filter(Boolean).map(Number)),
     REDIS_URI: z.string().default("redis://127.0.0.1:6379"),
     CUSTOM_API_ROOT: z
-      .string()
-      .url({ message: "CUSTOM_API_ROOT must be a valid URL" })
+      .url({ error: "CUSTOM_API_ROOT must be a valid URL" })
       .default("https://api.telegram.org"), // default to official API
     LOGS_CHANNEL: z
       .string()
@@ -56,8 +55,8 @@ export const env = z
     DAILY_WORDLE_SECRET: z
       .string()
       .min(1, { message: "DAILY_WORDLE_SECRET is required" }),
-    UPDATES_CHANNEL: z.string().url().default("https://t.me/WordSeek"),
-    DISCUSSION_GROUP: z.string().url().default("https://t.me/WordGuesser"),
+    UPDATES_CHANNEL: z.url().default("https://t.me/WordSeek"),
+    DISCUSSION_GROUP: z.url().default("https://t.me/WordGuesser"),
     WEB_SERVICE: z
       .string()
       .optional()

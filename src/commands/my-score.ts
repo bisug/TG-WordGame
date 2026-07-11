@@ -5,7 +5,7 @@ const composer = new Composer();
 composer.command("myscore", async (ctx) => {
   return ctx.reply(
     "Please switch to /score command. It's a replacement for /myscore command",
-    { reply_to_message_id: ctx.msgId },
+    { reply_parameters: { message_id: ctx.msgId } },
   );
 });
 

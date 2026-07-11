@@ -13,12 +13,13 @@ composer.command("id", async (ctx) => {
     chatMember.status === "administrator" || chatMember.status === "creator";
   const isNotPrivate = ctx.chat.type !== "private";
   if (isNotPrivate && !isAdmin) return;
+  if (!ctx.message) return;
 
-  const repliedMsg = ctx.message?.reply_to_message;
+  const repliedMsg = ctx.message.reply_to_message;
 
   if (!repliedMsg) {
     return ctx.reply("Please reply to a message to get its information.", {
-      reply_to_message_id: ctx.message?.message_id,
+      reply_parameters: { message_id: ctx.message.message_id },
     });
   }
 
@@ -228,7 +229,7 @@ composer.command("id", async (ctx) => {
 
   await ctx.reply(info, {
     parse_mode: "HTML",
-    reply_to_message_id: ctx.message?.message_id,
+    reply_parameters: { message_id: ctx.message.message_id },
   });
 });
 
