@@ -29,9 +29,9 @@
     "ioredis": "5.11.1"
   },
   "dependencies": {
-    "@grammy/auto-retry": "2.0.2",
-    "@grammy/parse-mode": "2.3.0",
-    "@grammy/runner": "2.0.3",
+    "@grammyjs/auto-retry": "^2.0.2",
+    "@grammyjs/parse-mode": "^2.3.0",
+    "@grammyjs/runner": "^2.0.3",
     "bullmq": "5.80.1",
     "grammy": "1.44.0",
     "ioredis": "5.11.1",
