@@ -1,5 +1,6 @@
 import { db } from "../config/db";
 import { safeDel, safeGet, safeSet } from "../config/redis";
+import { toUtcMidnight } from "../services/daily-wordle-cron";
 import { safeJsonParse } from "./formatting";
 import { MemoryTtlCache } from "./memory-cache";
 
@@ -190,4 +191,56 @@ export async function deleteCachedGame(chatId: string, topicId: string) {
   const key = `game:${chatId}:${topicId}`;
   gameMemoryCache.delete(key);
   await safeDel(key);
+}
+
+// Daily Word Cache
+export type CachedDailyWord = {
+  id: number;
+  date: Date;
+  dayNumber: number;
+  word: string;
+  meaning: string | null;
+  phonetic: string | null;
+  sentence: string | null;
+};
+
+const dailyWordMemoryCache = new MemoryTtlCache<CachedDailyWord>(60 * 60 * 1000); // 1 hour
+
+export async function getCachedDailyWord(dateKey: string): Promise<CachedDailyWord | undefined> {
+  const key = `dailyWord:${dateKey}`;
+  const memoryValue = dailyWordMemoryCache.get(key);
+  if (memoryValue) return memoryValue;
+
+  const cached = await safeGet(key);
+  if (cached) {
+    const parsed = safeJsonParse<CachedDailyWord | undefined>(cached, undefined);
+    if (parsed) {
+      dailyWordMemoryCache.set(key, parsed);
+      return parsed;
+    }
+    await safeDel(key);
+  }
+
+  const dailyWord = await db
+    .selectFrom("dailyWords")
+    .selectAll()
+    .where("date", "=", toUtcMidnight(dateKey))
+    .executeTakeFirst();
+
+  if (dailyWord) {
+    const cachedWord: CachedDailyWord = {
+      id: dailyWord.id,
+      date: dailyWord.date,
+      dayNumber: dailyWord.dayNumber,
+      word: dailyWord.word,
+      meaning: dailyWord.meaning ?? null,
+      phonetic: dailyWord.phonetic ?? null,
+      sentence: dailyWord.sentence ?? null,
+    };
+    await safeSet(key, JSON.stringify(cachedWord), 24 * 60 * 60); // 24 hours
+    dailyWordMemoryCache.set(key, cachedWord);
+    return cachedWord;
+  }
+
+  return undefined;
 }

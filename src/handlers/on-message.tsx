@@ -12,19 +12,25 @@ import allFiveWords from "../data/all-five.json";
 import allFourWords from "../data/all-four.json";
 import allSixWords from "../data/all-six.json";
 import {
-  getGameDateString,
-  toUtcMidnight,
-} from "../services/daily-wordle-cron";
-import { deleteCachedGame, getCachedGame } from "../util/cache";
+  getFontData,
+  prewarmFont,
+} from "../util/font-cache";
+import { getGameDateString } from "../services/daily-wordle-cron";
+import { deleteCachedGame, getCachedDailyWord, getCachedGame } from "../util/cache";
 import { formatDailyWordDetails } from "../util/format-word-details";
 import { safeJsonParse, toFancyText } from "../util/formatting";
 import { requireAllowedTopic, runGuards } from "../util/guards";
+import { MemoryTtlCache } from "../util/memory-cache";
 
-const FONT_PATH = join(process.cwd(), "src", "fonts", "roboto.ttf");
-let fontDataPromise: Promise<Buffer> | null = null;
-function getFontData(): Promise<Buffer> {
-  if (!fontDataPromise) fontDataPromise = readFile(FONT_PATH);
-  return fontDataPromise;
+// Pre-warm font on module load to avoid blocking on first image generation
+prewarmFont();
+
+// Cache for generated Wordle images (in-memory, short TTL)
+const imageCache = new MemoryTtlCache<Buffer>(5 * 60 * 1000); // 5 minutes
+
+function getImageCacheKey(guesses: GuessEntry[], solution: string): string {
+  const guessPattern = guesses.map((g) => g.guess).join("|");
+  return `wordle:${solution}:${guessPattern}`;
 }
 
 const composer = new Composer();
@@ -204,11 +210,8 @@ async function handleDailyWordleGuess(ctx: Context, currentGuess: string) {
 
   const todayDate = getGameDateString();
 
-  const dailyWord = await db
-    .selectFrom("dailyWords")
-    .selectAll()
-    .where("date", "=", toUtcMidnight(todayDate))
-    .executeTakeFirst();
+  // Use cached daily word to reduce DB queries
+  const dailyWord = await getCachedDailyWord(todayDate);
 
   if (!dailyWord) {
     return ctx.reply(
@@ -504,6 +507,13 @@ export async function generateWordleImage(
   data: GuessEntry[],
   solution: string,
 ) {
+  // Check cache first
+  const cacheKey = getImageCacheKey(data, solution);
+  const cached = imageCache.get(cacheKey);
+  if (cached) {
+    return cached;
+  }
+
   const tiles = data.map((entry) => {
     const guess = entry.guess.toUpperCase();
     const solutionCount: Record<string, number> = {};
@@ -628,6 +638,9 @@ export async function generateWordleImage(
   );
 
   const pngBuffer = await sharp(Buffer.from(svg)).png().toBuffer();
+
+  // Cache the result
+  imageCache.set(cacheKey, pngBuffer);
 
   return pngBuffer;
 }
