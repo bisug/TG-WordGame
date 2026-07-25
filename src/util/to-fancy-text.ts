@@ -1,1 +1,0 @@
-export { toFancyText } from "./formatting";

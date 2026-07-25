@@ -7,7 +7,7 @@ interface WordDetailsInput {
   sentence: string | null;
 }
 
-function renderWordDetails(input: WordDetailsInput, escape = true) {
+function renderWordDetails(input: WordDetailsInput, shouldEscape = true) {
   const { word, meaning, phonetic, sentence } = input;
 
   const parts: string[] = [];
@@ -23,7 +23,7 @@ function renderWordDetails(input: WordDetailsInput, escape = true) {
   if (meaning) {
     parts.push(
       `<strong>Meaning</strong>: ${
-        escape ? escapeHtmlEntities(meaning) : meaning
+        shouldEscape ? escapeHtmlEntities(meaning) : meaning
       }`,
     );
   }

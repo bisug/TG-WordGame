@@ -14,7 +14,7 @@ export function generateUserSelectionKeyboard(
 ) {
   const keyboard = new InlineKeyboard();
 
-  users.forEach((user) => {
+  for (const user of users) {
     const escapedName = escapeHtmlEntities(user.name);
     const buttonText = `${escapedName} (ID: ${user.id})`;
     keyboard.text(
@@ -22,7 +22,7 @@ export function generateUserSelectionKeyboard(
       `score_select ${user.id} ${username || user.username || ""}`,
     );
     keyboard.row();
-  });
+  }
 
   return keyboard;
 }
