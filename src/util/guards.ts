@@ -1,9 +1,8 @@
-import { Context } from "grammy";
+import type { Context } from "grammy";
 
 import { db } from "../config/db";
 import { redis } from "../config/redis";
-import { getCachedGame } from "./game-cache";
-import { getCachedTopics } from "./topic-cache";
+import { getCachedGame, getCachedTopics } from "./cache";
 import { dailyWordleSchema } from "../handlers/on-message";
 
 type GuardResult = { ok: true } | { ok: false; message: string };

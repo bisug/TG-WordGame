@@ -1,4 +1,4 @@
-import { escapeHtmlEntities } from "./escape-html-entities";
+import { escapeHtmlEntities } from "./formatting";
 
 interface WordDetailsInput {
   word: string;

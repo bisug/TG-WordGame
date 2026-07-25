@@ -1,6 +1,6 @@
 import { describe, expect, test } from "bun:test";
 
-import { safeJsonParse } from "./safe-json-parse";
+import { safeJsonParse } from "./formatting";
 
 describe("safeJsonParse", () => {
   test("returns parsed JSON when valid", () => {

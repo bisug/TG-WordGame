@@ -1,5 +1,5 @@
 import type { AllowedChatSearchKey } from "../types";
-import { escapeHtmlEntities } from "./escape-html-entities";
+import { escapeHtmlEntities } from "./formatting";
 
 type FormatUserScoreData = {
   totalScore: number;

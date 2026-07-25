@@ -1,6 +1,6 @@
 import { InlineKeyboard } from "grammy";
 
-import { escapeHtmlEntities } from "./escape-html-entities";
+import { escapeHtmlEntities } from "./formatting";
 
 type User = {
   id: string;

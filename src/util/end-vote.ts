@@ -1,6 +1,6 @@
 import type { Context } from "grammy";
 
-import { escapeHtmlEntities } from "./escape-html-entities";
+import { escapeHtmlEntities } from "./formatting";
 
 export function getCurrentTopicId(ctx: Context) {
   return ctx.msg?.message_thread_id?.toString() || "general";
