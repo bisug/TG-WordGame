@@ -29,11 +29,11 @@
     "ioredis": "5.11.1"
   },
   "dependencies": {
-    "@grammys/auto-retry": "2.0.2",
-    "@grammys/parse-mode": "2.3.0",
-    "@grammys/runner": "2.0.3",
+    "@grammy/auto-retry": "2.0.2",
+    "@grammy/parse-mode": "2.3.0",
+    "@grammy/runner": "2.0.3",
     "bullmq": "5.80.1",
-    "grammY": "1.44.0",
+    "grammy": "1.44.0",
     "ioredis": "5.11.1",
     "kysely": "0.29.3",
     "kysely-ctl": "0.21.0",
