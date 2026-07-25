@@ -4,7 +4,7 @@ import { type Kysely, sql } from "kysely";
 // duplicate guesses, so this only ever trips on a genuine race (two identical
 // rapid guesses), turning a possible double-insert into a clean unique violation
 // that the handler already catches and reports as "already guessed".
-export async function up(db: Kysely<any>): Promise<void> {
+export async function up(db: Kysely<Record<string, never>>): Promise<void> {
   await sql`
     ALTER TABLE daily_guesses
     ADD CONSTRAINT daily_guesses_user_word_guess_unique
@@ -12,7 +12,7 @@ export async function up(db: Kysely<any>): Promise<void> {
   `.execute(db);
 }
 
-export async function down(db: Kysely<any>): Promise<void> {
+export async function down(db: Kysely<Record<string, never>>): Promise<void> {
   await sql`
     ALTER TABLE daily_guesses
     DROP CONSTRAINT IF EXISTS daily_guesses_user_word_guess_unique;

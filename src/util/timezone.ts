@@ -53,7 +53,7 @@ export function getZonedPeriodStart(
     month: "2-digit",
     day: "2-digit",
   }).formatToParts(now);
-  const get = (t: string) => parts.find((p) => p.type === t)!.value;
+  const get = (t: string) => parts.find((p) => p.type === t)?.value;
   const today = new Date(
     `${get("year")}-${get("month")}-${get("day")}T00:00:00`,
   );

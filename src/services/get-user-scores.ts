@@ -1,10 +1,10 @@
-import { sql } from "kysely";
-
+import { type ExpressionBuilder, sql } from "kysely";
+import type { AllowedWordLength } from "../config/constants";
 import { db } from "../config/db";
 import { env } from "../config/env";
-import { getZonedPeriodStart } from "../util/timezone";
-import type { AllowedWordLength } from "../config/constants";
+import type { DB } from "../database-schemas";
 import type { AllowedChatSearchKey, AllowedChatTimeKey } from "../types";
+import { getZonedPeriodStart } from "../util/timezone";
 
 export async function getUserScores({
   chatId,
@@ -22,7 +22,7 @@ export async function getUserScores({
   const start =
     timeKey !== "all" ? getZonedPeriodStart(timeKey, env.TIME_ZONE) : null;
 
-  const excludeBanned = (eb: any) =>
+  const excludeBanned = (eb: ExpressionBuilder<DB, "leaderboard">) =>
     eb.not(
       eb.exists(
         eb
@@ -44,7 +44,7 @@ export async function getUserScores({
     )
     .where("wordLength", "=", wordLength.toString() as "4" | "5" | "6")
     .$if(searchKey === "group", (q) => q.where("chatId", "=", chatId))
-    .$if(start !== null, (q) => q.where("createdAt", ">=", start!))
+    .$if(start !== null, (q) => q.where("createdAt", ">=", start))
     .where(excludeBanned)
     .where("userId", "=", userId)
     .executeTakeFirst();
@@ -61,7 +61,7 @@ export async function getUserScores({
     .select(sql<number>`count(*)`.as("cnt"))
     .where("wordLength", "=", wordLength.toString() as "4" | "5" | "6")
     .$if(searchKey === "group", (q) => q.where("chatId", "=", chatId))
-    .$if(start !== null, (q) => q.where("createdAt", ">=", start!))
+    .$if(start !== null, (q) => q.where("createdAt", ">=", start))
     .where(excludeBanned)
     .groupBy("userId")
     .having(sql`sum(${sql.ref("leaderboard.score")})`, ">", totalScore)

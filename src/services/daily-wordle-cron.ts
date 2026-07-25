@@ -1,11 +1,11 @@
-import crypto from "crypto";
+import crypto from "node:crypto";
 
 import { db } from "../config/db";
 import { env } from "../config/env";
 import { logger } from "../config/logger";
 import words from "../data/daily-word-lists.json";
-import { getZonedInstant } from "../util/timezone";
 import { getLocalWordDetails } from "../util/local-word-details";
+import { getZonedInstant } from "../util/timezone";
 
 function getDateStringFromDate(d: Date) {
   const year = d.getFullYear();
@@ -29,14 +29,24 @@ export function getGameDateString(date: Date = new Date()): string {
   });
 
   const parts = formatter.formatToParts(date);
-  const get = (t: string) => parts.find((p) => p.type === t)!.value;
+  const get = (t: string) => {
+    const value = parts.find((p) => p.type === t)?.value;
+    if (!value) throw new Error(`Missing ${t} from formatted game date`);
+    return value;
+  };
 
   const dateString = `${get("year")}-${get("month")}-${get("day")}`;
   const hour = parseInt(get("hour"), 10);
 
   if (hour < 6) {
-    const [y, m, d] = dateString.split("-").map(Number);
-    const shifted = new Date(y, m - 1, d);
+    const [yearPart, monthPart, dayPart] = dateString.split("-");
+    if (!yearPart || !monthPart || !dayPart) return dateString;
+
+    const shifted = new Date(
+      Number(yearPart),
+      Number(monthPart) - 1,
+      Number(dayPart),
+    );
     shifted.setDate(shifted.getDate() - 1);
     return getDateStringFromDate(shifted);
   }
@@ -169,7 +179,7 @@ function seedFromSecret(secret: string) {
 
 function mulberry32(seed: number) {
   let t = seed >>> 0;
-  return function () {
+  return () => {
     t += 0x6d2b79f5;
     let r = Math.imul(t ^ (t >>> 15), 1 | t);
     r = (r + Math.imul(r ^ (r >>> 7), 61 | r)) ^ r;
@@ -182,22 +192,32 @@ function deterministicShuffle(seed: number) {
   const rnd = mulberry32(seed);
   for (let i = arr.length - 1; i > 0; i--) {
     const j = Math.floor(rnd() * (i + 1));
-    [arr[i], arr[j]] = [arr[j], arr[i]];
+    const current = arr[i];
+    const replacement = arr[j];
+    if (current === undefined || replacement === undefined) continue;
+    arr[i] = replacement;
+    arr[j] = current;
   }
   return arr;
 }
 
 function getWordOfTheDay(shuffled: string[], gameDate: string) {
+  if (shuffled.length === 0) {
+    throw new Error("Daily word list is empty");
+  }
+
   const msPerDay = 24 * 60 * 60 * 1000;
-  const targetDate = new Date(gameDate + "T00:00:00Z");
+  const targetDate = new Date(`${gameDate}T00:00:00Z`);
 
   const dayNumber = Math.floor(
     (targetDate.getTime() - env.DAILY_WORDLE_START_DATE.getTime()) / msPerDay,
   );
 
-  return shuffled[
-    ((dayNumber % shuffled.length) + shuffled.length) % shuffled.length
-  ];
+  const index =
+    ((dayNumber % shuffled.length) + shuffled.length) % shuffled.length;
+  const word = shuffled[index];
+  if (!word) throw new Error(`No daily word found for index ${index}`);
+  return word;
 }
 
 function scheduleNextDailyRun(fn: () => void | Promise<void>) {

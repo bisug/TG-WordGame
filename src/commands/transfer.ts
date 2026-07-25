@@ -20,7 +20,16 @@ composer.command("transfer", async (ctx) => {
     );
   }
 
-  const [fromIdentifier, toIdentifier] = args;
+  const fromIdentifier = args[0];
+  const toIdentifier = args[1];
+
+  if (!fromIdentifier || !toIdentifier) {
+    return ctx.reply(
+      "Usage: /transfer <from_user> <to_user>\n" +
+        "Example: /transfer @username1 @username2\n" +
+        "Or: /transfer user_id_1 user_id_2",
+    );
+  }
 
   const getUser = async (identifier: string) => {
     const isUsername = identifier.startsWith("@");

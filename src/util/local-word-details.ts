@@ -33,12 +33,18 @@ export function getLocalWordDetails(word: string): LocalWordDetails {
 
 function normalizeDetail(value: string | undefined, maxLength: number) {
   const normalized = value
-    ?.replace(/[\u0000-\u001f\u007f]+/g, " ")
-    .replace(/\s+/g, " ")
-    .trim();
+    ? stripControlCharacters(value).replace(/\s+/g, " ").trim()
+    : undefined;
 
   if (!normalized) return null;
   return normalized.length > maxLength
     ? normalized.slice(0, maxLength).trimEnd()
     : normalized;
+}
+
+function stripControlCharacters(value: string) {
+  return Array.from(value, (char) => {
+    const code = char.charCodeAt(0);
+    return code <= 0x1f || code === 0x7f ? " " : char;
+  }).join("");
 }

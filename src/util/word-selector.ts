@@ -1,10 +1,9 @@
-import { randomInt } from "crypto";
-
-import { redis } from "../config/redis";
+import { randomInt } from "node:crypto";
 import { logger } from "../config/logger";
-import commonSixWords from "../data/common-six.json";
+import { redis } from "../config/redis";
 import commonFiveWords from "../data/common-five.json";
 import commonFourWords from "../data/common-four.json";
+import commonSixWords from "../data/common-six.json";
 
 export type WordLength = 4 | 5 | 6;
 
@@ -48,12 +47,17 @@ export class WordSelector {
       pipeline.scard(historyKey);
       const results = await pipeline.exec();
 
-      if (!results || results.length !== 2) {
+      if (results?.length !== 2) {
         throw new Error("Pipeline failed");
       }
 
-      const usedWords = results[0][1] as string[];
-      const setSize = results[1][1] as number;
+      const [usedWordsResult, setSizeResult] = results;
+      if (!usedWordsResult || !setSizeResult) {
+        throw new Error("Pipeline returned incomplete results");
+      }
+
+      const usedWords = usedWordsResult[1] as string[];
+      const setSize = setSizeResult[1] as number;
 
       const usedWordsSet = new Set(usedWords.map((w) => w.toLowerCase()));
       const availableWords = wordList.filter(
@@ -71,8 +75,9 @@ export class WordSelector {
         return this.getRandomWord(chatId, wordLength);
       }
 
-      const randomWord =
-        availableWords[randomInt(0, availableWords.length)].toLowerCase();
+      const selectedWord = availableWords[randomInt(0, availableWords.length)];
+      if (!selectedWord) throw new Error("No available word found");
+      const randomWord = selectedWord.toLowerCase();
 
       const updatePipeline = redis.pipeline();
       updatePipeline.sadd(historyKey, randomWord);
@@ -88,7 +93,11 @@ export class WordSelector {
       return randomWord;
     } catch (error) {
       logger.error({ err: error }, "Redis error, using fallback word");
-      return wordList[randomInt(0, wordList.length)].toLowerCase();
+      const fallbackWord = wordList[randomInt(0, wordList.length)];
+      if (!fallbackWord) {
+        throw new Error(`Word list for length ${wordLength} is empty`);
+      }
+      return fallbackWord.toLowerCase();
     }
   }
 }

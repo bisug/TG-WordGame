@@ -1,5 +1,5 @@
-import { db } from "../config/db";
 import type { AllowedWordLength } from "../config/constants";
+import { db } from "../config/db";
 import type { AllowedChatSearchKey, AllowedChatTimeKey } from "../types";
 
 export async function getSmartDefaults({
@@ -66,8 +66,11 @@ export async function getSmartDefaults({
   if (requestedTimeKey) {
     timeKey = requestedTimeKey;
   } else if (hasAnyScores) {
-    const latestDate = new Date(statsMap.get(wordLength.toString())!);
-    timeKey = deriveTimeKey(latestDate);
+    const latestCreatedAt = statsMap.get(wordLength.toString());
+    if (latestCreatedAt) {
+      const latestDate = new Date(latestCreatedAt);
+      timeKey = deriveTimeKey(latestDate);
+    }
   }
 
   return { searchKey, timeKey, wordLength, hasAnyScores };

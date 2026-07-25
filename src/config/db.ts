@@ -1,4 +1,3 @@
-import pg from "pg";
 import type { LogEvent } from "kysely";
 import {
   CamelCasePlugin,
@@ -6,11 +5,11 @@ import {
   Kysely,
   PostgresDialect,
 } from "kysely";
-
-import { env } from "./env";
-import { logger } from "./logger";
+import pg from "pg";
 import type { DB } from "../database-schemas";
 import { getDbConnectionString, getDbSslConfig } from "./database-url";
+import { env } from "./env";
+import { logger } from "./logger";
 
 const { Pool } = pg;
 

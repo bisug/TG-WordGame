@@ -1,16 +1,16 @@
-import { Composer, Context } from "grammy";
+import { Composer, type Context } from "grammy";
 
 import { db } from "../config/db";
 import { env } from "../config/env";
 import { redis } from "../config/redis";
 import { deleteCachedGame } from "../util/cache";
 import { CommandsHelper } from "../util/commands-helper";
-import { requireAllowedTopic, runGuards } from "../util/guards";
 import {
   formatUserLink,
   getCurrentTopicId,
   getEndVoteKey,
 } from "../util/end-vote";
+import { requireAllowedTopic, runGuards } from "../util/guards";
 
 const composer = new Composer();
 
@@ -77,7 +77,7 @@ composer.command("end", async (ctx) => {
   if (!currentGame) return ctx.reply("There is no game in progress.");
 
   const userId = ctx.from.id.toString();
-  const chatMember = await ctx.getChatMember(parseInt(userId));
+  const chatMember = await ctx.getChatMember(parseInt(userId, 10));
 
   const isAdmin =
     chatMember.status === "administrator" || chatMember.status === "creator";

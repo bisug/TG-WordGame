@@ -1,12 +1,11 @@
 import { Composer } from "grammy";
 
 import { z } from "zod";
-
-import { db } from "../config/db";
 import { bot } from "../config/bot";
+import { db } from "../config/db";
 import { env } from "../config/env";
-import { redis } from "../config/redis";
 import { logger } from "../config/logger";
+import { redis } from "../config/redis";
 import { formatDuration } from "../util/format-duration";
 
 const composer = new Composer();
@@ -66,10 +65,13 @@ async function performBroadcast(
   // already recorded in processedChatIds. This keeps progress correct across a
   // restart even when blocked chats were removed from the DB mid-broadcast.
   for (let i = 0; i < chats.length; i++) {
+    const chat = chats[i];
+    if (!chat) continue;
+
     // Skip chats already delivered in this (or a resumed) run. Membership lives
     // in a redis SET so the JSON state stays constant-size instead of O(n^2)
     // re-serializing a growing array on every chat.
-    if (await redis.sismember(BROADCAST_PROCESSED_KEY, chats[i].id)) {
+    if (await redis.sismember(BROADCAST_PROCESSED_KEY, chat.id)) {
       state.currentIndex = i + 1;
       continue;
     }
@@ -77,8 +79,6 @@ async function performBroadcast(
     // Cancellation is signalled by deleting the broadcast state key. A plain
     // EXISTS avoids re-parsing the full state on every chat.
     if (!(await redis.exists(BROADCAST_KEY))) return;
-
-    const chat = chats[i];
 
     try {
       await bot.api.copyMessage(Number(chat.id), state.chatId, state.messageId);
@@ -101,7 +101,7 @@ async function performBroadcast(
           .where("id", "=", chat.id)
           .execute();
         state.deletedCount++;
-      } catch (deleteError) {}
+      } catch (_deleteError) {}
     }
 
     await redis.sadd(BROADCAST_PROCESSED_KEY, chat.id);
@@ -126,7 +126,7 @@ Blocked: <code>${state.blockedCount}</code>
 Deleted: <code>${state.deletedCount}</code>`,
           { parse_mode: "HTML" },
         );
-      } catch (editError) {}
+      } catch (_editError) {}
 
       await sleep(10_000);
     }
@@ -149,7 +149,7 @@ Deleted: <code>${state.deletedCount}</code>
 Total Failed: <code>${totalFailed}</code>`,
       { parse_mode: "HTML" },
     );
-  } catch (editError) {}
+  } catch (_editError) {}
 
   await clearBroadcastState();
 }
@@ -284,4 +284,4 @@ Completed: <code>${state.currentIndex}/${state.totalChats}</code>`,
 const sleep = (ms: number) => new Promise((res) => setTimeout(res, ms));
 
 export const broadcastCommand = composer;
-export { performBroadcast, getBroadcastState };
+export { getBroadcastState, performBroadcast };

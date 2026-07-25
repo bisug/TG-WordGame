@@ -1,10 +1,10 @@
-import type { AllowedChatSearchKey, AllowedChatTimeKey } from "../types";
 import {
   type AllowedWordLength,
   allowedChatSearchKeys,
   allowedChatTimeKeys,
   allowedWordLengths,
 } from "../config/constants";
+import type { AllowedChatSearchKey, AllowedChatTimeKey } from "../types";
 
 type ParseResult = {
   searchKey: AllowedChatSearchKey | undefined;

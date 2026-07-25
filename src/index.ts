@@ -1,29 +1,27 @@
 import { autoRetry } from "@grammyjs/auto-retry";
 import { run, sequentialize } from "@grammyjs/runner";
-
-import { db } from "./config/db";
-import { bot } from "./config/bot";
-import { env } from "./config/env";
 import { commands } from "./commands";
-import { redis } from "./config/redis";
+import { bot } from "./config/bot";
+import { db } from "./config/db";
+import { env } from "./config/env";
 import { logger } from "./config/logger";
-import { errorHandler } from "./handlers/error-handler";
-import { onMessageHander } from "./handlers/on-message";
-import { CommandsHelper } from "./util/commands-helper";
-import { resumeBroadcast } from "./util/resume-broadcast";
+import { metrics } from "./config/metrics";
+import { redis } from "./config/redis";
 import { callbackQueryHandler } from "./handlers/callback-query";
+import { errorHandler } from "./handlers/error-handler";
 import { handleBannedUsers } from "./handlers/handle-banned-users";
 import { onBotAddedInChat } from "./handlers/on-bot-added-in-chat";
+import { onMessageHander } from "./handlers/on-message";
 import { topicEditedHandler } from "./handlers/topic-edited-handler";
-import { captchaQueue, captchaWorker } from "./queues/captcha-queue";
 import { trackMessagesHandler } from "./handlers/track-messages-handler";
 import { userAndChatSyncHandler } from "./handlers/user-and-chat-sync-handler";
+import { captchaQueue, captchaWorker } from "./queues/captcha-queue";
 import {
   dailyWordleCron,
   ensureDailyWordExists,
 } from "./services/daily-wordle-cron";
-
-import { metrics } from "./config/metrics";
+import { CommandsHelper } from "./util/commands-helper";
+import { resumeBroadcast } from "./util/resume-broadcast";
 
 bot.api.config.use(autoRetry());
 

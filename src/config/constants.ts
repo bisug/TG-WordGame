@@ -16,4 +16,4 @@ export const allowedChatTimeKeys = [
 export type AllowedWordLength = 4 | 5 | 6;
 export const allowedWordLengths: AllowedWordLength[] = [4, 5, 6];
 
-export const SLOT_SYMBOLS = ["➖", "🍒", "🍋", "7️⃣"];
+export const SLOT_SYMBOLS = ["➖", "🍒", "🍋", "7️⃣"] as const;

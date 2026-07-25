@@ -2,7 +2,7 @@ import { type Kysely, sql } from "kysely";
 
 // Production performance indexes. These back the hot leaderboard/score paths
 // and the daily streak-reset scan. Run via `bun run db:migrate`.
-export async function up(db: Kysely<any>): Promise<void> {
+export async function up(db: Kysely<Record<string, never>>): Promise<void> {
   // Global leaderboard aggregate + /score lookups: filter by word_length, range
   // on created_at, and the INCLUDE lets Postgres satisfy sum(score)/user_id from
   // the index without heap fetches.
@@ -27,7 +27,7 @@ export async function up(db: Kysely<any>): Promise<void> {
     ON daily_guesses (daily_word_id)`.execute(db);
 }
 
-export async function down(db: Kysely<any>): Promise<void> {
+export async function down(db: Kysely<Record<string, never>>): Promise<void> {
   await sql`DROP INDEX IF EXISTS leaderboard_word_len_created_idx`.execute(db);
   await sql`DROP INDEX IF EXISTS leaderboard_chat_word_created_idx`.execute(db);
   await sql`DROP INDEX IF EXISTS user_stats_streak_last_guessed_idx`.execute(

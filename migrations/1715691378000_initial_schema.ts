@@ -1,6 +1,6 @@
 import { type Kysely, sql } from "kysely";
 
-export async function up(db: Kysely<any>): Promise<void> {
+export async function up(db: Kysely<Record<string, never>>): Promise<void> {
   // 1. Create shared types and functions
   await sql`CREATE TYPE word_length AS ENUM ('4', '5', '6');`.execute(db);
 
@@ -269,7 +269,7 @@ export async function up(db: Kysely<any>): Promise<void> {
   }
 }
 
-export async function down(db: Kysely<any>): Promise<void> {
+export async function down(db: Kysely<Record<string, never>>): Promise<void> {
   const tables = [
     "daily_guesses",
     "daily_words",

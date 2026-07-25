@@ -1,4 +1,7 @@
-import { allowedChatSearchKeys, allowedChatTimeKeys } from "./config/constants";
+import type {
+  allowedChatSearchKeys,
+  allowedChatTimeKeys,
+} from "./config/constants";
 
 export type LeaderboardEntry = {
   userId: string;

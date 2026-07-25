@@ -1,4 +1,4 @@
-import { Composer, Context } from "grammy";
+import { Composer, type Context } from "grammy";
 
 import { env } from "../config/env";
 import { logger } from "../config/logger";
@@ -183,7 +183,7 @@ composer.use(async (ctx, next) => {
                   chatId,
                   ctx.message.message_id,
                 );
-              } catch (e) {}
+              } catch (_e) {}
             }
           } catch (error) {
             logger.error({ err: error, adminId }, "Failed to alert admin");
@@ -226,7 +226,7 @@ composer.use(async (ctx, next) => {
                 chatId,
                 msg.message_id,
               );
-            } catch (error) {
+            } catch (_error) {
               const from = msg.from
                 ? `${msg.from.first_name}${msg.from.username ? ` (@${msg.from.username})` : ""}`
                 : "Unknown";
@@ -259,7 +259,7 @@ composer.use(async (ctx, next) => {
               chatId,
               post.message_id,
             );
-          } catch (error) {
+          } catch (_error) {
             await ctx.api.sendMessage(
               Number(adminChatId),
               `🔔 New channel post in chat ${chatId}\nPost ID: ${post.message_id}`,

@@ -1,15 +1,15 @@
 import { InlineKeyboard } from "grammy";
 
 import { formatActiveButton } from "../commands/help";
-import type { AllowedChatSearchKey, AllowedChatTimeKey } from "../types";
 import {
   type AllowedWordLength,
+  allowedChatSearchKeys,
+  allowedChatTimeKeys,
   DISCUSSION_GROUP,
   DONATION_LINK,
   UPDATES_CHANNEL,
-  allowedChatSearchKeys,
-  allowedChatTimeKeys,
 } from "../config/constants";
+import type { AllowedChatSearchKey, AllowedChatTimeKey } from "../types";
 
 const allowedWordLengths: AllowedWordLength[] = [4, 5, 6];
 

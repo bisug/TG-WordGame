@@ -1,8 +1,8 @@
-import { BotError, Context, GrammyError, HttpError } from "grammy";
+import { type BotError, type Context, GrammyError, HttpError } from "grammy";
 
 import { db } from "../config/db";
-import { redis } from "../config/redis";
 import { logger } from "../config/logger";
+import { redis } from "../config/redis";
 import { getEndVoteKey } from "../util/end-vote";
 import { deleteCachedGame } from "../util/game-cache";
 
@@ -18,7 +18,7 @@ export async function errorHandler(error: BotError<Context>) {
     logger.error({ description: e.description }, "Error in request:");
 
     // Specific case: bot doesn't have permission to send messages
-    conditions: if (
+    if (
       e.description.includes(
         "not enough rights to send text messages to the chat",
       ) &&
@@ -46,10 +46,10 @@ export async function errorHandler(error: BotError<Context>) {
         .where("chatId", "=", ctx.chatId.toString())
         .execute();
       const currentTopicId = ctx.msg.message_thread_id?.toString();
-      if (!currentTopicId) break conditions;
+      if (!currentTopicId) return;
 
       const topic = topicsData.find((t) => t.topicId === currentTopicId);
-      if (!topic || !topic.shouldRecreateOnExpire) break conditions;
+      if (!topic?.shouldRecreateOnExpire) return;
 
       const message = await ctx.api.sendMessage(
         ctx.chatId,

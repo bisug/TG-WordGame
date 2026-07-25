@@ -1,23 +1,19 @@
 import { Composer, InlineKeyboard } from "grammy";
-
+import { SLOT_SYMBOLS } from "../config/constants";
 import { db } from "../config/db";
 import { env } from "../config/env";
 import { redis } from "../config/redis";
-import { captchaSchema } from "../schemas";
-import { SLOT_SYMBOLS } from "../config/constants";
 import { captchaQueue } from "../queues/captcha-queue";
+import { captchaSchema } from "../schemas";
 import { safeJsonParse } from "../util/safe-json-parse";
 
 const composer = new Composer();
 
 export const decodeSlot = (value: number): string[] => {
   const n = value - 1;
+  const symbolAt = (index: number) => SLOT_SYMBOLS[index] ?? SLOT_SYMBOLS[0];
 
-  return [
-    SLOT_SYMBOLS[n & 3],
-    SLOT_SYMBOLS[(n >> 2) & 3],
-    SLOT_SYMBOLS[(n >> 4) & 3],
-  ];
+  return [symbolAt(n & 3), symbolAt((n >> 2) & 3), symbolAt((n >> 4) & 3)];
 };
 
 export const buildCaptchaKeyboard = (progress: string[]) => {
@@ -127,7 +123,7 @@ composer.command("captcha", async (ctx) => {
   });
 
   const diceMsg = await ctx.api.sendDice(chatId, "🎰");
-  const value = diceMsg.dice!.value;
+  const value = diceMsg.dice?.value;
 
   const answer = decodeSlot(value);
 

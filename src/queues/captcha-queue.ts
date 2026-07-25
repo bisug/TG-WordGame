@@ -1,11 +1,10 @@
 import { Queue, Worker } from "bullmq";
-
+import { formatUserMention } from "../commands/captcha";
 import { bot } from "../config/bot";
 import { env } from "../config/env";
-import { redis } from "../config/redis";
 import { logger } from "../config/logger";
+import { redis } from "../config/redis";
 import { captchaSchema } from "../schemas";
-import { formatUserMention } from "../commands/captcha";
 import { safeJsonParse } from "../util/safe-json-parse";
 
 // Bullmq bundles its own copy of ioredis, so passing our shared ioredis

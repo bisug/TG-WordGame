@@ -1,12 +1,12 @@
-import { Composer, Context } from "grammy";
+import { Composer, type Context } from "grammy";
 
 import { sql } from "kysely";
 
 import { db } from "../config/db";
 import { env } from "../config/env";
-import { ensureUser } from "../util/sync-entities";
 import { CommandsHelper } from "../util/commands-helper";
 import { escapeHtmlEntities } from "../util/escape-html-entities";
+import { ensureUser } from "../util/sync-entities";
 
 const composer = new Composer();
 
@@ -85,7 +85,7 @@ export async function getTargetUser(
 
   if (identifier && /^\d+$/.test(identifier)) {
     try {
-      const member = await ctx.getChatMember(parseInt(identifier));
+      const member = await ctx.getChatMember(parseInt(identifier, 10));
       if (member.user) {
         return ensureUser(member.user);
       }
@@ -130,7 +130,7 @@ composer.command("seekauth", async (ctx) => {
   const args = ctx.match?.trim();
 
   const parts = args.split(" ");
-  const action = parts[0]!.toLowerCase();
+  const action = parts[0]?.toLowerCase();
 
   if (action === "list") {
     const authorizedUsers = await db
@@ -158,7 +158,7 @@ composer.command("seekauth", async (ctx) => {
   }
 
   if (action === "remove") {
-    const targetUser = await getTargetUser(ctx, parts[1]!);
+    const targetUser = await getTargetUser(ctx, parts[1]);
 
     if (!targetUser) {
       return await ctx.reply("❌ User not found.", replyConfig);

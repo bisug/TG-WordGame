@@ -1,17 +1,15 @@
-import { Composer, InlineKeyboard, InputFile } from "grammy";
-
-import { createReadStream } from "fs";
-
-import { CommandsHelper } from "../util/commands-helper";
+import { createReadStream } from "node:fs";
+import { Composer, type Context, InlineKeyboard, InputFile } from "grammy";
 import {
   DISCUSSION_GROUP,
   DONATION_LINK,
   UPDATES_CHANNEL,
 } from "../config/constants";
+import { CommandsHelper } from "../util/commands-helper";
 
 const composer = new Composer();
 
-export function getStartKeyboard(ctx: any) {
+export function getStartKeyboard(ctx: Context) {
   return new InlineKeyboard()
     .url(
       "Add me to your Group",

@@ -1,37 +1,12 @@
 import { Composer, GrammyError, InlineKeyboard } from "grammy";
 
 import { sql } from "kysely";
-
-import { db } from "../config/db";
-import { env } from "../config/env";
-import { redis } from "../config/redis";
-import { logger } from "../config/logger";
-import { captchaSchema } from "../schemas";
-import { safeJsonParse } from "../util/formatting";
-import { getUserScores } from "../services/get-user-scores";
-import { getSmartDefaults } from "../util/get-smart-defaults";
-import { endGame, isUserAuthorized } from "../commands/end-game";
-import { formatUserLink, getEndVoteKey } from "../util/end-vote";
-import type { AllowedChatSearchKey, AllowedChatTimeKey } from "../types";
-import { getStartKeyboard, getStartMessage } from "../commands/start";
-import { formatNoScoresMessage } from "../util/format-no-scores-message";
-import { getLeaderboardScores } from "../services/get-leaderboard-scores";
-import { formatUserScoreMessage } from "../util/format-user-score-message";
-import { formatLeaderboardMessage } from "../util/format-leaderboard-message";
-import { generateLeaderboardKeyboard } from "../util/generate-leaderboard-keyboard";
-import { generateUserSelectionKeyboard } from "../util/generate-user-selection-keyboard";
 import {
   buildCaptchaKeyboard,
   buildMessage,
   formatUserMention,
 } from "../commands/captcha";
-import {
-  type AllowedWordLength,
-  SLOT_SYMBOLS,
-  allowedChatSearchKeys,
-  allowedChatTimeKeys,
-  allowedWordLengths,
-} from "../config/constants";
+import { endGame, isUserAuthorized } from "../commands/end-game";
 import {
   getAdminCommandsMessage,
   getGroupSettingsMessage,
@@ -40,38 +15,65 @@ import {
   getOtherCommandsMessage,
   getScoresMessage,
 } from "../commands/help";
+import { getStartKeyboard, getStartMessage } from "../commands/start";
+import {
+  type AllowedWordLength,
+  allowedChatSearchKeys,
+  allowedChatTimeKeys,
+  allowedWordLengths,
+} from "../config/constants";
+import { db } from "../config/db";
+import { env } from "../config/env";
+import { logger } from "../config/logger";
+import { redis } from "../config/redis";
+import { captchaSchema } from "../schemas";
+import { getLeaderboardScores } from "../services/get-leaderboard-scores";
+import { getUserScores } from "../services/get-user-scores";
+import type { AllowedChatSearchKey, AllowedChatTimeKey } from "../types";
+import { formatUserLink, getEndVoteKey } from "../util/end-vote";
+import { formatLeaderboardMessage } from "../util/format-leaderboard-message";
+import { formatNoScoresMessage } from "../util/format-no-scores-message";
+import { formatUserScoreMessage } from "../util/format-user-score-message";
+import { safeJsonParse } from "../util/formatting";
+import { generateLeaderboardKeyboard } from "../util/generate-leaderboard-keyboard";
+import { generateUserSelectionKeyboard } from "../util/generate-user-selection-keyboard";
+import { getSmartDefaults } from "../util/get-smart-defaults";
 
 const composer = new Composer();
 
 composer.on("callback_query:data", async (ctx) => {
   const data = ctx.callbackQuery.data;
 
-  condition: if (data.startsWith("leaderboard")) {
+  if (data.startsWith("leaderboard")) {
     const [, searchKey, timeKey, wordLength] = data.split(" ");
     logger.debug(
       { searchKey, timeKey, wordLength },
       "Leaderboard callback query",
     );
     if (!allowedChatSearchKeys.includes(searchKey as AllowedChatSearchKey))
-      break condition;
+      return await ctx.answerCallbackQuery();
     if (!allowedChatTimeKeys.includes(timeKey as AllowedChatTimeKey))
-      break condition;
-    if (!allowedWordLengths.includes(parseInt(wordLength ?? "0") as AllowedWordLength))
-      break condition;
-    if (!ctx.chat) break condition;
+      return await ctx.answerCallbackQuery();
+    if (
+      !allowedWordLengths.includes(
+        parseInt(wordLength ?? "0", 10) as AllowedWordLength,
+      )
+    )
+      return await ctx.answerCallbackQuery();
+    if (!ctx.chat) return await ctx.answerCallbackQuery();
 
     const chatId = ctx.chat.id.toString();
     const memberScores = await getLeaderboardScores({
       chatId,
       searchKey: searchKey as AllowedChatSearchKey,
       timeKey: timeKey as AllowedChatTimeKey,
-      wordLength: parseInt(wordLength ?? "0") as AllowedWordLength,
+      wordLength: parseInt(wordLength ?? "0", 10) as AllowedWordLength,
     });
 
     const keyboard = generateLeaderboardKeyboard(
       searchKey as AllowedChatSearchKey,
       timeKey as AllowedChatTimeKey,
-      parseInt(wordLength ?? "0") as AllowedWordLength,
+      parseInt(wordLength ?? "0", 10) as AllowedWordLength,
     );
 
     await ctx
@@ -95,7 +97,7 @@ composer.on("callback_query:data", async (ctx) => {
     const parts = data.split(" ");
 
     const [, username] = parts;
-    if (!username) break condition;
+    if (!username) return await ctx.answerCallbackQuery();
 
     const users = await db
       .selectFrom("users")
@@ -131,8 +133,8 @@ composer.on("callback_query:data", async (ctx) => {
 
     if (data.startsWith("score_select")) {
       const [, userId, username] = parts;
-      if (!userId) break condition;
-      if (!ctx.chat) break condition;
+      if (!userId) return await ctx.answerCallbackQuery();
+      if (!ctx.chat) return await ctx.answerCallbackQuery();
 
       const chatId = ctx.chat.id.toString();
 
@@ -235,15 +237,17 @@ composer.on("callback_query:data", async (ctx) => {
     ) {
       const [, userId, searchKey, timeKey, wordLength] = parts;
       if (!allowedChatSearchKeys.includes(searchKey as AllowedChatSearchKey))
-        break condition;
+        return await ctx.answerCallbackQuery();
       if (!allowedChatTimeKeys.includes(timeKey as AllowedChatTimeKey))
-        break condition;
+        return await ctx.answerCallbackQuery();
       if (
-        !allowedWordLengths.includes(parseInt(wordLength ?? "0") as AllowedWordLength)
+        !allowedWordLengths.includes(
+          parseInt(wordLength ?? "0", 10) as AllowedWordLength,
+        )
       )
-        break condition;
-      if (!ctx.chat) break condition;
-      if (!userId) break condition;
+        return await ctx.answerCallbackQuery();
+      if (!ctx.chat) return await ctx.answerCallbackQuery();
+      if (!userId) return await ctx.answerCallbackQuery();
 
       const chatId = ctx.chat.id.toString();
 
@@ -277,7 +281,7 @@ composer.on("callback_query:data", async (ctx) => {
         userId,
         searchKey: searchKey as AllowedChatSearchKey,
         timeKey: timeKey as AllowedChatTimeKey,
-        wordLength: parseInt(wordLength ?? "0") as AllowedWordLength,
+        wordLength: parseInt(wordLength ?? "0", 10) as AllowedWordLength,
       });
 
       if (!userScore) {
@@ -293,7 +297,7 @@ composer.on("callback_query:data", async (ctx) => {
         const keyboard = generateLeaderboardKeyboard(
           searchKey as AllowedChatSearchKey,
           timeKey as AllowedChatTimeKey,
-          parseInt(wordLength ?? "0") as AllowedWordLength,
+          parseInt(wordLength ?? "0", 10) as AllowedWordLength,
           `score ${userId}`,
         );
 
@@ -313,7 +317,7 @@ composer.on("callback_query:data", async (ctx) => {
       const keyboard = generateLeaderboardKeyboard(
         searchKey as AllowedChatSearchKey,
         timeKey as AllowedChatTimeKey,
-        parseInt(wordLength ?? "0") as AllowedWordLength,
+        parseInt(wordLength ?? "0", 10) as AllowedWordLength,
         `score ${userId}`,
       );
 
@@ -335,7 +339,7 @@ composer.on("callback_query:data", async (ctx) => {
     const [, chatIdStr, topicId = "general"] = data.split(" ");
     if (!chatIdStr) return await ctx.answerCallbackQuery();
 
-    const chatId = parseInt(chatIdStr);
+    const chatId = parseInt(chatIdStr, 10);
 
     if (!ctx.chat || ctx.chat.id !== chatId) {
       return await ctx.answerCallbackQuery({
@@ -368,7 +372,7 @@ composer.on("callback_query:data", async (ctx) => {
       });
     }
 
-    const chatMember = await ctx.getChatMember(parseInt(userId));
+    const chatMember = await ctx.getChatMember(parseInt(userId, 10));
     const isAdmin =
       chatMember.status === "administrator" || chatMember.status === "creator";
     const isSystemAdmin = env.ADMIN_USERS.includes(ctx.from.id);

@@ -1,10 +1,9 @@
 import { sql } from "kysely";
-
+import type { AllowedWordLength } from "../config/constants";
 import { db } from "../config/db";
 import { env } from "../config/env";
-import { getZonedPeriodStart } from "../util/timezone";
-import type { AllowedWordLength } from "../config/constants";
 import type { AllowedChatSearchKey, AllowedChatTimeKey } from "../types";
+import { getZonedPeriodStart } from "../util/timezone";
 
 export async function getLeaderboardScores({
   chatId,

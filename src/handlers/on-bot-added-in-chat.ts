@@ -2,8 +2,8 @@ import { Composer } from "grammy";
 
 import { db } from "../config/db";
 import { logger } from "../config/logger";
-import { invalidateTopicsCache } from "../util/topic-cache";
 import { getGeneralKeyboard } from "../util/get-general-keyboard";
+import { invalidateTopicsCache } from "../util/topic-cache";
 
 const composer = new Composer();
 

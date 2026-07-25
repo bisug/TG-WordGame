@@ -1,14 +1,13 @@
 import type { Context } from "grammy";
 
-import { db } from "../config/db";
 import { redis } from "../config/redis";
-import { getCachedGame, getCachedTopics } from "./cache";
 import { dailyWordleSchema } from "../handlers/on-message";
+import { getCachedGame, getCachedTopics } from "./cache";
 
 type GuardResult = { ok: true } | { ok: false; message: string };
 
 export async function requirePrivateChat(ctx: Context): Promise<GuardResult> {
-  if (!ctx.chat || ctx.chat.type !== "private") {
+  if (ctx.chat?.type !== "private") {
     return {
       ok: false,
       message:

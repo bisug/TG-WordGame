@@ -101,10 +101,11 @@ composer.command("id", async (ctx) => {
     info += "</blockquote>\n\n";
   }
 
-  if (repliedMsg.photo) {
+  if (repliedMsg.photo?.length) {
     info += "<b>▸ Photo</b>\n";
     info += "<blockquote>";
-    const largestPhoto = repliedMsg.photo[repliedMsg.photo.length - 1];
+    const largestPhoto = repliedMsg.photo.at(-1);
+    if (!largestPhoto) return;
     info += `<b>File ID:</b> <code>${largestPhoto.file_id}</code>\n`;
     info += `<b>File Unique ID:</b> <code>${largestPhoto.file_unique_id}</code>\n`;
     info += `<b>Dimensions:</b> ${largestPhoto.width}x${largestPhoto.height}`;

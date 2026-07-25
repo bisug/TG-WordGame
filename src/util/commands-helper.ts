@@ -5,14 +5,16 @@ type Command = {
   description: string;
 };
 
-export class CommandsHelper {
-  static commands: Array<Command> = [];
+const commands: Array<Command> = [];
 
-  static async addNewCommand(command: string, description: string) {
-    this.commands.push({ command, description });
-  }
+export const CommandsHelper = {
+  commands,
 
-  static async setCommands() {
-    await bot.api.setMyCommands(this.commands);
-  }
-}
+  async addNewCommand(command: string, description: string) {
+    commands.push({ command, description });
+  },
+
+  async setCommands() {
+    await bot.api.setMyCommands(commands);
+  },
+};

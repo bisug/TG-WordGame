@@ -1,12 +1,11 @@
 import { Composer, InlineKeyboard } from "grammy";
-
-import { env } from "../config/env";
-import { CommandsHelper } from "../util/commands-helper";
 import {
   DISCUSSION_GROUP,
   DONATION_LINK,
   UPDATES_CHANNEL,
 } from "../config/constants";
+import { env } from "../config/env";
+import { CommandsHelper } from "../util/commands-helper";
 
 const composer = new Composer();
 
@@ -52,23 +51,23 @@ export function getMainHelpKeyboard(
 ) {
   const keyboard = new InlineKeyboard()
     .text(formatActiveButton("How to Play", active === "howto"), "help_howto")
-    .style(active == "howto" ? "primary" : undefined)
+    .style(active === "howto" ? "primary" : undefined)
     .text(
       formatActiveButton("Leaderboard & Scores", active === "scores"),
       "help_scores",
     )
-    .style(active == "scores" ? "primary" : undefined)
+    .style(active === "scores" ? "primary" : undefined)
     .row()
     .text(
       formatActiveButton("Group Settings", active === "group"),
       "help_group",
     )
-    .style(active == "group" ? "primary" : undefined)
+    .style(active === "group" ? "primary" : undefined)
     .text(
       formatActiveButton("Other Commands", active === "other"),
       "help_other",
     )
-    .style(active == "other" ? "primary" : undefined);
+    .style(active === "other" ? "primary" : undefined);
 
   if (shouldShowAdmin) {
     keyboard
@@ -77,7 +76,7 @@ export function getMainHelpKeyboard(
         formatActiveButton("👑 Admin Commands", active === "admin"),
         "help_admin",
       )
-      .style(active == "admin" ? "primary" : undefined);
+      .style(active === "admin" ? "primary" : undefined);
   }
   keyboard.url("GitHub Repo", "https://github.com/bisug/TG-WordGame");
   keyboard.row().url("📢 Updates", UPDATES_CHANNEL);

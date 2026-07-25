@@ -1,11 +1,11 @@
-import { db } from "../config/db";
-import { bot } from "../config/bot";
-import { logger } from "../config/logger";
 import {
   acquireBroadcastLock,
   getBroadcastState,
   performBroadcast,
 } from "../commands/broadcast";
+import { bot } from "../config/bot";
+import { db } from "../config/db";
+import { logger } from "../config/logger";
 
 export async function resumeBroadcast() {
   const state = await getBroadcastState();

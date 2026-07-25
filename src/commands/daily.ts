@@ -1,15 +1,15 @@
 import { Composer, InputFile } from "grammy";
 
 import { db } from "../config/db";
-import { redis } from "../config/redis";
 import { logger } from "../config/logger";
-import { CommandsHelper } from "../util/commands-helper";
-import { dailyGameGuards, runGuards } from "../util/guards";
+import { redis } from "../config/redis";
 import { generateWordleImage } from "../handlers/on-message";
 import {
   ensureDailyWordExists,
   getCurrentGameDateString,
 } from "../services/daily-wordle-cron";
+import { CommandsHelper } from "../util/commands-helper";
+import { dailyGameGuards, runGuards } from "../util/guards";
 
 const composer = new Composer();
 
@@ -50,9 +50,9 @@ composer.command("daily", async (ctx) => {
       .execute();
 
     if (existingGuesses.length > 0) {
-      const lastGuess = existingGuesses[existingGuesses.length - 1];
+      const lastGuess = existingGuesses.at(-1);
 
-      if (lastGuess.guess === dailyWord.word) {
+      if (lastGuess?.guess === dailyWord.word) {
         return ctx.reply(
           `You've already completed today's WordSeek! You got it in ${existingGuesses.length} ${existingGuesses.length === 1 ? "try" : "tries"}. Come back after 6:00 AM tomorrow for a new challenge!`,
         );

@@ -1,12 +1,14 @@
-import { escapeHtmlEntities } from "../util/escape-html-entities";
 import type { AllowedChatSearchKey, LeaderboardEntry } from "../types";
+import { escapeHtmlEntities } from "../util/escape-html-entities";
 
 export function formatLeaderboardMessage(
   data: LeaderboardEntry[],
   searchKey: AllowedChatSearchKey,
 ) {
+  const rankIcons = ["🥇", "🥈", "🥉"] as const;
+
   const blocks = data.reduce((acc, entry, index) => {
-    const rank = index < 3 ? ["🥇", "🥈", "🥉"][index] : "🔅";
+    const rank = rankIcons[index] ?? "🔅";
 
     let usernameLink = escapeHtmlEntities(entry.name);
     if (entry.username) {
@@ -20,7 +22,9 @@ export function formatLeaderboardMessage(
     if (index === 0 || index === 3 || (index > 3 && (index - 3) % 10 === 0)) {
       acc.push([]);
     }
-    acc[acc.length - 1].push(line);
+
+    const currentBlock = acc.at(-1);
+    if (currentBlock) currentBlock.push(line);
 
     return acc;
   }, [] as string[][]);

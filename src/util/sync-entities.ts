@@ -1,6 +1,6 @@
 import { db } from "../config/db";
-import { redis } from "../config/redis";
 import { logger } from "../config/logger";
+import { redis } from "../config/redis";
 import { MemoryTtlCache } from "./memory-cache";
 
 type SyncUser = {

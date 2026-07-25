@@ -1,10 +1,8 @@
 import { Composer } from "grammy";
 
-import { CommandsHelper } from "../util/commands-helper";
-
 const composer = new Composer();
 
-composer.command("startmatch", async (ctx) => {});
+composer.command("startmatch", async (_ctx) => {});
 
 // CommandsHelper.addNewCommand("startmatch", "Start a new game.");
 

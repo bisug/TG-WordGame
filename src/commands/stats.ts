@@ -1,8 +1,7 @@
+import { promises as fs } from "node:fs";
+import os from "node:os";
+import process from "node:process";
 import { Composer } from "grammy";
-
-import os from "os";
-import process from "process";
-import { promises as fs } from "fs";
 
 import { db } from "../config/db";
 import { env } from "../config/env";
@@ -26,7 +25,7 @@ composer.command("stats", async (ctx) => {
   try {
     const meminfo = await fs.readFile("/proc/meminfo", "utf8");
     const match = meminfo.match(/^MemAvailable:\s+(\d+)\s+kB$/m);
-    if (match && match[1]) availableMemory = parseInt(match[1], 10) * 1024;
+    if (match?.[1]) availableMemory = parseInt(match[1], 10) * 1024;
   } catch {
     // pass
   }
@@ -71,7 +70,7 @@ composer.command("stats", async (ctx) => {
     const k = 1024;
     const sizes = ["B", "KB", "MB", "GB", "TB"];
     const i = Math.floor(Math.log(bytes) / Math.log(k));
-    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + " " + sizes[i];
+    return `${parseFloat((bytes / k ** i).toFixed(2))} ${sizes[i]}`;
   };
 
   const formatPercent = (used: number, total: number) =>

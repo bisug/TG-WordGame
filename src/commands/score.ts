@@ -1,14 +1,13 @@
 import { Composer } from "grammy";
-
-import { getTargetUser } from "./seekauth";
-import { CommandsHelper } from "../util/commands-helper";
 import { getUserScores } from "../services/get-user-scores";
-import { getSmartDefaults } from "../util/get-smart-defaults";
-import { requireAllowedTopic, runGuards } from "../util/guards";
-import { parseLeaderboardInput } from "../util/parse-leaderboard-input";
+import { CommandsHelper } from "../util/commands-helper";
 import { formatNoScoresMessage } from "../util/format-no-scores-message";
 import { formatUserScoreMessage } from "../util/format-user-score-message";
 import { generateLeaderboardKeyboard } from "../util/generate-leaderboard-keyboard";
+import { getSmartDefaults } from "../util/get-smart-defaults";
+import { requireAllowedTopic, runGuards } from "../util/guards";
+import { parseLeaderboardInput } from "../util/parse-leaderboard-input";
+import { getTargetUser } from "./seekauth";
 
 const composer = new Composer();
 

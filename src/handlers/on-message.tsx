@@ -1,26 +1,24 @@
-import { InputFile } from "grammy";
+import { readFile } from "node:fs/promises";
+import { join } from "node:path";
+import { Composer, type Context, GrammyError, InputFile } from "grammy";
 import type { ReactionTypeEmoji } from "grammy/types";
-import { Composer, Context, GrammyError } from "grammy";
-
-import z from "zod";
-import sharp from "sharp";
-import { join } from "path";
 import satori from "satori";
-import { readFile } from "fs/promises";
+import sharp from "sharp";
+import z from "zod";
 
 import { db } from "../config/db";
 import { redis } from "../config/redis";
-import allSixWords from "../data/all-six.json";
 import allFiveWords from "../data/all-five.json";
 import allFourWords from "../data/all-four.json";
-import { toFancyText, safeJsonParse } from "../util/formatting";
-import { requireAllowedTopic, runGuards } from "../util/guards";
-import { formatDailyWordDetails } from "../util/format-word-details";
-import { deleteCachedGame, getCachedGame } from "../util/cache";
+import allSixWords from "../data/all-six.json";
 import {
   getGameDateString,
   toUtcMidnight,
 } from "../services/daily-wordle-cron";
+import { deleteCachedGame, getCachedGame } from "../util/cache";
+import { formatDailyWordDetails } from "../util/format-word-details";
+import { safeJsonParse, toFancyText } from "../util/formatting";
+import { requireAllowedTopic, runGuards } from "../util/guards";
 
 const FONT_PATH = join(process.cwd(), "src", "fonts", "roboto.ttf");
 let fontDataPromise: Promise<Buffer> | null = null;
@@ -182,7 +180,7 @@ composer.on("message:text", async (ctx) => {
   }
 
   const modeLabel = MODE_LABEL[wordLength];
-  let responseMessage =
+  const responseMessage =
     `<i>${modeLabel} · ${allGuesses.length}/30</i>\n\n` +
     toFancyText(getFeedback(allGuesses, currentGame.word));
 
@@ -192,7 +190,7 @@ composer.on("message:text", async (ctx) => {
 });
 
 async function handleDailyWordleGuess(ctx: Context, currentGuess: string) {
-  const userId = ctx.from!.id.toString();
+  const userId = ctx.from?.id.toString();
 
   if (!ALL_WORDS_SET[5].has(currentGuess)) {
     return ctx.reply(`${currentGuess.toUpperCase()} is not a valid word.`);
@@ -237,7 +235,7 @@ async function handleDailyWordleGuess(ctx: Context, currentGuess: string) {
       })
       .returningAll()
       .executeTakeFirstOrThrow();
-  } catch (error) {
+  } catch (_error) {
     // Handle race condition where two messages arrive nearly simultaneously
     // (or a duplicate guess slips past the in-memory check).
     return ctx.reply("You've already guessed this word. Try a different one!");
@@ -276,7 +274,7 @@ async function handleDailyWordleWin(
   dailyWord: DailyWord,
   allGuesses: GuessEntry[],
 ) {
-  const userId = ctx.from!.id.toString();
+  const userId = ctx.from?.id.toString();
 
   await redis.del(`daily_wordle:${userId}`);
 
@@ -294,7 +292,7 @@ async function handleDailyWordleWin(
   let newStreak = 1;
   let highestStreak = 1;
 
-  if (userStats && userStats.lastGuessed) {
+  if (userStats?.lastGuessed) {
     const lastGuessGameDay = getGameDateString(new Date(userStats.lastGuessed));
 
     if (lastGuessGameDay === todayGameDay) {
@@ -399,7 +397,7 @@ async function handleDailyWordleLoss(
   dailyWord: DailyWord,
   allGuesses: GuessEntry[],
 ) {
-  const userId = ctx.from!.id.toString();
+  const userId = ctx.from?.id.toString();
 
   await redis.del(`daily_wordle:${userId}`);
 
@@ -539,11 +537,25 @@ export async function generateWordleImage(
   const height = padding * 2 + 6 * tileSize + 5 * gap; // Always 6 rows for daily wordle
 
   // Pad with empty rows if less than 6 guesses
-  const paddedTiles = [...tiles];
+  const buildCells = (rowKey: string, guess: string, result: string[]) =>
+    guess.split("").map((letter, cellIndex) => ({
+      key: `${rowKey}-${cellIndex}-${letter || "blank"}`,
+      letter,
+      status: result[cellIndex] ?? "empty",
+    }));
+
+  const paddedTiles = tiles.map((tile, index) => {
+    const rowKey = `guess-${index}-${tile.guess}-${tile.result.join("")}`;
+    return {
+      rowKey,
+      cells: buildCells(rowKey, tile.guess, tile.result),
+    };
+  });
   while (paddedTiles.length < 6) {
+    const rowKey = `empty-${paddedTiles.length}`;
     paddedTiles.push({
-      guess: "     ",
-      result: Array(5).fill("empty"),
+      rowKey,
+      cells: buildCells(rowKey, "     ", Array(5).fill("empty")),
     });
   }
 
@@ -562,11 +574,11 @@ export async function generateWordleImage(
           gap: "8px",
         }}
       >
-        {paddedTiles.map(({ guess, result }, rowIdx) => (
-          <div key={rowIdx} style={{ display: "flex", gap: "8px" }}>
-            {guess.split("").map((letter, i) => (
+        {paddedTiles.map(({ cells, rowKey }) => (
+          <div key={rowKey} style={{ display: "flex", gap: "8px" }}>
+            {cells.map(({ key, letter, status }) => (
               <div
-                key={i}
+                key={key}
                 style={{
                   width: "60px",
                   height: "60px",
@@ -574,11 +586,11 @@ export async function generateWordleImage(
                   alignItems: "center",
                   justifyContent: "center",
                   background:
-                    result[i] === "empty" ? "#3a3a3c" : getColor(result[i]),
-                  color: result[i] === "empty" ? "#3a3a3c" : "white",
+                    status === "empty" ? "#3a3a3c" : getColor(status),
+                  color: status === "empty" ? "#3a3a3c" : "white",
                   fontSize: "32px",
                   fontWeight: "bold",
-                  border: result[i] === "empty" ? "2px solid #565758" : "none",
+                  border: status === "empty" ? "2px solid #565758" : "none",
                 }}
               >
                 {letter.trim()}
@@ -630,7 +642,6 @@ async function reactWithRandom(ctx: Context) {
         err instanceof GrammyError &&
         err.description?.includes("REACTION_NOT_ALLOWED")
       ) {
-        continue;
       } else {
         break;
       }

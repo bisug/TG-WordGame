@@ -1,11 +1,10 @@
 import { Composer } from "grammy";
-
-import { CommandsHelper } from "../util/commands-helper";
-import { requireAllowedTopic, runGuards } from "../util/guards";
 import { getLeaderboardScores } from "../services/get-leaderboard-scores";
-import { parseLeaderboardFilters } from "../util/parse-leaderboard-input";
+import { CommandsHelper } from "../util/commands-helper";
 import { formatLeaderboardMessage } from "../util/format-leaderboard-message";
 import { generateLeaderboardKeyboard } from "../util/generate-leaderboard-keyboard";
+import { requireAllowedTopic, runGuards } from "../util/guards";
+import { parseLeaderboardFilters } from "../util/parse-leaderboard-input";
 
 const composer = new Composer();
 
