@@ -251,15 +251,12 @@ Railway uses `railway.toml` and Nixpacks.
 
 ### Render
 
-Render uses `render.yaml` for a web service and `render-worker.yaml` for a worker
-deployment.
+Render uses `render.yaml` to deploy the bot seamlessly as a Background Worker.
 
 1. Connect the repository to Render.
 2. Create PostgreSQL and Redis instances.
-3. Set `WEB_SERVICE=true` only for web-service deployments that need a health
-   endpoint.
-4. Set the required environment variables.
-5. Deploy. Render runs `bun run db:migrate` as the pre-deploy command.
+3. Set the required environment variables.
+4. Deploy. Render runs `bun run db:migrate` as the pre-deploy command.
 
 ### Heroku
 
@@ -309,7 +306,7 @@ latency setup is usually:
 | `REDIS_URI`                        | Yes      | `redis://127.0.0.1:6379`         | Valkey/Redis URI. Falls back to `REDIS_URL`.            |
 | `ADMIN_USERS`                      | Yes      | Empty                            | Comma-separated Telegram user IDs with owner access.    |
 | `NODE_ENV`                         | No       | `development`                    | Use `production` in hosted environments.                |
-| `WEB_SERVICE`                      | No       | `false`                          | Starts a small health-check HTTP server when `true`.    |
+| `WEB_SERVICE`                      | No       | `false`                          | Starts a `/healthz` and `/metrics` HTTP server when `true`.    |
 | `TIME_ZONE`                        | No       | `UTC`                            | Timezone for daily reset logic and scheduled jobs.      |
 | `DAILY_WORDLE_START_DATE`          | No       | `2025-01-01`                     | Start date for the daily word rotation.                 |
 | `DATABASE_SSL`                     | No       | Auto                             | Overrides PostgreSQL SSL usage.                         |
@@ -346,7 +343,7 @@ migrations/      Kysely database migrations
 | :------------------- | :--------------------------------- |
 | `bun run dev`        | Start the bot with Bun watch mode. |
 | `bun run start`      | Start the bot normally.            |
-| `bun run lint`       | Check formatting with Prettier.    |
+| `bun run lint`       | Check formatting and linting with Biome.    |
 | `bun run test`       | Run Bun tests.                     |
 | `bun run typecheck`  | Run TypeScript type checking.      |
 | `bun run build`      | Bundle the app to `dist/`.         |
