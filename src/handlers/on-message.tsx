@@ -192,6 +192,12 @@ composer.on("message:text", async (ctx) => {
 async function handleDailyWordleGuess(ctx: Context, currentGuess: string) {
   const userId = ctx.from?.id.toString();
 
+  if (!userId) {
+    return ctx.reply(
+      "Unable to identify your account. Please start a private chat with the bot.",
+    );
+  }
+
   if (!ALL_WORDS_SET[5].has(currentGuess)) {
     return ctx.reply(`${currentGuess.toUpperCase()} is not a valid word.`);
   }
@@ -275,6 +281,10 @@ async function handleDailyWordleWin(
   allGuesses: GuessEntry[],
 ) {
   const userId = ctx.from?.id.toString();
+
+  if (!userId) {
+    return;
+  }
 
   await redis.del(`daily_wordle:${userId}`);
 
@@ -398,6 +408,10 @@ async function handleDailyWordleLoss(
   allGuesses: GuessEntry[],
 ) {
   const userId = ctx.from?.id.toString();
+
+  if (!userId) {
+    return;
+  }
 
   await redis.del(`daily_wordle:${userId}`);
 
@@ -585,8 +599,7 @@ export async function generateWordleImage(
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "center",
-                  background:
-                    status === "empty" ? "#3a3a3c" : getColor(status),
+                  background: status === "empty" ? "#3a3a3c" : getColor(status),
                   color: status === "empty" ? "#3a3a3c" : "white",
                   fontSize: "32px",
                   fontWeight: "bold",
