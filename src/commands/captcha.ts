@@ -6,6 +6,7 @@ import { redis } from "../config/redis";
 import { captchaQueue } from "../queues/captcha-queue";
 import { captchaSchema } from "../schemas";
 import { safeJsonParse } from "../util/safe-json-parse";
+import { CAPTCHA_ACTIONS } from "../util/button-actions";
 
 const composer = new Composer();
 
@@ -20,11 +21,11 @@ export const buildCaptchaKeyboard = (progress: string[]) => {
   const keyboard = new InlineKeyboard();
 
   SLOT_SYMBOLS.forEach((e) => {
-    keyboard.text(e, `captcha_pick ${e}`);
+    keyboard.text(e, `${CAPTCHA_ACTIONS.PICK_PREFIX} ${e}`);
   });
 
   if (progress.length > 0) {
-    keyboard.row().text("⬅️", "captcha_back").text("❌ Clear", "captcha_clear");
+    keyboard.row().text("⬅️", CAPTCHA_ACTIONS.BACK).text("❌ Clear", CAPTCHA_ACTIONS.CLEAR);
   }
 
   return keyboard;

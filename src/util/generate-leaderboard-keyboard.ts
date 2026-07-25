@@ -1,6 +1,5 @@
 import { InlineKeyboard } from "grammy";
 
-import { formatActiveButton } from "../commands/help";
 import {
   type AllowedWordLength,
   allowedChatSearchKeys,
@@ -10,6 +9,8 @@ import {
   UPDATES_CHANNEL,
 } from "../config/constants";
 import type { AllowedChatSearchKey, AllowedChatTimeKey } from "../types";
+import { BACK_BUTTONS, NAV_EMOJIS } from "./button-actions";
+import { formatActiveButton } from "./button-helpers";
 
 const allowedWordLengths: AllowedWordLength[] = [4, 5, 6];
 
@@ -26,17 +27,16 @@ export function generateLeaderboardKeyboard(
   allowedChatSearchKeys.forEach((key, index) => {
     if (index === mid) {
       keyboard.text(
-        "🔄",
+        NAV_EMOJIS.REFRESH,
         `${callbackKey} ${searchKey} ${timeKey} ${wordLength}`,
       );
     }
 
     keyboard
       .text(
-        generateButtonText(
-          searchKey,
-          key,
+        formatActiveButton(
           key === "group" ? "This chat" : "Global",
+          searchKey === key,
         ),
         `${callbackKey} ${key} ${timeKey} ${wordLength}`,
       )
@@ -48,14 +48,13 @@ export function generateLeaderboardKeyboard(
   allowedChatTimeKeys.forEach((key, index) => {
     keyboard
       .text(
-        generateButtonText(
-          timeKey,
-          key,
+        formatActiveButton(
           key === "all"
             ? "All time"
             : key === "today"
               ? "Today"
               : `This ${key}`,
+          timeKey === key,
         ),
         `${callbackKey} ${searchKey} ${key} ${wordLength}`,
       )
@@ -69,7 +68,7 @@ export function generateLeaderboardKeyboard(
   allowedWordLengths.forEach((len) => {
     keyboard
       .text(
-        generateButtonText(wordLength, len, `${len} letters`),
+        formatActiveButton(`${len} letters`, wordLength === len),
         `${callbackKey} ${searchKey} ${timeKey} ${len}`,
       )
       .style(wordLength === len ? "primary" : undefined);
@@ -86,8 +85,4 @@ export function generateLeaderboardKeyboard(
   }
 
   return keyboard;
-}
-
-function generateButtonText<T>(key: T, currentKey: T, label: string) {
-  return formatActiveButton(label, key === currentKey);
 }

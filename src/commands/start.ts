@@ -5,6 +5,7 @@ import {
   DONATION_LINK,
   UPDATES_CHANNEL,
 } from "../config/constants";
+import { HELP_ACTIONS } from "../util/button-actions";
 import { CommandsHelper } from "../util/commands-helper";
 
 const composer = new Composer();
@@ -17,7 +18,7 @@ export function getStartKeyboard(ctx: Context) {
     )
     .row()
     .url("Updates", UPDATES_CHANNEL)
-    .text("Help", "help_howto")
+    .text("Help", HELP_ACTIONS.HOWTO)
     .url("Discussion", DISCUSSION_GROUP)
     .row()
     .url("💓 Donate", DONATION_LINK)

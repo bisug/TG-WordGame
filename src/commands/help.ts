@@ -6,14 +6,10 @@ import {
 } from "../config/constants";
 import { env } from "../config/env";
 import { CommandsHelper } from "../util/commands-helper";
+import { HELP_ACTIONS } from "../util/button-actions";
+import { formatActiveButton } from "../util/button-helpers";
 
 const composer = new Composer();
-
-type HelpSection = "howto" | "scores" | "group" | "other" | "admin";
-
-export function formatActiveButton(label: string, active: boolean) {
-  return active ? `« ${label} »` : label;
-}
 
 function getTimezoneLabel(): string {
   const tz = env.TIME_ZONE || "UTC";
@@ -47,46 +43,46 @@ function getTimezoneLabel(): string {
 
 export function getMainHelpKeyboard(
   shouldShowAdmin: boolean,
-  active: HelpSection = "howto",
+  active: keyof typeof HELP_ACTIONS = "HOWTO",
 ) {
   const keyboard = new InlineKeyboard()
-    .text(formatActiveButton("How to Play", active === "howto"), "help_howto")
-    .style(active === "howto" ? "primary" : undefined)
+    .text(formatActiveButton("How to Play", active === "HOWTO"), HELP_ACTIONS.HOWTO)
+    .style(active === "HOWTO" ? "primary" : undefined)
     .text(
-      formatActiveButton("Leaderboard & Scores", active === "scores"),
-      "help_scores",
+      formatActiveButton("Leaderboard & Scores", active === "SCORES"),
+      HELP_ACTIONS.SCORES,
     )
-    .style(active === "scores" ? "primary" : undefined)
+    .style(active === "SCORES" ? "primary" : undefined)
     .row()
     .text(
-      formatActiveButton("Group Settings", active === "group"),
-      "help_group",
+      formatActiveButton("Group Settings", active === "GROUP"),
+      HELP_ACTIONS.GROUP,
     )
-    .style(active === "group" ? "primary" : undefined)
+    .style(active === "GROUP" ? "primary" : undefined)
     .text(
-      formatActiveButton("Other Commands", active === "other"),
-      "help_other",
+      formatActiveButton("Other Commands", active === "OTHER"),
+      HELP_ACTIONS.OTHER,
     )
-    .style(active === "other" ? "primary" : undefined);
+    .style(active === "OTHER" ? "primary" : undefined);
 
   if (shouldShowAdmin) {
     keyboard
       .row()
       .text(
-        formatActiveButton("👑 Admin Commands", active === "admin"),
-        "help_admin",
+        formatActiveButton("👑 Admin Commands", active === "ADMIN"),
+        HELP_ACTIONS.ADMIN,
       )
-      .style(active === "admin" ? "primary" : undefined);
+      .style(active === "ADMIN" ? "primary" : undefined);
   }
   keyboard.url("GitHub Repo", "https://github.com/bisug/TG-WordGame");
   keyboard.row().url("📢 Updates", UPDATES_CHANNEL);
   keyboard.url("💓 Donate", DONATION_LINK).success();
   keyboard.url("💬 Discussion", DISCUSSION_GROUP);
 
-  if (active !== "howto") {
-    keyboard.row().text("⬅️ Back to Main Help", "help_howto");
+  if (active !== "HOWTO") {
+    keyboard.row().text("⬅️ Back to Main Help", HELP_ACTIONS.HOWTO);
   } else {
-    keyboard.row().text("🔙 Back to Start", "help_start");
+    keyboard.row().text("🔙 Back to Start", HELP_ACTIONS.START);
   }
 
   return keyboard;
@@ -275,7 +271,7 @@ composer.command("help", async (ctx) => {
 
   const shouldShowAdmin =
     env.ADMIN_USERS.includes(ctx.from.id) && ctx.chat.type === "private";
-  const keyboard = getMainHelpKeyboard(shouldShowAdmin, "howto");
+  const keyboard = getMainHelpKeyboard(shouldShowAdmin, "HOWTO");
 
   await ctx.reply(getHowToPlayMessage(), {
     parse_mode: "HTML",

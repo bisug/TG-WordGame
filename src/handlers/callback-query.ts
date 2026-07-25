@@ -38,13 +38,57 @@ import { safeJsonParse } from "../util/formatting";
 import { generateLeaderboardKeyboard } from "../util/generate-leaderboard-keyboard";
 import { generateUserSelectionKeyboard } from "../util/generate-user-selection-keyboard";
 import { getSmartDefaults } from "../util/get-smart-defaults";
+import { BACK_BUTTONS, HELP_ACTIONS, LEADERBOARD_ACTIONS } from "../util/button-actions";
 
 const composer = new Composer();
 
 composer.on("callback_query:data", async (ctx) => {
   const data = ctx.callbackQuery.data;
 
-  if (data.startsWith("leaderboard")) {
+  // Help section callbacks
+  if (data.startsWith("help_")) {
+    const section = data.replace("help_", "").toUpperCase();
+    const validSections = ["HOWTO", "SCORES", "GROUP", "OTHER", "ADMIN", "START"] as const;
+    const activeSection = validSections.includes(section as typeof validSections[number])
+      ? (section as typeof validSections[number])
+      : "HOWTO";
+
+    let message: string;
+    let showAdmin = false;
+
+    switch (activeSection) {
+      case "HOWTO":
+        message = getHowToPlayMessage();
+        break;
+      case "SCORES":
+        message = getScoresMessage();
+        break;
+      case "GROUP":
+        message = getGroupSettingsMessage();
+        break;
+      case "OTHER":
+        message = getOtherCommandsMessage();
+        break;
+      case "ADMIN":
+        message = getAdminCommandsMessage();
+        showAdmin = true;
+        break;
+      case "START":
+        message = getStartMessage();
+        break;
+      default:
+        message = getHowToPlayMessage();
+    }
+
+    await ctx.editMessageText(message, {
+      parse_mode: "HTML",
+      reply_markup: getMainHelpKeyboard(showAdmin, activeSection),
+    });
+
+    return await ctx.answerCallbackQuery();
+  }
+
+  if (data.startsWith(LEADERBOARD_ACTIONS.PREFIX)) {
     const [, searchKey, timeKey, wordLength] = data.split(" ");
     logger.debug(
       { searchKey, timeKey, wordLength },
@@ -93,7 +137,7 @@ composer.on("callback_query:data", async (ctx) => {
     return await ctx.answerCallbackQuery({
       text: "Leaderboard updated! 🔄",
     });
-  } else if (data.startsWith("score_list")) {
+  } else if (data.startsWith(LEADERBOARD_ACTIONS.SCORE_LIST_PREFIX)) {
     const parts = data.split(" ");
 
     const [, username] = parts;
@@ -128,10 +172,10 @@ composer.on("callback_query:data", async (ctx) => {
       .catch((e) => logger.error({ err: e }, "Failed to update user selection message"));
 
     return await ctx.answerCallbackQuery();
-  } else if (data.startsWith("score")) {
+  } else if (data.startsWith(LEADERBOARD_ACTIONS.SCORE_PREFIX)) {
     const parts = data.split(" ");
 
-    if (data.startsWith("score_select")) {
+    if (data.startsWith(LEADERBOARD_ACTIONS.SCORE_SELECT_PREFIX)) {
       const [, userId, username] = parts;
       if (!userId) return await ctx.answerCallbackQuery();
       if (!ctx.chat) return await ctx.answerCallbackQuery();
@@ -181,8 +225,8 @@ composer.on("callback_query:data", async (ctx) => {
         });
 
         const backButtonDetails = {
-          text: "⬅️ Back to user list",
-          callback: `score_list ${username}`,
+          text: BACK_BUTTONS.USER_LIST,
+          callback: `${LEADERBOARD_ACTIONS.SCORE_LIST_PREFIX} ${username}`,
         };
 
         const keyboard = hasAnyScores
@@ -190,7 +234,7 @@ composer.on("callback_query:data", async (ctx) => {
               searchKey,
               timeKey,
               wordLength,
-              `score ${userId}`,
+              `${LEADERBOARD_ACTIONS.SCORE_PREFIX} ${userId}`,
               username ? backButtonDetails : undefined,
             )
           : new InlineKeyboard().text(
@@ -219,11 +263,11 @@ composer.on("callback_query:data", async (ctx) => {
         searchKey,
         timeKey,
         wordLength,
-        `score ${userId}`,
+        `${LEADERBOARD_ACTIONS.SCORE_PREFIX} ${userId}`,
         username
           ? {
-              text: "⬅️ Back to user list",
-              callback: `score_list ${username}`,
+              text: BACK_BUTTONS.USER_LIST,
+              callback: `${LEADERBOARD_ACTIONS.SCORE_LIST_PREFIX} ${username}`,
             }
           : undefined,
       );
@@ -244,9 +288,9 @@ composer.on("callback_query:data", async (ctx) => {
       return await ctx.answerCallbackQuery();
     }
     if (
-      data.startsWith("score ") &&
-      !data.startsWith("score_select") &&
-      !data.startsWith("score_list")
+      data.startsWith(LEADERBOARD_ACTIONS.SCORE_PREFIX) &&
+      !data.startsWith(LEADERBOARD_ACTIONS.SCORE_SELECT_PREFIX) &&
+      !data.startsWith(LEADERBOARD_ACTIONS.SCORE_LIST_PREFIX)
     ) {
       const [, userId, searchKey, timeKey, wordLength] = parts;
       if (!allowedChatSearchKeys.includes(searchKey as AllowedChatSearchKey))
@@ -315,7 +359,7 @@ composer.on("callback_query:data", async (ctx) => {
           searchKey as AllowedChatSearchKey,
           timeKey as AllowedChatTimeKey,
           parseInt(wordLength ?? "0", 10) as AllowedWordLength,
-          `score ${userId}`,
+          `${LEADERBOARD_ACTIONS.SCORE_PREFIX} ${userId}`,
         );
 
         await ctx
@@ -340,7 +384,7 @@ composer.on("callback_query:data", async (ctx) => {
         searchKey as AllowedChatSearchKey,
         timeKey as AllowedChatTimeKey,
         parseInt(wordLength ?? "0", 10) as AllowedWordLength,
-        `score ${userId}`,
+        `${LEADERBOARD_ACTIONS.SCORE_PREFIX} ${userId}`,
       );
 
       await ctx
@@ -505,7 +549,7 @@ composer.on("callback_query:data", async (ctx) => {
       text: `Vote recorded! ${3 - voterCount} more votes needed.`,
     });
   } else if (data.startsWith("help_")) {
-    type HelpSection = "howto" | "scores" | "group" | "other" | "admin";
+    type HelpSection = "HOWTO" | "SCORES" | "GROUP" | "OTHER" | "ADMIN";
 
     if (!ctx.from) {
       return await ctx.answerCallbackQuery();
@@ -525,25 +569,25 @@ composer.on("callback_query:data", async (ctx) => {
     }
 
     let message = "";
-    let activeSection: HelpSection = "howto";
+    let activeSection: HelpSection = "HOWTO";
 
     switch (data) {
       case "help_main":
       case "help_howto":
         message = getHowToPlayMessage();
-        activeSection = "howto";
+        activeSection = "HOWTO";
         break;
       case "help_scores":
         message = getScoresMessage();
-        activeSection = "scores";
+        activeSection = "SCORES";
         break;
       case "help_group":
         message = getGroupSettingsMessage();
-        activeSection = "group";
+        activeSection = "GROUP";
         break;
       case "help_other":
         message = getOtherCommandsMessage();
-        activeSection = "other";
+        activeSection = "OTHER";
         break;
       case "help_admin":
         if (!shouldShowAdminCommands) {
@@ -553,7 +597,7 @@ composer.on("callback_query:data", async (ctx) => {
           });
         }
         message = getAdminCommandsMessage();
-        activeSection = "admin";
+        activeSection = "ADMIN";
         break;
       default:
         return await ctx.answerCallbackQuery();
