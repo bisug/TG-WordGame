@@ -1,4 +1,4 @@
-import { AllowedChatSearchKey } from "../types";
+import type { AllowedChatSearchKey } from "../types";
 import { escapeHtmlEntities } from "./escape-html-entities";
 
 type FormatUserScoreData = {

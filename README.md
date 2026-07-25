@@ -48,14 +48,12 @@ This repository is a maintained fork of
 
 ## Tech Stack
 
-- Runtime: [Bun](https://bun.sh)
-- Language: [TypeScript](https://www.typescriptlang.org/)
+- Runtime: [Bun](https://bun.sh) (v1.3.14+)
+- Language: [TypeScript 7](https://www.typescriptlang.org/)
+- Tooling: [Biome](https://biomejs.dev/) (Formatting & Linting)
 - Bot framework: [grammY](https://grammy.dev/)
-- Database: [PostgreSQL](https://www.postgresql.org/) with
-  [Kysely](https://kysely.dev/)
-- Cache and queues: [Valkey](https://valkey.io/) or [Redis](https://redis.io/)
-  with
-  [BullMQ](https://docs.bullmq.io/)
+- Database: [PostgreSQL](https://www.postgresql.org/) with [Kysely](https://kysely.dev/)
+- Cache and queues: [Valkey](https://valkey.io/) / [Redis](https://redis.io/) with [BullMQ](https://docs.bullmq.io/)
 - Validation: [Zod](https://zod.dev/)
 
 ## Gameplay

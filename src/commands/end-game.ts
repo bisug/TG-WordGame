@@ -3,7 +3,7 @@ import { Composer, Context } from "grammy";
 import { db } from "../config/db";
 import { env } from "../config/env";
 import { redis } from "../config/redis";
-import { deleteCachedGame } from "../util/game-cache";
+import { deleteCachedGame } from "../util/cache";
 import { CommandsHelper } from "../util/commands-helper";
 import { requireAllowedTopic, runGuards } from "../util/guards";
 import {

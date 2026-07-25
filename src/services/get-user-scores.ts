@@ -3,7 +3,7 @@ import { sql } from "kysely";
 import { db } from "../config/db";
 import { env } from "../config/env";
 import { getZonedPeriodStart } from "../util/timezone";
-import { AllowedWordLength } from "../config/constants";
+import type { AllowedWordLength } from "../config/constants";
 import type { AllowedChatSearchKey, AllowedChatTimeKey } from "../types";
 
 export async function getUserScores({

@@ -7,12 +7,12 @@ import { env } from "../config/env";
 import { redis } from "../config/redis";
 import { logger } from "../config/logger";
 import { captchaSchema } from "../schemas";
-import { safeJsonParse } from "../util/safe-json-parse";
+import { safeJsonParse } from "../util/formatting";
 import { getUserScores } from "../services/get-user-scores";
 import { getSmartDefaults } from "../util/get-smart-defaults";
 import { endGame, isUserAuthorized } from "../commands/end-game";
 import { formatUserLink, getEndVoteKey } from "../util/end-vote";
-import { AllowedChatSearchKey, AllowedChatTimeKey } from "../types";
+import type { AllowedChatSearchKey, AllowedChatTimeKey } from "../types";
 import { getStartKeyboard, getStartMessage } from "../commands/start";
 import { formatNoScoresMessage } from "../util/format-no-scores-message";
 import { getLeaderboardScores } from "../services/get-leaderboard-scores";
@@ -26,7 +26,7 @@ import {
   formatUserMention,
 } from "../commands/captcha";
 import {
-  AllowedWordLength,
+  type AllowedWordLength,
   SLOT_SYMBOLS,
   allowedChatSearchKeys,
   allowedChatTimeKeys,
@@ -56,7 +56,7 @@ composer.on("callback_query:data", async (ctx) => {
       break condition;
     if (!allowedChatTimeKeys.includes(timeKey as AllowedChatTimeKey))
       break condition;
-    if (!allowedWordLengths.includes(parseInt(wordLength) as AllowedWordLength))
+    if (!allowedWordLengths.includes(parseInt(wordLength ?? "0") as AllowedWordLength))
       break condition;
     if (!ctx.chat) break condition;
 
@@ -65,13 +65,13 @@ composer.on("callback_query:data", async (ctx) => {
       chatId,
       searchKey: searchKey as AllowedChatSearchKey,
       timeKey: timeKey as AllowedChatTimeKey,
-      wordLength: parseInt(wordLength) as AllowedWordLength,
+      wordLength: parseInt(wordLength ?? "0") as AllowedWordLength,
     });
 
     const keyboard = generateLeaderboardKeyboard(
       searchKey as AllowedChatSearchKey,
       timeKey as AllowedChatTimeKey,
-      parseInt(wordLength) as AllowedWordLength,
+      parseInt(wordLength ?? "0") as AllowedWordLength,
     );
 
     await ctx
@@ -239,7 +239,7 @@ composer.on("callback_query:data", async (ctx) => {
       if (!allowedChatTimeKeys.includes(timeKey as AllowedChatTimeKey))
         break condition;
       if (
-        !allowedWordLengths.includes(parseInt(wordLength) as AllowedWordLength)
+        !allowedWordLengths.includes(parseInt(wordLength ?? "0") as AllowedWordLength)
       )
         break condition;
       if (!ctx.chat) break condition;
@@ -277,7 +277,7 @@ composer.on("callback_query:data", async (ctx) => {
         userId,
         searchKey: searchKey as AllowedChatSearchKey,
         timeKey: timeKey as AllowedChatTimeKey,
-        wordLength: parseInt(wordLength) as AllowedWordLength,
+        wordLength: parseInt(wordLength ?? "0") as AllowedWordLength,
       });
 
       if (!userScore) {
@@ -293,7 +293,7 @@ composer.on("callback_query:data", async (ctx) => {
         const keyboard = generateLeaderboardKeyboard(
           searchKey as AllowedChatSearchKey,
           timeKey as AllowedChatTimeKey,
-          parseInt(wordLength) as AllowedWordLength,
+          parseInt(wordLength ?? "0") as AllowedWordLength,
           `score ${userId}`,
         );
 
@@ -313,7 +313,7 @@ composer.on("callback_query:data", async (ctx) => {
       const keyboard = generateLeaderboardKeyboard(
         searchKey as AllowedChatSearchKey,
         timeKey as AllowedChatTimeKey,
-        parseInt(wordLength) as AllowedWordLength,
+        parseInt(wordLength ?? "0") as AllowedWordLength,
         `score ${userId}`,
       );
 
@@ -596,7 +596,7 @@ composer.on("callback_query:data", async (ctx) => {
     if (data.startsWith("captcha_pick")) {
       const emoji = data.split(" ")[1];
 
-      if (session.progress.length < 3) {
+      if (emoji && session.progress.length < 3) {
         session.progress.push(emoji);
       }
     }

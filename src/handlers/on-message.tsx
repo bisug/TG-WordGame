@@ -1,5 +1,5 @@
 import { InputFile } from "grammy";
-import { ReactionTypeEmoji } from "grammy/types";
+import type { ReactionTypeEmoji } from "grammy/types";
 import { Composer, Context, GrammyError } from "grammy";
 
 import z from "zod";
@@ -13,11 +13,10 @@ import { redis } from "../config/redis";
 import allSixWords from "../data/all-six.json";
 import allFiveWords from "../data/all-five.json";
 import allFourWords from "../data/all-four.json";
-import { toFancyText } from "../util/to-fancy-text";
-import { safeJsonParse } from "../util/safe-json-parse";
+import { toFancyText, safeJsonParse } from "../util/formatting";
 import { requireAllowedTopic, runGuards } from "../util/guards";
 import { formatDailyWordDetails } from "../util/format-word-details";
-import { deleteCachedGame, getCachedGame } from "../util/game-cache";
+import { deleteCachedGame, getCachedGame } from "../util/cache";
 import {
   getGameDateString,
   toUtcMidnight,
@@ -370,17 +369,20 @@ export function generateWordleShareText(
     }
 
     for (let i = 0; i < guess.length; i++) {
-      if (guess[i] === sol[i]) {
+      const gChar = guess[i];
+      const sChar = sol[i];
+      if (gChar && sChar && gChar === sChar) {
         result[i] = "🟩";
-        solutionCount[guess[i]]--;
+        solutionCount[gChar] = (solutionCount[gChar] ?? 0) - 1;
       }
     }
 
     for (let i = 0; i < guess.length; i++) {
       if (result[i]) continue;
-      if (solutionCount[guess[i]] > 0) {
+      const gChar = guess[i];
+      if (gChar && (solutionCount[gChar] ?? 0) > 0) {
         result[i] = "🟨";
-        solutionCount[guess[i]]--;
+        solutionCount[gChar] = (solutionCount[gChar] ?? 0) - 1;
       } else {
         result[i] = "⬛";
       }
@@ -464,16 +466,19 @@ function getFeedback(data: GuessEntry[], solution: string) {
 
       const result = Array(guess.length).fill("🟥");
       for (let i = 0; i < guess.length; i++) {
-        if (guess[i] === solution[i].toUpperCase()) {
+        const gChar = guess[i];
+        const sChar = solution[i]?.toUpperCase();
+        if (gChar && sChar && gChar === sChar) {
           result[i] = "🟩";
-          solutionCount[guess[i]]--;
+          solutionCount[gChar] = (solutionCount[gChar] ?? 0) - 1;
         }
       }
 
       for (let i = 0; i < guess.length; i++) {
-        if (result[i] === "🟥" && solutionCount[guess[i]] > 0) {
+        const gChar = guess[i];
+        if (gChar && result[i] === "🟥" && (solutionCount[gChar] ?? 0) > 0) {
           result[i] = "🟨";
-          solutionCount[guess[i]]--;
+          solutionCount[gChar] = (solutionCount[gChar] ?? 0) - 1;
         }
       }
 
@@ -498,16 +503,19 @@ export async function generateWordleImage(
     const result = Array(guess.length).fill("absent");
 
     for (let i = 0; i < guess.length; i++) {
-      if (guess[i] === solution[i].toUpperCase()) {
+      const gChar = guess[i];
+      const sChar = solution[i]?.toUpperCase();
+      if (gChar && sChar && gChar === sChar) {
         result[i] = "correct";
-        solutionCount[guess[i]]--;
+        solutionCount[gChar] = (solutionCount[gChar] ?? 0) - 1;
       }
     }
 
     for (let i = 0; i < guess.length; i++) {
-      if (result[i] === "absent" && solutionCount[guess[i]] > 0) {
+      const gChar = guess[i];
+      if (gChar && result[i] === "absent" && (solutionCount[gChar] ?? 0) > 0) {
         result[i] = "present";
-        solutionCount[guess[i]]--;
+        solutionCount[gChar] = (solutionCount[gChar] ?? 0) - 1;
       }
     }
 

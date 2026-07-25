@@ -3,7 +3,7 @@ import { InlineKeyboard } from "grammy";
 import { formatActiveButton } from "../commands/help";
 import type { AllowedChatSearchKey, AllowedChatTimeKey } from "../types";
 import {
-  AllowedWordLength,
+  type AllowedWordLength,
   DISCUSSION_GROUP,
   DONATION_LINK,
   UPDATES_CHANNEL,

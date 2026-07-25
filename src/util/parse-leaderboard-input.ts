@@ -1,6 +1,6 @@
 import type { AllowedChatSearchKey, AllowedChatTimeKey } from "../types";
 import {
-  AllowedWordLength,
+  type AllowedWordLength,
   allowedChatSearchKeys,
   allowedChatTimeKeys,
   allowedWordLengths,

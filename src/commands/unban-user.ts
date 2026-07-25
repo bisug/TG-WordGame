@@ -2,7 +2,7 @@ import { Composer } from "grammy";
 
 import { db } from "../config/db";
 import { env } from "../config/env";
-import { setCachedBanStatus } from "../util/ban-cache";
+import { setCachedBanStatus } from "../util/cache";
 
 const composer = new Composer();
 

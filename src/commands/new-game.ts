@@ -1,11 +1,10 @@
-import { CommandContext, Composer, Context } from "grammy";
+import { type CommandContext, Composer, Context } from "grammy";
 
 import { DatabaseError } from "pg";
 
 import { db } from "../config/db";
 import { logger } from "../config/logger";
-import { setCachedGame } from "../util/game-cache";
-import { getCachedTopics } from "../util/topic-cache";
+import { getCachedTopics, setCachedGame } from "../util/cache";
 import { CommandsHelper } from "../util/commands-helper";
 import { regularGameGuards, runGuards } from "../util/guards";
 import { type WordLength, WordSelector } from "../util/word-selector";
@@ -33,7 +32,7 @@ async function startGame(
     const allowedLengths: WordLength[] =
       (topicSettings?.allowedLengths as WordLength[]) ?? GLOBAL_VALID_LENGTHS;
 
-    const defaultLength: WordLength = allowedLengths[0];
+    const defaultLength: WordLength = allowedLengths[0] ?? 5;
 
     let wordLength: WordLength;
 
