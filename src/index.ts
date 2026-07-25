@@ -23,13 +23,17 @@ import {
   ensureDailyWordExists,
 } from "./services/daily-wordle-cron";
 
+import { metrics } from "./config/metrics";
+
 bot.api.config.use(autoRetry());
 
-// Log incoming updates
+// Log incoming updates & record metrics
 bot.use(async (ctx, next) => {
   const start = Date.now();
+  metrics.incUpdates();
   await next();
   const ms = Date.now() - start;
+  metrics.recordDuration(ms);
   logger.info(
     {
       update_id: ctx.update.update_id,
@@ -61,7 +65,10 @@ bot.use(callbackQueryHandler);
 bot.use(onMessageHander);
 bot.use(onBotAddedInChat);
 
-bot.catch(errorHandler);
+bot.catch((err) => {
+  metrics.incErrors();
+  return errorHandler(err);
+});
 dailyWordleCron.start();
 await ensureDailyWordExists();
 
@@ -76,11 +83,25 @@ await bot.api.deleteWebhook({ drop_pending_updates: true });
 const runner = run(bot, { sink: { concurrency: 15 } });
 logger.info("Bot started");
 
-// Health check for or other cloud providers
+// Health check & metrics server for cloud containers
 if (env.WEB_SERVICE) {
   Bun.serve({
     port: process.env.PORT || 3000,
-    fetch() {
+    async fetch(req) {
+      const url = new URL(req.url);
+      if (url.pathname === "/healthz") {
+        try {
+          await db.selectFrom("users").select("id").limit(1).execute();
+          return new Response("OK", { status: 200 });
+        } catch {
+          return new Response("UNHEALTHY", { status: 500 });
+        }
+      }
+      if (url.pathname === "/metrics") {
+        return new Response(metrics.toPrometheusFormat(), {
+          headers: { "Content-Type": "text/plain; version=0.0.4" },
+        });
+      }
       return new Response("Bot is running!");
     },
   });

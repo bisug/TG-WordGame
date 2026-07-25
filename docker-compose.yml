@@ -8,7 +8,7 @@ x-wordseek-app: &wordseek-app
     - .env
   environment: &wordseek-env
     NODE_ENV: ${NODE_ENV:-production}
-    WEB_SERVICE: ${WEB_SERVICE:-false}
+    WEB_SERVICE: ${WEB_SERVICE:-true}
     DATABASE_URL: ${WORDSEEK_DATABASE_URL:-postgresql://wordseek:wordseek_change_me@postgres:5432/wordseek}
     DATABASE_SSL: ${DATABASE_SSL:-false}
     DATABASE_SSL_REJECT_UNAUTHORIZED: ${DATABASE_SSL_REJECT_UNAUTHORIZED:-false}
@@ -28,6 +28,14 @@ services:
   wordseek-bot:
     <<: *wordseek-app
     restart: unless-stopped
+    ports:
+      - "3000:3000"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000/healthz"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
     depends_on:
       wordseek-migrate:
         condition: service_completed_successfully
