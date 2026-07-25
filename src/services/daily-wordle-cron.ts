@@ -1,5 +1,4 @@
 import crypto from "crypto";
-import { CronJob } from "cron";
 
 import { db } from "../config/db";
 import { env } from "../config/env";
@@ -61,9 +60,6 @@ async function resetStreaksForInactivePlayers(yesterdayDate: string) {
       `Resetting streaks for inactive players`,
     );
 
-    // The game day for yesterdayDate started at 06:00 local in env.TIME_ZONE.
-    // Compare lastGuessed (stored as a UTC ISO instant) against the UTC instant
-    // of that local 06:00 so streaks reset correctly for any timezone.
     const yesterdayStartTime = getZonedInstant(
       yesterdayDate,
       "06:00:00",
@@ -147,7 +143,6 @@ async function generateDailyWord() {
       "Generating daily word",
     );
 
-    // Generate today's word
     await generateDailyWordInternal(gameDate);
   } catch (error) {
     logger.error({ err: error }, "Error generating daily word");
@@ -194,7 +189,7 @@ function deterministicShuffle(seed: number) {
 
 function getWordOfTheDay(shuffled: string[], gameDate: string) {
   const msPerDay = 24 * 60 * 60 * 1000;
-  const targetDate = new Date(gameDate + "T00:00:00Z"); // Use UTC to stay consistent with env.DAILY_WORDLE_START_DATE
+  const targetDate = new Date(gameDate + "T00:00:00Z");
 
   const dayNumber = Math.floor(
     (targetDate.getTime() - env.DAILY_WORDLE_START_DATE.getTime()) / msPerDay,
@@ -205,10 +200,40 @@ function getWordOfTheDay(shuffled: string[], gameDate: string) {
   ];
 }
 
-export const dailyWordleCron = new CronJob(
-  "0 6 * * *",
-  generateDailyWord,
-  null,
-  false,
-  env.TIME_ZONE,
-);
+function scheduleNextDailyRun(fn: () => void | Promise<void>) {
+  let timer: ReturnType<typeof setTimeout> | null = null;
+
+  function planNext() {
+    const now = new Date();
+    const target = new Date();
+    target.setHours(6, 0, 0, 0);
+    if (target.getTime() <= now.getTime()) {
+      target.setDate(target.getDate() + 1);
+    }
+    const msUntilTarget = target.getTime() - now.getTime();
+
+    timer = setTimeout(async () => {
+      try {
+        await fn();
+      } finally {
+        planNext();
+      }
+    }, msUntilTarget);
+  }
+
+  return {
+    start() {
+      if (!timer) {
+        planNext();
+      }
+    },
+    stop() {
+      if (timer) {
+        clearTimeout(timer);
+        timer = null;
+      }
+    },
+  };
+}
+
+export const dailyWordleCron = scheduleNextDailyRun(generateDailyWord);
