@@ -183,7 +183,12 @@ composer.use(async (ctx, next) => {
                   chatId,
                   ctx.message.message_id,
                 );
-              } catch (_e) {}
+              } catch (e) {
+                logger.error(
+                  { err: e, adminId, chatId },
+                  "Failed to forward suspicious message to admin",
+                );
+              }
             }
           } catch (error) {
             logger.error({ err: error, adminId }, "Failed to alert admin");

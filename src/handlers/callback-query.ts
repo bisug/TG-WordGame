@@ -88,7 +88,7 @@ composer.on("callback_query:data", async (ctx) => {
           link_preview_options: { is_disabled: true },
         },
       )
-      .catch(() => {});
+      .catch((e) => logger.error({ err: e }, "Failed to update leaderboard message"));
 
     return await ctx.answerCallbackQuery({
       text: "Leaderboard updated! 🔄",
@@ -125,7 +125,7 @@ composer.on("callback_query:data", async (ctx) => {
           reply_markup: keyboard,
         },
       )
-      .catch(() => {});
+      .catch((e) => logger.error({ err: e }, "Failed to update user selection message"));
 
     return await ctx.answerCallbackQuery();
   } else if (data.startsWith("score")) {
@@ -200,7 +200,12 @@ composer.on("callback_query:data", async (ctx) => {
             parse_mode: "HTML",
             reply_markup: keyboard,
           })
-          .catch(() => {});
+          .catch((e) =>
+            logger.error(
+              { err: e },
+              "Failed to update no scores message for score_select",
+            ),
+          );
 
         return ctx.answerCallbackQuery({
           text: "No scores found for the current filter.",
@@ -226,7 +231,12 @@ composer.on("callback_query:data", async (ctx) => {
           parse_mode: "HTML",
           link_preview_options: { is_disabled: true },
         })
-        .catch(() => {});
+        .catch((e) =>
+          logger.error(
+            { err: e },
+            "Failed to update user score message for score_select",
+          ),
+        );
 
       return await ctx.answerCallbackQuery();
     }
@@ -306,7 +316,12 @@ composer.on("callback_query:data", async (ctx) => {
             reply_markup: keyboard,
             parse_mode: "HTML",
           })
-          .catch(() => {});
+          .catch((e) =>
+            logger.error(
+              { err: e },
+              "Failed to update no scores message for score",
+            ),
+          );
 
         return ctx.answerCallbackQuery({
           text: "No scores found for this period.",
@@ -330,7 +345,12 @@ composer.on("callback_query:data", async (ctx) => {
             link_preview_options: { is_disabled: true },
           },
         )
-        .catch(() => {});
+        .catch((e) =>
+          logger.error(
+            { err: e },
+            "Failed to update user score message for score",
+          ),
+        );
 
       return await ctx.answerCallbackQuery();
     }
@@ -630,7 +650,12 @@ composer.on("callback_query:data", async (ctx) => {
             }),
             { parse_mode: "HTML" },
           )
-          .catch(() => {});
+          .catch((e) =>
+            logger.error(
+              { err: e },
+              "Failed to update captcha success message",
+            ),
+          );
         return await ctx.answerCallbackQuery();
       }
 
@@ -658,7 +683,12 @@ composer.on("callback_query:data", async (ctx) => {
             }),
             { parse_mode: "HTML" },
           )
-          .catch(() => {});
+          .catch((e) =>
+            logger.error(
+              { err: e },
+              "Failed to update captcha failure message",
+            ),
+          );
         return await ctx.answerCallbackQuery();
       }
 
@@ -680,7 +710,12 @@ composer.on("callback_query:data", async (ctx) => {
             parse_mode: "HTML",
           },
         )
-        .catch(() => {});
+        .catch((e) =>
+          logger.error(
+            { err: e },
+            "Failed to update captcha retry message",
+          ),
+        );
       return await ctx.answerCallbackQuery();
     }
 
@@ -699,7 +734,9 @@ composer.on("callback_query:data", async (ctx) => {
           parse_mode: "HTML",
         },
       )
-      .catch(() => {});
+      .catch((e) =>
+        logger.error({ err: e }, "Failed to update captcha progress message"),
+      );
 
     return await ctx.answerCallbackQuery();
   }

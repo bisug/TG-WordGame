@@ -101,7 +101,12 @@ async function performBroadcast(
           .where("id", "=", chat.id)
           .execute();
         state.deletedCount++;
-      } catch (_deleteError) {}
+      } catch (deleteError) {
+        logger.error(
+          { err: deleteError, chatId: chat.id },
+          "Failed to delete chat from broadcastChats",
+        );
+      }
     }
 
     await redis.sadd(BROADCAST_PROCESSED_KEY, chat.id);
@@ -126,7 +131,12 @@ Blocked: <code>${state.blockedCount}</code>
 Deleted: <code>${state.deletedCount}</code>`,
           { parse_mode: "HTML" },
         );
-      } catch (_editError) {}
+      } catch (editError) {
+        logger.debug(
+          { err: editError },
+          "Failed to update broadcast progress message (non-critical)",
+        );
+      }
 
       await sleep(10_000);
     }
@@ -149,7 +159,12 @@ Deleted: <code>${state.deletedCount}</code>
 Total Failed: <code>${totalFailed}</code>`,
       { parse_mode: "HTML" },
     );
-  } catch (_editError) {}
+  } catch (editError) {
+    logger.debug(
+      { err: editError },
+      "Failed to update broadcast completion message (non-critical)",
+    );
+  }
 
   await clearBroadcastState();
 }
