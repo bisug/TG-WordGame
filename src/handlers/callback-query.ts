@@ -686,7 +686,7 @@ composer.on("callback_query:data", async (ctx) => {
 
         await ctx.api.sendMessage(
           session.adminId,
-          `✅ ${mentionText} passed the captcha.`,
+          `✅ ${mentionText} passed verification!`,
           { parse_mode: "HTML" },
         );
 
@@ -697,7 +697,7 @@ composer.on("callback_query:data", async (ctx) => {
               progress: session.progress,
               attempts: session.attempts,
               maxAttempts: 3,
-              status: "Verification successful ✅",
+              status: "✅ Verified! You're all set.",
             }),
             { parse_mode: "HTML" },
           )
@@ -707,7 +707,7 @@ composer.on("callback_query:data", async (ctx) => {
               "Failed to update captcha success message",
             ),
           );
-        return await ctx.answerCallbackQuery();
+        return await ctx.answerCallbackQuery("✅ Verification complete!");
       }
 
       session.attempts += 1;
@@ -715,11 +715,36 @@ composer.on("callback_query:data", async (ctx) => {
       if (session.attempts >= 3) {
         await redis.del(key);
 
+        // Track failed attempts for potential auto-ban
+        const failKey = `captcha_fail:${session.userId}`;
+        const failCount = await redis.incr(failKey);
+        await redis.expire(failKey, 24 * 3600); // Reset after 24 hours
+
+        const banThreshold = 3; // Ban after 3 failed captchas in 24 hours
+        let shouldBan = false;
+
+        if (failCount >= banThreshold) {
+          shouldBan = true;
+          // Auto-ban the user
+          await db.insertInto("bannedUsers").values({
+            userId: session.userId,
+          }).onConflictDoNothing().execute();
+          
+          await redis.del(failKey); // Clear fail count after ban
+          
+          logger.warn(
+            { userId: session.userId, failCount },
+            "User auto-banned after repeated captcha failures",
+          );
+        }
+
         await ctx.api.sendMessage(
           session.adminId,
-          `❌ ${mentionText} failed the captcha.\nExpected: ${session.answer.join(
-            " ",
-          )}\nGot: ${session.progress.join(" ")}`,
+          `❌ ${mentionText} failed verification.\n` +
+          `Expected: ${session.answer.join(" ")}\n` +
+          `Got: ${session.progress.join(" ")}\n` +
+          `Total failures (24h): ${failCount}/${banThreshold}` +
+          (shouldBan ? "\n\n⛔ User has been automatically banned." : ""),
           { parse_mode: "HTML" },
         );
 
@@ -730,7 +755,9 @@ composer.on("callback_query:data", async (ctx) => {
               progress: session.answer,
               attempts: session.attempts,
               maxAttempts: 3,
-              status: "Verification failed ❌",
+              status: shouldBan 
+                ? "❌ Access denied. Contact support if you believe this is an error."
+                : "❌ Verification failed. Please try again later or contact support.",
             }),
             { parse_mode: "HTML" },
           )
@@ -740,13 +767,17 @@ composer.on("callback_query:data", async (ctx) => {
               "Failed to update captcha failure message",
             ),
           );
-        return await ctx.answerCallbackQuery();
+        return await ctx.answerCallbackQuery(
+          shouldBan ? "You have been restricted. Contact support." : "Verification failed. Please try again later.",
+          { show_alert: true }
+        );
       }
 
       session.progress = [];
 
       await redis.set(key, JSON.stringify(session), "KEEPTTL");
 
+      const remaining = 3 - session.attempts;
       await ctx
         .editMessageText(
           buildMessage({
@@ -754,7 +785,7 @@ composer.on("callback_query:data", async (ctx) => {
             progress: [],
             attempts: session.attempts,
             maxAttempts: 3,
-            status: "Incorrect selection. Try again.",
+            status: `❌ Incorrect. ${remaining} ${remaining === 1 ? "attempt" : "attempts"} remaining.`,
           }),
           {
             reply_markup: keyboard,
@@ -767,7 +798,10 @@ composer.on("callback_query:data", async (ctx) => {
             "Failed to update captcha retry message",
           ),
         );
-      return await ctx.answerCallbackQuery();
+      return await ctx.answerCallbackQuery(
+        `Incorrect! ${remaining} ${remaining === 1 ? "try" : "tries"} left.`,
+        { show_alert: true }
+      );
     }
 
     await redis.set(key, JSON.stringify(session), "KEEPTTL");

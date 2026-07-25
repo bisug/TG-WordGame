@@ -21,6 +21,7 @@ import { formatDailyWordDetails } from "../util/format-word-details";
 import { safeJsonParse, toFancyText } from "../util/formatting";
 import { requireAllowedTopic, runGuards } from "../util/guards";
 import { MemoryTtlCache } from "../util/memory-cache";
+import { trackGuessSpeed } from "./anticheat";
 
 // Pre-warm font on module load to avoid blocking on first image generation
 prewarmFont();
@@ -174,6 +175,11 @@ composer.on("message:text", async (ctx) => {
     .returningAll()
     .executeTakeFirstOrThrow();
   const allGuesses = [...existingGuesses, insertedGuess];
+
+  // Track guess speed for bot detection (only for non-bots)
+  if (!ctx.from.is_bot) {
+    await trackGuessSpeed(userId, chatIdStr, currentTopicId);
+  }
 
   if (allGuesses.length === 30) {
     await db.deleteFrom("games").where("id", "=", currentGame.id).execute();

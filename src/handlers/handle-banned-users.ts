@@ -11,12 +11,17 @@ composer.on("message", async (ctx, next) => {
   if (!isUserBanned) return await next();
 
   const keyboard = new InlineKeyboard();
-  keyboard.url("Appeal", "t.me/binamralamsal").primary();
+  keyboard.url("Appeal Ban", "t.me/binamralamsal").primary();
+  
+  // Friendly, less accusatory message with clear appeal path
   const banMessage =
-    "⚠️ You have been banned from bot for cheating using automated scripts!";
+    "⛔ <b>Access Restricted</b>\n\n" +
+    "Your access to this bot has been restricted.\n\n" +
+    "If you believe this was a mistake or would like to appeal, tap the button below to contact support.";
 
   if (ctx.chat.type === "private") {
     return ctx.reply(banMessage, {
+      parse_mode: "HTML",
       reply_markup: keyboard,
     });
   } else {
@@ -27,6 +32,7 @@ composer.on("message", async (ctx, next) => {
 
     if (botMentioned) {
       return ctx.reply(banMessage, {
+        parse_mode: "HTML",
         reply_markup: keyboard,
       });
     }

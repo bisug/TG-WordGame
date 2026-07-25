@@ -7,6 +7,7 @@ import { captchaQueue } from "../queues/captcha-queue";
 import { captchaSchema } from "../schemas";
 import { safeJsonParse } from "../util/safe-json-parse";
 import { CAPTCHA_ACTIONS } from "../util/button-actions";
+import { shouldChallengeUser } from "../handlers/anticheat";
 
 const composer = new Composer();
 
@@ -20,12 +21,13 @@ export const decodeSlot = (value: number): string[] => {
 export const buildCaptchaKeyboard = (progress: string[]) => {
   const keyboard = new InlineKeyboard();
 
+  // Show all symbol options
   SLOT_SYMBOLS.forEach((e) => {
     keyboard.text(e, `${CAPTCHA_ACTIONS.PICK_PREFIX} ${e}`);
   });
 
   if (progress.length > 0) {
-    keyboard.row().text("⬅️", CAPTCHA_ACTIONS.BACK).text("❌ Clear", CAPTCHA_ACTIONS.CLEAR);
+    keyboard.row().text("⬅️ Undo", CAPTCHA_ACTIONS.BACK).text("❌ Start Over", CAPTCHA_ACTIONS.CLEAR);
   }
 
   return keyboard;
@@ -49,20 +51,17 @@ export const buildMessage = ({
 
   let message = "";
 
-  message += `<blockquote>🎰 <strong>Verification Required</strong></blockquote>\n`;
-
-  message += `<blockquote>`;
-  message += `${
-    mention
-      ? `${mention}, please prove that you are not a robot.\n`
-      : "Please prove that you are not a robot.\n"
-  }`;
-  message += `├ Result: ${filled.join(" ")}\n`;
-  message += `├ Attempts: ${attempts}/${maxAttempts}\n`;
-  message += `├ Status: ${status ?? "Waiting for input"}\n`;
-  message += `└ Instruction: Select the symbols in the exact order shown above.`;
-  message += `</blockquote>`;
-
+  message += `🎰 <b>Quick Verification</b>\n\n`;
+  
+  message += `${mention ? `${mention}, ` : ""}Please tap the 3 symbols shown in the dice roll above.\n\n`;
+  message += `🎲 Your selection: ${filled.join(" ")}\n`;
+  
+  if (attempts > 0) {
+    message += `📝 Attempts: ${attempts}/${maxAttempts}\n`;
+  }
+  
+  message += `📌 ${status ?? "Tap the symbols in order, from left to right."}`;
+  
   return message;
 };
 
@@ -95,7 +94,28 @@ composer.command("captcha", async (ctx) => {
   const userId = parts[2];
 
   if (!chatId || !userId) {
-    return ctx.reply("Usage: /captcha <chatId> <userId>");
+    return ctx.reply(
+      "📖 <b>Captcha Command Help</b>\n\n" +
+      "Send a verification challenge to a user.\n\n" +
+      "<b>Usage:</b>\n" +
+      "/captcha <chatId> <userId>\n\n" +
+      "<b>When to use:</b>\n" +
+      "• User shows suspicious activity\n" +
+      "• User was flagged by the system\n" +
+      "• You suspect bot behavior\n\n" +
+      "<b>Note:</b> Users are only challenged automatically if they show suspicious patterns. This command is for manual review cases.",
+      { parse_mode: "HTML" }
+    );
+  }
+
+  // Check if user should be challenged
+  const challengeCheck = await shouldChallengeUser(userId);
+  if (!challengeCheck.challenge) {
+    return ctx.reply(
+      `✅ This user doesn't need verification.\n\n` +
+      `They haven't shown any suspicious activity.\n\n` +
+      `Use this command only for users with flags.`,
+    );
   }
 
   const key = `captcha:${chatId}:${userId}`;
@@ -105,9 +125,9 @@ composer.command("captcha", async (ctx) => {
     const session = safeJsonParse<{ attempts?: number }>(existing, {});
 
     return ctx.reply(
-      `⚠️ A captcha is already active for this user.\n\n` +
+      `⚠️ A verification is already active for this user.\n\n` +
         `Attempts: ${session.attempts ?? 0}/3\n` +
-        `Status: Not yet completed`,
+        `Status: Pending`,
     );
   }
 
