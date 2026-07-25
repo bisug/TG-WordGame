@@ -1,5 +1,3 @@
-import crypto from "node:crypto";
-
 import { db } from "../config/db";
 import { env } from "../config/env";
 import { logger } from "../config/logger";
@@ -115,9 +113,7 @@ async function generateDailyWordInternal(gameDate: string) {
 
   if (existingWord) return existingWord;
 
-  const seed = seedFromSecret(env.DAILY_WORDLE_SECRET);
-  const shuffled = deterministicShuffle(seed);
-  const word = getWordOfTheDay(shuffled, gameDate);
+  const word = getRandomWordForDate(gameDate);
   const details = getLocalWordDetails(word);
 
   const insertedWord = await db
@@ -169,53 +165,22 @@ export async function ensureDailyWordExists(gameDate?: string) {
   }
 }
 
-function seedFromSecret(secret: string) {
-  const h = crypto
-    .createHmac("sha256", secret)
-    .update("wotd-permutation-seed")
-    .digest();
-  return h.readUInt32BE(0);
-}
-
-function mulberry32(seed: number) {
-  let t = seed >>> 0;
-  return () => {
-    t += 0x6d2b79f5;
-    let r = Math.imul(t ^ (t >>> 15), 1 | t);
-    r = (r + Math.imul(r ^ (r >>> 7), 61 | r)) ^ r;
-    return ((r ^ (r >>> 14)) >>> 0) / 4294967296;
-  };
-}
-
-function deterministicShuffle(seed: number) {
-  const arr = words.slice();
-  const rnd = mulberry32(seed);
-  for (let i = arr.length - 1; i > 0; i--) {
-    const j = Math.floor(rnd() * (i + 1));
-    const current = arr[i];
-    const replacement = arr[j];
-    if (current === undefined || replacement === undefined) continue;
-    arr[i] = replacement;
-    arr[j] = current;
-  }
-  return arr;
-}
-
-function getWordOfTheDay(shuffled: string[], gameDate: string) {
-  if (shuffled.length === 0) {
+function getRandomWordForDate(gameDate: string): string {
+  if (words.length === 0) {
     throw new Error("Daily word list is empty");
   }
 
+  // Use date string to get a consistent but pseudo-random word for the day
   const msPerDay = 24 * 60 * 60 * 1000;
   const targetDate = new Date(`${gameDate}T00:00:00Z`);
-
   const dayNumber = Math.floor(
     (targetDate.getTime() - env.DAILY_WORDLE_START_DATE.getTime()) / msPerDay,
   );
 
-  const index =
-    ((dayNumber % shuffled.length) + shuffled.length) % shuffled.length;
-  const word = shuffled[index];
+  // Simple hash-based selection for consistency
+  const hash = dayNumber * 2654435761 >>> 0; // Knuth multiplicative hash
+  const index = hash % words.length;
+  const word = words[index];
   if (!word) throw new Error(`No daily word found for index ${index}`);
   return word;
 }

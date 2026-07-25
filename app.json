@@ -23,10 +23,6 @@
       "description": "Your Telegram Bot Token from @BotFather",
       "required": true
     },
-    "DAILY_WORDLE_SECRET": {
-      "description": "Secret key for generating daily wordles",
-      "generator": "secret"
-    },
     "NODE_ENV": {
       "description": "Environment setting",
       "value": "production"

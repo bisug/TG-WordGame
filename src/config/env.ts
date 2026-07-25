@@ -52,9 +52,6 @@ export const env = z
       .optional()
       .default("2025-01-01")
       .transform((val) => new Date(val)),
-    DAILY_WORDLE_SECRET: z
-      .string()
-      .min(1, { message: "DAILY_WORDLE_SECRET is required" }),
     UPDATES_CHANNEL: z.url().default("https://t.me/WordSeek"),
     DISCUSSION_GROUP: z.url().default("https://t.me/WordGuesser"),
     WEB_SERVICE: z

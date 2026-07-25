@@ -13,8 +13,6 @@ services:
         sync: false
       - key: REDIS_URI
         sync: false
-      - key: DAILY_WORDLE_SECRET
-        sync: false
       - key: NODE_ENV
         value: production
       - key: ADMIN_USERS
