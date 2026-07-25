@@ -20,32 +20,36 @@ export async function getSmartDefaults({
   let searchKey: AllowedChatSearchKey =
     requestedSearchKey || (chatType === "private" ? "global" : "group");
 
-  if (searchKey === "group" && chatType !== "private") {
-    const groupScoresExist = await db
+  // Always fetch both scopes in parallel — cheaper than two sequential queries
+  const [groupStats, globalStats] = await Promise.all([
+    db
       .selectFrom("leaderboard")
-      .select("userId")
+      .select(["wordLength", db.fn.max<Date>("createdAt").as("latestCreatedAt")])
       .where("userId", "=", userId)
       .where("chatId", "=", chatId)
-      .limit(1)
-      .executeTakeFirst();
+      .groupBy("wordLength")
+      .execute(),
+    db
+      .selectFrom("leaderboard")
+      .select(["wordLength", db.fn.max<Date>("createdAt").as("latestCreatedAt")])
+      .where("userId", "=", userId)
+      .groupBy("wordLength")
+      .execute(),
+  ]);
 
-    if (!groupScoresExist) {
-      searchKey = "global";
-    }
+  const groupStatsMap = new Map(
+    groupStats.map((s) => [s.wordLength as string, s.latestCreatedAt]),
+  );
+
+  // Downgrade to global only if no group scores exist
+  if (searchKey === "group" && groupStatsMap.size === 0) {
+    searchKey = "global";
   }
 
-  // Fetch all word lengths and their latest guess time in one query
-  const stats = await db
-    .selectFrom("leaderboard")
-    .select(["wordLength", db.fn.max<Date>("createdAt").as("latestCreatedAt")])
-    .where("userId", "=", userId)
-    .$if(searchKey === "group", (qb) => qb.where("chatId", "=", chatId))
-    .groupBy("wordLength")
-    .execute();
-
-  const statsMap = new Map(
-    stats.map((s) => [s.wordLength as string, s.latestCreatedAt]),
-  );
+  const statsMap =
+    searchKey === "group" ? groupStatsMap : new Map(
+      globalStats.map((s) => [s.wordLength as string, s.latestCreatedAt]),
+    );
 
   let wordLength: AllowedWordLength = 5;
   if (requestedWordLength) {

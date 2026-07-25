@@ -56,31 +56,32 @@ export async function getUserScores({
   // Competition rank = (# competitors with strictly greater score) + 1. This is
   // O(indexed aggregates) instead of the old O(N log N) rank() window over the
   // entire leaderboard, and yields identical ranking including ties.
-  const betterRows = await db
-    .selectFrom("leaderboard")
-    .select(sql<number>`count(*)`.as("cnt"))
-    .where("wordLength", "=", wordLength.toString() as "4" | "5" | "6")
-    .$if(searchKey === "group", (q) => q.where("chatId", "=", chatId))
-    .$if(start !== null, (q) => q.where("createdAt", ">=", start))
-    .where(excludeBanned)
-    .groupBy("userId")
-    .having(sql`sum(${sql.ref("leaderboard.score")})`, ">", totalScore)
-    .execute();
+  const [betterRows, profile] = await Promise.all([
+    db
+      .selectFrom("leaderboard")
+      .select(sql<number>`count(*)`.as("cnt"))
+      .where("wordLength", "=", wordLength.toString() as "4" | "5" | "6")
+      .$if(searchKey === "group", (q) => q.where("chatId", "=", chatId))
+      .$if(start !== null, (q) => q.where("createdAt", ">=", start))
+      .where(excludeBanned)
+      .groupBy("userId")
+      .having(sql`sum(${sql.ref("leaderboard.score")})`, ">", totalScore)
+      .execute(),
+    db
+      .selectFrom("users")
+      .leftJoin("userStats", "userStats.userId", "users.id")
+      .select([
+        "users.id",
+        "users.name",
+        "users.username",
+        "userStats.highestStreak",
+        "userStats.currentStreak",
+      ])
+      .where("users.id", "=", userId)
+      .executeTakeFirst(),
+  ]);
 
   const rank = betterRows.length + 1;
-
-  const profile = await db
-    .selectFrom("users")
-    .leftJoin("userStats", "userStats.userId", "users.id")
-    .select([
-      "users.id",
-      "users.name",
-      "users.username",
-      "userStats.highestStreak",
-      "userStats.currentStreak",
-    ])
-    .where("users.id", "=", userId)
-    .executeTakeFirst();
 
   return profile ? { ...profile, totalScore, rank } : undefined;
 }

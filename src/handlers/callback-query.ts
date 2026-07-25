@@ -138,11 +138,21 @@ composer.on("callback_query:data", async (ctx) => {
 
       const chatId = ctx.chat.id.toString();
 
-      const userInfo = await db
-        .selectFrom("users")
-        .select(["name"])
-        .where("id", "=", userId)
-        .executeTakeFirst();
+      // userInfo and getSmartDefaults are independent — run in parallel
+      const [userInfo, smartDefaults] = await Promise.all([
+        db
+          .selectFrom("users")
+          .select(["name"])
+          .where("id", "=", userId)
+          .executeTakeFirst(),
+        getSmartDefaults({
+          userId,
+          chatId,
+          requestedSearchKey: undefined,
+          requestedTimeKey: undefined,
+          chatType: ctx.chat.type,
+        }),
+      ]);
 
       if (!userInfo) {
         return ctx.answerCallbackQuery({
@@ -151,14 +161,7 @@ composer.on("callback_query:data", async (ctx) => {
         });
       }
 
-      const { searchKey, timeKey, hasAnyScores, wordLength } =
-        await getSmartDefaults({
-          userId,
-          chatId,
-          requestedSearchKey: undefined,
-          requestedTimeKey: undefined,
-          chatType: ctx.chat.type,
-        });
+      const { searchKey, timeKey, hasAnyScores, wordLength } = smartDefaults;
 
       const userScore = await getUserScores({
         chatId,
@@ -261,11 +264,25 @@ composer.on("callback_query:data", async (ctx) => {
 
       const chatId = ctx.chat.id.toString();
 
-      const userInfo = await db
-        .selectFrom("users")
-        .select(["name"])
-        .where("id", "=", userId)
-        .executeTakeFirst();
+      // userInfo and hasAnyScoresQuery are independent — run in parallel
+      const [userInfo, hasAnyScoresResult] = await Promise.all([
+        db
+          .selectFrom("users")
+          .select(["name"])
+          .where("id", "=", userId)
+          .executeTakeFirst(),
+        (async () => {
+          let q = db
+            .selectFrom("leaderboard")
+            .select("userId")
+            .where("userId", "=", userId)
+            .limit(1);
+          if (searchKey === "group") {
+            q = q.where("chatId", "=", chatId);
+          }
+          return q.executeTakeFirst();
+        })(),
+      ]);
 
       if (!userInfo) {
         return ctx.answerCallbackQuery({
@@ -274,17 +291,7 @@ composer.on("callback_query:data", async (ctx) => {
         });
       }
 
-      let hasAnyScoresQuery = db
-        .selectFrom("leaderboard")
-        .select("userId")
-        .where("userId", "=", userId)
-        .limit(1);
-
-      if (searchKey === "group") {
-        hasAnyScoresQuery = hasAnyScoresQuery.where("chatId", "=", chatId);
-      }
-
-      const hasAnyScores = !!(await hasAnyScoresQuery.executeTakeFirst());
+      const hasAnyScores = !!hasAnyScoresResult;
 
       const userScore = await getUserScores({
         chatId,

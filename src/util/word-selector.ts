@@ -41,63 +41,75 @@ export class WordSelector {
     const historyKey = this.historyKey(chatId, wordLength);
     const wordList = WORD_LIST[wordLength];
 
-    try {
-      const pipeline = redis.pipeline();
-      pipeline.smembers(historyKey);
-      pipeline.scard(historyKey);
-      const results = await pipeline.exec();
+    // Use a loop instead of recursion to avoid call-stack overhead
+    for (let attempt = 0; attempt < 2; attempt++) {
+      try {
+        const pipeline = redis.pipeline();
+        pipeline.smembers(historyKey);
+        pipeline.scard(historyKey);
+        const results = await pipeline.exec();
 
-      if (results?.length !== 2) {
-        throw new Error("Pipeline failed");
-      }
-
-      const [usedWordsResult, setSizeResult] = results;
-      if (!usedWordsResult || !setSizeResult) {
-        throw new Error("Pipeline returned incomplete results");
-      }
-
-      const usedWords = usedWordsResult[1] as string[];
-      const setSize = setSizeResult[1] as number;
-
-      const usedWordsSet = new Set(usedWords.map((w) => w.toLowerCase()));
-      const availableWords = wordList.filter(
-        (word) => !usedWordsSet.has(word.toLowerCase()),
-      );
-
-      if (availableWords.length < this.config.resetThreshold) {
-        const recentWords = usedWords.slice(
-          -Math.floor(this.config.resetThreshold / 2),
-        );
-        await redis.del(historyKey);
-        if (recentWords.length > 0) {
-          await redis.sadd(historyKey, ...recentWords);
+        if (results?.length !== 2) {
+          throw new Error("Pipeline failed");
         }
-        return this.getRandomWord(chatId, wordLength);
+
+        const [usedWordsResult, setSizeResult] = results;
+        if (!usedWordsResult || !setSizeResult) {
+          throw new Error("Pipeline returned incomplete results");
+        }
+
+        const usedWords = usedWordsResult[1] as string[];
+        const setSize = setSizeResult[1] as number;
+
+        const usedWordsSet = new Set(usedWords.map((w) => w.toLowerCase()));
+        const availableWords = wordList.filter(
+          (word) => !usedWordsSet.has(word.toLowerCase()),
+        );
+
+        if (availableWords.length < this.config.resetThreshold) {
+          // Reset history and retry (loop iteration)
+          const recentWords = usedWords.slice(
+            -Math.floor(this.config.resetThreshold / 2),
+          );
+          await redis.del(historyKey);
+          if (recentWords.length > 0) {
+            await redis.sadd(historyKey, ...recentWords);
+          }
+          continue; // retry with fresh history
+        }
+
+        const selectedWord =
+          availableWords[randomInt(0, availableWords.length)];
+        if (!selectedWord) throw new Error("No available word found");
+        const randomWord = selectedWord.toLowerCase();
+
+        const updatePipeline = redis.pipeline();
+        updatePipeline.sadd(historyKey, randomWord);
+        updatePipeline.expire(historyKey, this.config.ttlSeconds);
+
+        if (setSize >= this.config.historySize) {
+          const trimCount = Math.floor(this.config.historySize * 0.2);
+          updatePipeline.spop(historyKey, trimCount);
+        }
+
+        await updatePipeline.exec();
+
+        return randomWord;
+      } catch (error) {
+        logger.error({ err: error }, "Redis error, using fallback word");
+        const fallbackWord = wordList[randomInt(0, wordList.length)];
+        if (!fallbackWord) {
+          throw new Error(`Word list for length ${wordLength} is empty`);
+        }
+        return fallbackWord.toLowerCase();
       }
-
-      const selectedWord = availableWords[randomInt(0, availableWords.length)];
-      if (!selectedWord) throw new Error("No available word found");
-      const randomWord = selectedWord.toLowerCase();
-
-      const updatePipeline = redis.pipeline();
-      updatePipeline.sadd(historyKey, randomWord);
-      updatePipeline.expire(historyKey, this.config.ttlSeconds);
-
-      if (setSize >= this.config.historySize) {
-        const trimCount = Math.floor(this.config.historySize * 0.2);
-        updatePipeline.spop(historyKey, trimCount);
-      }
-
-      await updatePipeline.exec();
-
-      return randomWord;
-    } catch (error) {
-      logger.error({ err: error }, "Redis error, using fallback word");
-      const fallbackWord = wordList[randomInt(0, wordList.length)];
-      if (!fallbackWord) {
-        throw new Error(`Word list for length ${wordLength} is empty`);
-      }
-      return fallbackWord.toLowerCase();
     }
+
+    // Fallback if loop exhausts retries
+    const fallbackWord = wordList[randomInt(0, wordList.length)];
+    if (!fallbackWord) {
+      throw new Error(`Word list for length ${wordLength} is empty`);
+    }
+    return fallbackWord.toLowerCase();
   }
 }

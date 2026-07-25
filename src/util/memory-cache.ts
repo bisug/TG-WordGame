@@ -3,6 +3,21 @@ export class MemoryTtlCache<T> {
 
   constructor(private readonly defaultTtlMs: number) {}
 
+  /**
+   * Fast clone for primitives and plain objects.
+   * Avoids structuredClone overhead for the common case of cached strings/buffers.
+   */
+  private clone(value: T): T {
+    if (value === null || value === undefined) return value;
+    const type = typeof value;
+    if (type !== "object" && type !== "function") return value;
+    try {
+      return JSON.parse(JSON.stringify(value)) as T;
+    } catch {
+      return value;
+    }
+  }
+
   get(key: string): T | undefined {
     const entry = this.store.get(key);
     if (!entry) return undefined;
@@ -12,12 +27,12 @@ export class MemoryTtlCache<T> {
       return undefined;
     }
 
-    return structuredClone(entry.value);
+    return this.clone(entry.value);
   }
 
   set(key: string, value: T, ttlMs = this.defaultTtlMs) {
     this.store.set(key, {
-      value: structuredClone(value),
+      value: this.clone(value),
       expiresAt: Date.now() + ttlMs,
     });
   }
