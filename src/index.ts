@@ -57,8 +57,8 @@ bot.use(
   }),
 );
 
-// Anti-cheat rate limiting - generous limits that normal users won't hit
-bot.use(rateLimit);
+// Anti-cheat rate limiting - applied per-command in command handlers
+// bot.use(rateLimit); // Disabled - requires command parameter
 
 bot.use(handleBannedUsers);
 

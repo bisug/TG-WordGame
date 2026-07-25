@@ -728,7 +728,7 @@ composer.on("callback_query:data", async (ctx) => {
           // Auto-ban the user
           await db.insertInto("bannedUsers").values({
             userId: session.userId,
-          }).onConflictDoNothing().execute();
+          }).onConflict((eb) => eb.doNothing()).execute();
           
           await redis.del(failKey); // Clear fail count after ban
           
@@ -767,10 +767,10 @@ composer.on("callback_query:data", async (ctx) => {
               "Failed to update captcha failure message",
             ),
           );
-        return await ctx.answerCallbackQuery(
-          shouldBan ? "You have been restricted. Contact support." : "Verification failed. Please try again later.",
-          { show_alert: true }
-        );
+        return await ctx.answerCallbackQuery({
+          text: shouldBan ? "You have been restricted. Contact support." : "Verification failed. Please try again later.",
+          show_alert: true,
+        });
       }
 
       session.progress = [];
@@ -798,10 +798,10 @@ composer.on("callback_query:data", async (ctx) => {
             "Failed to update captcha retry message",
           ),
         );
-      return await ctx.answerCallbackQuery(
-        `Incorrect! ${remaining} ${remaining === 1 ? "try" : "tries"} left.`,
-        { show_alert: true }
-      );
+      return await ctx.answerCallbackQuery({
+        text: `Incorrect! ${remaining} ${remaining === 1 ? "try" : "tries"} left.`,
+        show_alert: true,
+      });
     }
 
     await redis.set(key, JSON.stringify(session), "KEEPTTL");
