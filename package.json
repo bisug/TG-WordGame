@@ -35,7 +35,7 @@
     "@grammyjs/parse-mode": "^2.3.0",
     "@grammyjs/runner": "^2.0.3",
     "bullmq": "5.80.1",
-    "grammy": "1.44.0",
+    "grammy": "1.45.1",
     "ioredis": "5.11.1",
     "kysely": "0.29.3",
     "kysely-ctl": "0.21.0",
