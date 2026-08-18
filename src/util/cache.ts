@@ -199,6 +199,33 @@ export async function deleteCachedGame(chatId: string, topicId: string) {
   await safeDel(getPlayersKey(chatId, topicId));
 }
 
+// Remove every cached game and player set for a chat across all topics. Used
+// when the bot leaves a chat and the DB rows are wiped; without it a re-add
+// within the 24h Redis TTL resurrects ghost games whose guess inserts fail on
+// the FK to the deleted rows. SCAN keeps Redis responsive (never KEYS).
+export async function deleteCachedGamesForChat(chatId: string): Promise<void> {
+  try {
+    for (const prefix of ["game", "players"]) {
+      let cursor = "0";
+      do {
+        const [nextCursor, keys] = await redis.scan(
+          cursor,
+          "MATCH",
+          `${prefix}:${chatId}:*`,
+          "COUNT",
+          200,
+        );
+        cursor = nextCursor;
+        if (keys.length > 0) await redis.del(...keys);
+      } while (cursor !== "0");
+    }
+  } catch (err) {
+    logger.warn({ err, chatId }, "redis cleanup for left chat failed");
+  }
+  // In-memory game cache entries linger up to 60s; harmless — on expiry the
+  // DB read finds nothing and writes the "none" sentinel.
+}
+
 // Player tracking for the end-game vote. Players are recorded when they make
 // a guess (or start the game) so the vote threshold can scale with the actual
 // number of participants instead of a hardcoded 3, which is unreachable in

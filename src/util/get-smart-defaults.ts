@@ -1,6 +1,7 @@
 import type { AllowedWordLength } from "../config/constants";
 import { db } from "../config/db";
 import type { AllowedChatSearchKey, AllowedChatTimeKey } from "../types";
+import { getZonedPeriodStart } from "./timezone";
 
 export async function getSmartDefaults({
   userId,
@@ -89,27 +90,12 @@ export async function getSmartDefaults({
 }
 
 function deriveTimeKey(latestDate: Date): AllowedChatTimeKey {
-  const now = new Date();
-
-  if (
-    latestDate.getFullYear() === now.getFullYear() &&
-    latestDate.getMonth() === now.getMonth() &&
-    latestDate.getDate() === now.getDate()
-  ) {
-    return "today";
+  // Compare against the exact zoned period boundaries the score queries use
+  // (getZonedPeriodStart, Monday-anchored weeks in env.TIME_ZONE). The old
+  // server-local, Sunday-anchored math labeled Sunday scores "week" while the
+  // query excluded them, and drifted whenever server TZ != env.TIME_ZONE.
+  for (const key of ["today", "week", "month", "year"] as const) {
+    if (latestDate >= getZonedPeriodStart(key)) return key;
   }
-
-  const startOfWeek = new Date(now);
-  startOfWeek.setDate(now.getDate() - now.getDay());
-  startOfWeek.setHours(0, 0, 0, 0);
-
-  if (latestDate >= startOfWeek) return "week";
-
-  const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-  if (latestDate >= startOfMonth) return "month";
-
-  const startOfYear = new Date(now.getFullYear(), 0, 1);
-  if (latestDate >= startOfYear) return "year";
-
   return "all";
 }

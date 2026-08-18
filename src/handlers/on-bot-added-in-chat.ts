@@ -2,6 +2,7 @@ import { Composer } from "grammy";
 
 import { db } from "../config/db";
 import { logger } from "../config/logger";
+import { deleteCachedGamesForChat } from "../util/cache";
 import { getGeneralKeyboard } from "../util/get-general-keyboard";
 import { invalidateTopicsCache } from "../util/topic-cache";
 
@@ -58,6 +59,10 @@ That's all I need:  no other permissions are necessary.`,
       .execute();
 
     await invalidateTopicsCache(chatIdStr);
+
+    // Drop cached games/players too, or a re-add within the 24h Redis TTL
+    // serves ghost games whose DB rows were just deleted.
+    await deleteCachedGamesForChat(chatIdStr);
 
     logger.info(
       { chat_id: chat.id },

@@ -2,11 +2,7 @@ import { db } from "../config/db";
 import { env } from "../config/env";
 import { logger } from "../config/logger";
 import words from "../data/daily-word-lists.json";
-import {
-  getDateStringFromDate,
-  getGameDateStringForZone,
-  toUtcMidnight,
-} from "../util/game-day";
+import { getGameDateStringForZone, toUtcMidnight } from "../util/game-day";
 import { getLocalWordDetails } from "../util/local-word-details";
 import { getZonedInstant } from "../util/timezone";
 
@@ -90,9 +86,12 @@ async function generateDailyWordInternal(gameDate: string) {
     .returningAll()
     .executeTakeFirstOrThrow();
 
-  const yesterday = new Date(gameDate);
-  yesterday.setDate(yesterday.getDate() - 1);
-  const yesterdayString = getDateStringFromDate(yesterday);
+  // Pure UTC arithmetic: new Date("YYYY-MM-DD") is UTC midnight. The old
+  // setDate/getDate combo mixed in the server's local TZ and shifted the
+  // result a day early on servers behind UTC, under-resetting streaks.
+  const yesterdayDate = new Date(`${gameDate}T00:00:00Z`);
+  yesterdayDate.setUTCDate(yesterdayDate.getUTCDate() - 1);
+  const yesterdayString = yesterdayDate.toISOString().slice(0, 10);
 
   await resetStreaksForInactivePlayers(yesterdayString);
 

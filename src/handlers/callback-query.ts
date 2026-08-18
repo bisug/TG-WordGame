@@ -549,10 +549,23 @@ composer.on("callback_query:data", async (ctx) => {
     if (data === "help_start") {
       const message = getStartMessage();
       const keyboard = getStartKeyboard(ctx);
-      await ctx.editMessageText(message, {
-        parse_mode: "HTML",
+      const options = {
+        parse_mode: "HTML" as const,
         reply_markup: keyboard,
-      });
+      };
+      try {
+        await ctx.editMessageText(message, options);
+      } catch (err) {
+        // /start posts a photo, which editMessageText cannot edit. Same
+        // fallback as the other help sections: drop it and resend as text.
+        if (
+          err instanceof GrammyError &&
+          !err.description.includes("message is not modified:")
+        ) {
+          await ctx.deleteMessage();
+          await ctx.reply(message, options);
+        }
+      }
       return await ctx.answerCallbackQuery();
     }
 

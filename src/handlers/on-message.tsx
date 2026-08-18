@@ -261,33 +261,52 @@ async function handleDailyWordleGuess(ctx: Context, currentGuess: string) {
     return ctx.reply("You've already guessed this word. Try a different one!");
   }
 
-  let insertedGuess: GuessEntry;
-  try {
-    const attemptNumber = existingGuesses.length + 1;
-    insertedGuess = await db
-      .insertInto("dailyGuesses")
-      .values({
-        userId,
-        dailyWordId: dailyWord.id,
-        guess: currentGuess,
-        attemptNumber,
-      })
-      .returningAll()
-      .executeTakeFirstOrThrow();
-  } catch (error) {
-    // Handle race condition where two messages arrive nearly simultaneously
-    // (or a duplicate guess slips past the in-memory check). Only the unique
-    // violation is swallowed: any other DB error must surface, not be
-    // misreported as "already guessed".
-    if (error instanceof DatabaseError && error.code === "23505") {
-      return ctx.reply(
-        "You've already guessed this word. Try a different one!",
-      );
+  let knownGuesses = existingGuesses;
+  let insertedGuess: GuessEntry | undefined;
+
+  // Private chats are not sequentialized, so a concurrent *different* guess
+  // can take our attempt_number first (unique constraint
+  // daily_guesses_user_word_attempt_unique). On that collision re-read and
+  // retry once with a fresh number; a true duplicate guess is reported.
+  for (let round = 0; round < 2 && !insertedGuess; round++) {
+    try {
+      insertedGuess = await db
+        .insertInto("dailyGuesses")
+        .values({
+          userId,
+          dailyWordId: dailyWord.id,
+          guess: currentGuess,
+          attemptNumber: knownGuesses.length + 1,
+        })
+        .returningAll()
+        .executeTakeFirstOrThrow();
+    } catch (error) {
+      // Only the unique violation is handled here: any other DB error must
+      // surface, not be misreported as "already guessed".
+      if (error instanceof DatabaseError && error.code === "23505") {
+        knownGuesses = await db
+          .selectFrom("dailyGuesses")
+          .selectAll()
+          .where("userId", "=", userId)
+          .where("dailyWordId", "=", dailyWord.id)
+          .orderBy("attemptNumber", "asc")
+          .execute();
+        if (knownGuesses.some((g) => g.guess === currentGuess)) {
+          return ctx.reply(
+            "You've already guessed this word. Try a different one!",
+          );
+        }
+        continue; // attempt_number race; retry with the refreshed count
+      }
+      throw error;
     }
-    throw error;
   }
 
-  const allGuesses = [...existingGuesses, insertedGuess];
+  if (!insertedGuess) {
+    return ctx.reply("You've already guessed this word. Try a different one!");
+  }
+
+  const allGuesses = [...knownGuesses, insertedGuess];
 
   if (currentGuess === dailyWord.word) {
     await handleDailyWordleWin(ctx, dailyWord, allGuesses);

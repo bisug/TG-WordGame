@@ -54,7 +54,20 @@ composer.command("tracklist", async (ctx) => {
   if (!ctx.from || ctx.chat.type !== "private") return;
   if (!env.ADMIN_USERS.includes(ctx.from.id)) return;
 
-  const keys = await redis.keys("tracking:*");
+  // SCAN instead of KEYS: KEYS walks the whole keyspace in one blocking call.
+  const keys: string[] = [];
+  let cursor = "0";
+  do {
+    const [nextCursor, batch] = await redis.scan(
+      cursor,
+      "MATCH",
+      "tracking:*",
+      "COUNT",
+      200,
+    );
+    cursor = nextCursor;
+    keys.push(...batch);
+  } while (cursor !== "0");
 
   if (keys.length === 0) {
     return ctx.reply("No chats are currently being tracked");

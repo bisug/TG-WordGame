@@ -31,7 +31,9 @@ export class WordSelector {
   }
 
   private historyKey(chatId: string | number, wordLength: WordLength): string {
-    return `h:${chatId}:${wordLength}`;
+    // "hw" prefix: the legacy "h:" keys are Redis SETs; reusing them with
+    // list commands would raise WRONGTYPE until their 7-day TTL expired.
+    return `hw:${chatId}:${wordLength}`;
   }
 
   async getRandomWord(
@@ -44,22 +46,10 @@ export class WordSelector {
     // Use a loop instead of recursion to avoid call-stack overhead
     for (let attempt = 0; attempt < 2; attempt++) {
       try {
-        const pipeline = redis.pipeline();
-        pipeline.smembers(historyKey);
-        pipeline.scard(historyKey);
-        const results = await pipeline.exec();
-
-        if (results?.length !== 2) {
-          throw new Error("Pipeline failed");
-        }
-
-        const [usedWordsResult, setSizeResult] = results;
-        if (!usedWordsResult || !setSizeResult) {
-          throw new Error("Pipeline returned incomplete results");
-        }
-
-        const usedWords = usedWordsResult[1] as string[];
-        const setSize = setSizeResult[1] as number;
+        // A LIST keeps insertion order, so "recent words" kept across a reset
+        // are actually recent. The old SET returned arbitrary order, so the
+        // kept words were random and recently-used words repeated at once.
+        const usedWords = await redis.lrange(historyKey, 0, -1);
 
         const usedWordsSet = new Set(usedWords.map((w) => w.toLowerCase()));
         const availableWords = wordList.filter(
@@ -67,14 +57,18 @@ export class WordSelector {
         );
 
         if (availableWords.length < this.config.resetThreshold) {
-          // Reset history and retry (loop iteration)
+          // Reset history and retry (loop iteration), keeping the newest few
+          // words so they don't immediately repeat.
           const recentWords = usedWords.slice(
             -Math.floor(this.config.resetThreshold / 2),
           );
-          await redis.del(historyKey);
+          const resetPipeline = redis.pipeline();
+          resetPipeline.del(historyKey);
           if (recentWords.length > 0) {
-            await redis.sadd(historyKey, ...recentWords);
+            resetPipeline.rpush(historyKey, ...recentWords);
           }
+          resetPipeline.expire(historyKey, this.config.ttlSeconds);
+          await resetPipeline.exec();
           continue; // retry with fresh history
         }
 
@@ -84,14 +78,11 @@ export class WordSelector {
         const randomWord = selectedWord.toLowerCase();
 
         const updatePipeline = redis.pipeline();
-        updatePipeline.sadd(historyKey, randomWord);
+        updatePipeline.rpush(historyKey, randomWord);
+        // Cap the list at historySize, keeping the newest entries (the old
+        // SPOP trim removed random members, possibly the word just added).
+        updatePipeline.ltrim(historyKey, -this.config.historySize, -1);
         updatePipeline.expire(historyKey, this.config.ttlSeconds);
-
-        if (setSize >= this.config.historySize) {
-          const trimCount = Math.floor(this.config.historySize * 0.2);
-          updatePipeline.spop(historyKey, trimCount);
-        }
-
         await updatePipeline.exec();
 
         return randomWord;

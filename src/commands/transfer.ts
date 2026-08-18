@@ -1,5 +1,6 @@
 import { Composer } from "grammy";
 
+import { sql } from "kysely";
 import { db } from "../config/db";
 import { env } from "../config/env";
 import { logger } from "../config/logger";
@@ -33,14 +34,16 @@ composer.command("transfer", async (ctx) => {
 
   const getUser = async (identifier: string) => {
     const isUsername = identifier.startsWith("@");
+    const value = isUsername ? identifier.substring(1) : identifier;
+    // Telegram usernames are case-insensitive; match like the rest of the
+    // codebase (lower(username)).
     return await db
       .selectFrom("users")
       .selectAll()
-      .where(
-        isUsername ? "username" : "id",
-        "=",
-        isUsername ? identifier.substring(1) : identifier,
+      .$if(isUsername, (q) =>
+        q.where(sql`lower(username)`, "=", value.toLowerCase()),
       )
+      .$if(!isUsername, (q) => q.where("id", "=", value))
       .executeTakeFirst();
   };
 
