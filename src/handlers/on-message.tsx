@@ -21,7 +21,7 @@ import { formatDailyWordDetails } from "../util/format-word-details";
 import { safeJsonParse, toFancyText } from "../util/formatting";
 import { requireAllowedTopic, runGuards } from "../util/guards";
 import { MemoryTtlCache } from "../util/memory-cache";
-import { trackGuessSpeed } from "./anticheat";
+import { rateLimit, trackGuessSpeed } from "./anticheat";
 
 // Pre-warm font on module load to avoid blocking on first image generation
 prewarmFont();
@@ -55,7 +55,7 @@ export const dailyWordleSchema = z.object({
   date: z.string(),
 });
 
-composer.on("message:text", async (ctx) => {
+composer.on("message:text", rateLimit("guess"), async (ctx) => {
   const currentGuess = ctx.message.text?.toLowerCase();
 
   const isValidWord = /^[a-z]{4,6}$/.test(currentGuess ?? "");

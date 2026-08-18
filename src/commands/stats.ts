@@ -5,10 +5,11 @@ import { Composer } from "grammy";
 
 import { db } from "../config/db";
 import { env } from "../config/env";
+import { rateLimit } from "../handlers/anticheat";
 
 const composer = new Composer();
 
-composer.command("stats", async (ctx) => {
+composer.command("stats", rateLimit("stats"), async (ctx) => {
   if (!ctx.from) return;
   if (!env.ADMIN_USERS.includes(ctx.from.id)) return;
 

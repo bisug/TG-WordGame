@@ -1,4 +1,5 @@
 import { Composer } from "grammy";
+import { rateLimit } from "../handlers/anticheat";
 import { getLeaderboardScores } from "../services/get-leaderboard-scores";
 import { CommandsHelper } from "../util/commands-helper";
 import { formatLeaderboardMessage } from "../util/format-leaderboard-message";
@@ -8,7 +9,7 @@ import { parseLeaderboardFilters } from "../util/parse-leaderboard-input";
 
 const composer = new Composer();
 
-composer.command("leaderboard", async (ctx) => {
+composer.command("leaderboard", rateLimit("score"), async (ctx) => {
   const chatId = ctx.chat.id.toString();
 
   const guard = await runGuards(ctx, [requireAllowedTopic]);

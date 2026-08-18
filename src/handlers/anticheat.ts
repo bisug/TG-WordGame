@@ -1,7 +1,10 @@
 import { Composer, type MiddlewareFn } from "grammy";
+import { bot } from "../config/bot";
 import { db } from "../config/db";
+import { env } from "../config/env";
 import { logger } from "../config/logger";
 import { redis, safeGet, safeSet } from "../config/redis";
+import { sendCaptchaChallenge } from "../util/captcha-challenge";
 
 const composer = new Composer();
 
@@ -24,7 +27,9 @@ type RateLimitKey = keyof typeof RATE_LIMITS;
 
 /**
  * Check if user is rate limited
- * Returns { limited: true, retryAfter: ms } if limited, undefined otherwise
+ * Returns { limited: true, retryAfter: ms } if limited, undefined otherwise.
+ * Fail-open: any Redis error means "not limited" so an outage never blocks
+ * real users from playing.
  */
 async function checkRateLimit(
   userId: string,
@@ -32,25 +37,33 @@ async function checkRateLimit(
 ): Promise<{ limited: boolean; retryAfter?: number }> {
   const config = RATE_LIMITS[command];
   const key = `ratelimit:${command}:${userId}`;
-  
-  const current = await safeGet(key);
-  
-  if (!current) {
-    await safeSet(key, "1", Math.ceil(config.window / 1000));
+
+  try {
+    const current = await safeGet(key);
+
+    if (!current) {
+      await safeSet(key, "1", Math.ceil(config.window / 1000));
+      return { limited: false };
+    }
+
+    const count = parseInt(current, 10);
+
+    if (count >= config.max) {
+      // Calculate when the oldest request will expire
+      const ttl = await redis.ttl(key);
+      return {
+        limited: true,
+        retryAfter: ttl > 0 ? ttl * 1000 : config.window,
+      };
+    }
+
+    // Use INCR directly - Redis handles non-existent keys automatically
+    await redis.incr(key);
+    return { limited: false };
+  } catch (err) {
+    logger.warn({ err, key }, "rate limit check failed, failing open");
     return { limited: false };
   }
-  
-  const count = parseInt(current, 10);
-  
-  if (count >= config.max) {
-    // Calculate when the oldest request will expire
-    const ttl = await redis.ttl(key);
-    return { limited: true, retryAfter: ttl > 0 ? ttl * 1000 : config.window };
-  }
-  
-  // Use INCR directly - Redis handles non-existent keys automatically
-  await redis.incr(key);
-  return { limited: false };
 }
 
 /**
@@ -143,13 +156,28 @@ export async function trackGuessSpeed(userId: string, chatId: string, topicId: s
         .hincrby(key, "tf", 1)
         .hset(key, "fg", "0") // Reset counter after flagging
         .exec();
-      
+
       logger.warn({ userId, fastGuesses }, "User flagged for suspicious activity");
-      
-      // Check total flags and auto-flag if needed
+
+      await flagUserForReview(userId, "SPEED_BOT");
+
+      // Auto-challenge: repeatedly flagged users get a captcha in the chat where
+      // the suspicious activity happened. Cooldown prevents re-challenging on
+      // every subsequent flag within the window.
       const totalFlagged = await redis.hget(key, "tf");
       if (totalFlagged && parseInt(totalFlagged, 10) >= 3) {
-        await flagUserForReview(userId, "SPEED_BOT");
+        const challengeCooldownKey = `autocaptcha:${userId}`;
+        const recentlyChallenged = await safeGet(challengeCooldownKey);
+        if (!recentlyChallenged) {
+          await safeSet(challengeCooldownKey, "1", 3600);
+          const result = await sendCaptchaChallenge(chatId, userId, userId);
+          if (result.ok) {
+            logger.info(
+              { userId, chatId },
+              "Auto-challenged suspicious user with captcha",
+            );
+          }
+        }
       }
     }
   } else {
@@ -168,23 +196,48 @@ export async function trackGuessSpeed(userId: string, chatId: string, topicId: s
 }
 
 /**
- * Flag a user for admin review - optimized with Redis hash
+ * Flag a user for admin review - optimized with Redis hash.
+ * Also notifies configured bot admins so flags are actually reviewed,
+ * instead of only being written to Redis and forgotten.
  */
 async function flagUserForReview(userId: string, reason: string): Promise<void> {
   const key = `flag:${userId}`;
   const timestamp = Date.now().toString();
-  
+
   // Use Redis hash for efficient flag tracking
   const pipeline = redis.pipeline();
   pipeline.hincrby(key, "count", 1);
   pipeline.hsetnx(key, "reasons", ""); // Initialize reasons list if not exists
   pipeline.hset(key, `reason:${timestamp}`, reason);
   pipeline.expire(key, 7 * 24 * 3600); // Keep for 7 days
-  
+
   await pipeline.exec();
-  
+
   const count = await redis.hget(key, "count");
   logger.info({ userId, reason, totalFlags: count }, "User flagged for review");
+
+  // Notify bot admins (best-effort, rate-limited to once per user per hour so
+  // a spammer can't flood admin DMs).
+  const notifiedKey = `flagnotify:${userId}`;
+  const alreadyNotified = await safeGet(notifiedKey);
+  if (alreadyNotified) return;
+  await safeSet(notifiedKey, "1", 3600);
+
+  for (const adminId of env.ADMIN_USERS) {
+    try {
+      await bot.api.sendMessage(
+        adminId,
+        `🚩 <b>User flagged for review</b>\n\n` +
+          `User ID: <code>${userId}</code>\n` +
+          `Reason: <code>${reason}</code>\n` +
+          `Total flags: <code>${count ?? "?"}</code>\n\n` +
+          `Challenge them with: /captcha &lt;chatId&gt; ${userId}`,
+        { parse_mode: "HTML" },
+      );
+    } catch (err) {
+      logger.warn({ err, adminId }, "Failed to notify admin about flag");
+    }
+  }
 }
 
 /**

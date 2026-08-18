@@ -2,11 +2,12 @@ import { Composer } from "grammy";
 
 import { db } from "../config/db";
 import { env } from "../config/env";
+import { rateLimit } from "../handlers/anticheat";
 import { setCachedBanStatus } from "../util/cache";
 
 const composer = new Composer();
 
-composer.command("ban", async (ctx) => {
+composer.command("ban", rateLimit("ban"), async (ctx) => {
   if (!ctx.from || ctx.chat.type !== "private") return;
   if (!env.ADMIN_USERS.includes(ctx.from.id)) return;
 

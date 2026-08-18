@@ -5,7 +5,7 @@ import {
   buildCaptchaKeyboard,
   buildMessage,
   formatUserMention,
-} from "../commands/captcha";
+} from "../util/captcha-challenge";
 import { endGame, isUserAuthorized } from "../commands/end-game";
 import {
   getAdminCommandsMessage,

@@ -15,7 +15,6 @@ import { onMessageHander } from "./handlers/on-message";
 import { topicEditedHandler } from "./handlers/topic-edited-handler";
 import { trackMessagesHandler } from "./handlers/track-messages-handler";
 import { userAndChatSyncHandler } from "./handlers/user-and-chat-sync-handler";
-import { rateLimit } from "./handlers/anticheat";
 import { captchaQueue, captchaWorker } from "./queues/captcha-queue";
 import {
   dailyWordleCron,
@@ -57,8 +56,8 @@ bot.use(
   }),
 );
 
-// Anti-cheat rate limiting - applied per-command in command handlers
-// bot.use(rateLimit); // Disabled - requires command parameter
+// Anti-cheat rate limiting is applied per-handler where it makes sense:
+// guesses (on-message), score/leaderboard, stats, ban/unban, captcha.
 
 bot.use(handleBannedUsers);
 

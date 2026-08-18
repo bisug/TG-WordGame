@@ -1,5 +1,5 @@
 import { Queue, Worker } from "bullmq";
-import { formatUserMention } from "../commands/captcha";
+import { formatUserMention } from "../util/user-mention";
 import { bot } from "../config/bot";
 import { env } from "../config/env";
 import { logger } from "../config/logger";

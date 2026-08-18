@@ -1,4 +1,5 @@
 import { Composer } from "grammy";
+import { rateLimit } from "../handlers/anticheat";
 import { getUserScores } from "../services/get-user-scores";
 import { CommandsHelper } from "../util/commands-helper";
 import { formatNoScoresMessage } from "../util/format-no-scores-message";
@@ -11,7 +12,7 @@ import { getTargetUser } from "./seekauth";
 
 const composer = new Composer();
 
-composer.command("score", async (ctx) => {
+composer.command("score", rateLimit("score"), async (ctx) => {
   if (!ctx.from) return;
 
   const chatId = ctx.chat.id.toString();
