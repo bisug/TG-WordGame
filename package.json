@@ -27,7 +27,8 @@
     "typescript": "7.0.2"
   },
   "overrides": {
-    "ioredis": "5.11.1"
+    "ioredis": "5.11.1",
+    "js-yaml": "4.3.1"
   },
   "dependencies": {
     "@grammyjs/auto-retry": "^2.0.2",
