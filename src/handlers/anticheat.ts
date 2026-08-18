@@ -188,12 +188,26 @@ export async function trackGuessSpeed(
           const recentlyChallenged = await safeGet(challengeCooldownKey);
           if (!recentlyChallenged) {
             await safeSet(challengeCooldownKey, "1", 3600);
-            const result = await sendCaptchaChallenge(chatId, userId, userId);
-            if (result.ok) {
-              logger.info(
+            // Outcome notifications go to adminId, so it must be a real bot
+            // admin — passing the suspect's own id DM'd the bot instead.
+            const adminId = env.ADMIN_USERS[0]?.toString();
+            if (!adminId) {
+              logger.warn(
                 { userId, chatId },
-                "Auto-challenged suspicious user with captcha",
+                "No ADMIN_USERS configured, skipping auto-captcha",
               );
+            } else {
+              const result = await sendCaptchaChallenge(
+                chatId,
+                userId,
+                adminId,
+              );
+              if (result.ok) {
+                logger.info(
+                  { userId, chatId },
+                  "Auto-challenged suspicious user with captcha",
+                );
+              }
             }
           }
         }

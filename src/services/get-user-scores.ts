@@ -32,9 +32,10 @@ export async function getUserScores({
       ),
     );
 
-  // The user's own total within the competing scope. coalesce keeps it 0 even
-  // when there is no row, but we still treat "no row" as undefined below to
-  // preserve the original contract (callers show a "no scores yet" message).
+  // The user's own total within the competing scope. groupBy makes the
+  // aggregate yield zero rows (instead of one coalesced 0 row) when the user
+  // has no matching scores, so the undefined contract below actually holds
+  // and callers show a "no scores yet" message instead of "0 pts, rank #1".
   const myRow = await db
     .selectFrom("leaderboard")
     .select(
@@ -47,6 +48,7 @@ export async function getUserScores({
     .$if(start !== null, (q) => q.where("createdAt", ">=", start))
     .where(excludeBanned)
     .where("userId", "=", userId)
+    .groupBy("userId")
     .executeTakeFirst();
 
   if (!myRow) return undefined;

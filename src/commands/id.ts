@@ -1,6 +1,7 @@
 import { Composer } from "grammy";
 
 import { CommandsHelper } from "../util/commands-helper";
+import { escapeHtmlEntities } from "../util/escape-html-entities";
 
 const composer = new Composer();
 
@@ -35,20 +36,20 @@ composer.command("id", async (ctx) => {
     info += "<b>▸ User Information</b>\n";
     info += "<blockquote>";
     info += `<b>User ID:</b> <code>${repliedMsg.from.id}</code>\n`;
-    info += `<b>First Name:</b> ${repliedMsg.from.first_name}\n`;
+    info += `<b>First Name:</b> ${escapeHtmlEntities(repliedMsg.from.first_name)}\n`;
 
     if (repliedMsg.from.last_name) {
-      info += `<b>Last Name:</b> ${repliedMsg.from.last_name}\n`;
+      info += `<b>Last Name:</b> ${escapeHtmlEntities(repliedMsg.from.last_name)}\n`;
     }
 
     if (repliedMsg.from.username) {
-      info += `<b>Username:</b> @${repliedMsg.from.username}\n`;
+      info += `<b>Username:</b> @${escapeHtmlEntities(repliedMsg.from.username)}\n`;
     }
 
     info += `<b>Is Bot:</b> ${repliedMsg.from.is_bot ? "Yes" : "No"}\n`;
 
     if (repliedMsg.from.language_code) {
-      info += `<b>Language:</b> ${repliedMsg.from.language_code}\n`;
+      info += `<b>Language:</b> ${escapeHtmlEntities(repliedMsg.from.language_code)}\n`;
     }
 
     if (repliedMsg.from.is_premium) {
@@ -65,11 +66,11 @@ composer.command("id", async (ctx) => {
   info += `<b>Chat Type:</b> ${ctx.chat?.type}`;
 
   if (ctx.chat?.title) {
-    info += `\n<b>Chat Title:</b> ${ctx.chat.title}`;
+    info += `\n<b>Chat Title:</b> ${escapeHtmlEntities(ctx.chat.title)}`;
   }
 
   if (ctx.chat?.username) {
-    info += `\n<b>Chat Username:</b> @${ctx.chat.username}`;
+    info += `\n<b>Chat Username:</b> @${escapeHtmlEntities(ctx.chat.username)}`;
   }
   info += "</blockquote>\n\n";
 
@@ -80,22 +81,22 @@ composer.command("id", async (ctx) => {
 
     if (repliedMsg.forward_origin.type === "user") {
       info += `<b>Original Sender ID:</b> <code>${repliedMsg.forward_origin.sender_user.id}</code>\n`;
-      info += `<b>Original Sender:</b> ${repliedMsg.forward_origin.sender_user.first_name}`;
+      info += `<b>Original Sender:</b> ${escapeHtmlEntities(repliedMsg.forward_origin.sender_user.first_name)}`;
       if (repliedMsg.forward_origin.sender_user.last_name) {
-        info += ` ${repliedMsg.forward_origin.sender_user.last_name}`;
+        info += ` ${escapeHtmlEntities(repliedMsg.forward_origin.sender_user.last_name)}`;
       }
       if (repliedMsg.forward_origin.sender_user.username) {
-        info += `\n<b>Username:</b> @${repliedMsg.forward_origin.sender_user.username}`;
+        info += `\n<b>Username:</b> @${escapeHtmlEntities(repliedMsg.forward_origin.sender_user.username)}`;
       }
     } else if (repliedMsg.forward_origin.type === "channel") {
       info += `<b>Original Chat ID:</b> <code>${repliedMsg.forward_origin.chat.id}</code>\n`;
-      info += `<b>Original Chat:</b> ${repliedMsg.forward_origin.chat.title}`;
+      info += `<b>Original Chat:</b> ${escapeHtmlEntities(repliedMsg.forward_origin.chat.title)}`;
       if (repliedMsg.forward_origin.chat.username) {
-        info += `\n<b>Channel Username:</b> @${repliedMsg.forward_origin.chat.username}`;
+        info += `\n<b>Channel Username:</b> @${escapeHtmlEntities(repliedMsg.forward_origin.chat.username)}`;
       }
       info += `\n<b>Original Message ID:</b> <code>${repliedMsg.forward_origin.message_id}</code>`;
     } else if (repliedMsg.forward_origin.type === "hidden_user") {
-      info += `<b>Original Sender:</b> ${repliedMsg.forward_origin.sender_user_name} (Hidden)`;
+      info += `<b>Original Sender:</b> ${escapeHtmlEntities(repliedMsg.forward_origin.sender_user_name)} (Hidden)`;
     }
 
     info += "</blockquote>\n\n";
@@ -137,7 +138,7 @@ composer.command("id", async (ctx) => {
     info += `<b>File ID:</b> <code>${repliedMsg.document.file_id}</code>\n`;
     info += `<b>File Unique ID:</b> <code>${repliedMsg.document.file_unique_id}</code>`;
     if (repliedMsg.document.file_name) {
-      info += `\n<b>File Name:</b> ${repliedMsg.document.file_name}`;
+      info += `\n<b>File Name:</b> ${escapeHtmlEntities(repliedMsg.document.file_name)}`;
     }
     if (repliedMsg.document.mime_type) {
       info += `\n<b>MIME Type:</b> ${repliedMsg.document.mime_type}`;
@@ -155,10 +156,10 @@ composer.command("id", async (ctx) => {
     info += `<b>File Unique ID:</b> <code>${repliedMsg.audio.file_unique_id}</code>\n`;
     info += `<b>Duration:</b> ${repliedMsg.audio.duration}s`;
     if (repliedMsg.audio.performer) {
-      info += `\n<b>Performer:</b> ${repliedMsg.audio.performer}`;
+      info += `\n<b>Performer:</b> ${escapeHtmlEntities(repliedMsg.audio.performer)}`;
     }
     if (repliedMsg.audio.title) {
-      info += `\n<b>Title:</b> ${repliedMsg.audio.title}`;
+      info += `\n<b>Title:</b> ${escapeHtmlEntities(repliedMsg.audio.title)}`;
     }
     if (repliedMsg.audio.mime_type) {
       info += `\n<b>MIME Type:</b> ${repliedMsg.audio.mime_type}`;
@@ -196,7 +197,7 @@ composer.command("id", async (ctx) => {
       info += `\n<b>Emoji:</b> ${repliedMsg.sticker.emoji}`;
     }
     if (repliedMsg.sticker.set_name) {
-      info += `\n<b>Sticker Set:</b> ${repliedMsg.sticker.set_name}`;
+      info += `\n<b>Sticker Set:</b> ${escapeHtmlEntities(repliedMsg.sticker.set_name)}`;
     }
     info += "</blockquote>\n\n";
   }

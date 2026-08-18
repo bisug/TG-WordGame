@@ -6,6 +6,9 @@ import { getCachedBanStatus } from "../util/ban-cache";
 const composer = new Composer();
 
 composer.on("message", async (ctx, next) => {
+  // Anonymous admin posts and channel auto-forwards carry no `from`.
+  if (!ctx.from) return await next();
+
   const userId = ctx.from.id.toString();
   const isUserBanned = await getCachedBanStatus(userId);
 

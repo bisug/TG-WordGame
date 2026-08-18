@@ -5,6 +5,7 @@ import { logger } from "../config/logger";
 import { safeDel } from "../config/redis";
 import { getEndVoteKey } from "../util/end-vote";
 import { deleteCachedGame } from "../util/game-cache";
+import { invalidateTopicsCache } from "../util/topic-cache";
 
 export async function errorHandler(error: BotError<Context>) {
   const ctx = error.ctx;
@@ -80,6 +81,9 @@ export async function errorHandler(error: BotError<Context>) {
           .where("chatId", "=", ctx.chatId.toString())
           .where("topicId", "=", currentTopicId)
           .execute();
+        // Drop the stale topics cache so requireAllowedTopic accepts the new
+        // topic id immediately instead of after the 24h Redis TTL.
+        await invalidateTopicsCache(ctx.chatId.toString());
         // Clear the topic-scoped vote key (the bare `vote:${chatId}` key is
         // never written, so deleting it was a no-op) and any game tied to the
         // now-defunct topic so a stale "Vote to End" button can't end it.

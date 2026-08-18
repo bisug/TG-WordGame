@@ -68,6 +68,9 @@ composer.on("message:text", rateLimit("guess"), async (ctx) => {
     return;
   }
 
+  // Anonymous admin posts and channel auto-forwards carry no `from`.
+  if (!ctx.from) return;
+
   const userId = ctx.from.id.toString();
   const chatId = ctx.chat.id.toString();
 

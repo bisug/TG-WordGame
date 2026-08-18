@@ -10,7 +10,7 @@ export function formatLeaderboardMessage(
   const blocks = data.reduce((acc, entry, index) => {
     const rank = rankIcons[index] ?? "🔅";
 
-    let usernameLink = entry.name;
+    let usernameLink = escapeHtmlEntities(entry.name);
     if (entry.username) {
       usernameLink = `<a href="t.me/${entry.username}">${escapeHtmlEntities(
         entry.name,

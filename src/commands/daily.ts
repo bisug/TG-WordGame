@@ -47,6 +47,8 @@ composer.command("daily", async (ctx) => {
       .selectAll()
       .where("userId", "=", userId)
       .where("dailyWordId", "=", dailyWord.id)
+      // The win check below compares the last row, so ordering is required.
+      .orderBy("attemptNumber", "asc")
       .execute();
 
     if (existingGuesses.length > 0) {
