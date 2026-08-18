@@ -20,6 +20,18 @@ const RATE_LIMITS = {
 
 type RateLimitKey = keyof typeof RATE_LIMITS;
 
+// Fixed-window rate limit in a single atomic Redis round-trip. INCR + EXPIRE
+// run together in Lua so concurrent requests can't race past the count check,
+// and we read the TTL in the same call to report an accurate retry-after.
+// Returns [count, ttlSeconds].
+const RATE_LIMIT_SCRIPT = `
+local count = redis.call('INCR', KEYS[1])
+if count == 1 then
+  redis.call('EXPIRE', KEYS[1], ARGV[1])
+end
+return {count, redis.call('TTL', KEYS[1])}
+`;
+
 /**
  * Check if user is rate limited
  * Returns { limited: true, retryAfter: ms } if limited, undefined otherwise.
@@ -34,27 +46,24 @@ async function checkRateLimit(
   const key = `ratelimit:${command}:${userId}`;
 
   try {
-    const current = await safeGet(key);
+    const windowSeconds = Math.ceil(config.window / 1000);
+    const result = (await redis.eval(
+      RATE_LIMIT_SCRIPT,
+      1,
+      key,
+      windowSeconds,
+    )) as [number, number];
 
-    if (!current) {
-      await safeSet(key, "1", Math.ceil(config.window / 1000));
+    const count = Number(result?.[0] ?? 0);
+    if (count <= config.max) {
       return { limited: false };
     }
 
-    const count = parseInt(current, 10);
-
-    if (count >= config.max) {
-      // Calculate when the oldest request will expire
-      const ttl = await redis.ttl(key);
-      return {
-        limited: true,
-        retryAfter: ttl > 0 ? ttl * 1000 : config.window,
-      };
-    }
-
-    // Use INCR directly - Redis handles non-existent keys automatically
-    await redis.incr(key);
-    return { limited: false };
+    const ttl = Number(result?.[1] ?? -1);
+    return {
+      limited: true,
+      retryAfter: ttl > 0 ? ttl * 1000 : config.window,
+    };
   } catch (err) {
     logger.warn({ err, key }, "rate limit check failed, failing open");
     return { limited: false };
@@ -123,15 +132,19 @@ export async function trackGuessSpeed(
   const key = `susp:${userId}`;
   const now = Date.now();
 
-  // Get last guess time from Redis
+  // Get and update last guess time in a single round-trip:
+  // SET ... GET atomically returns the previous value.
   const lastGuessKey = `lastguess:${chatId}:${topicId}:${userId}`;
-  const lastGuessTime = await redis.get(lastGuessKey);
+  const lastGuessTime = await redis.set(
+    lastGuessKey,
+    now.toString(),
+    "EX",
+    3600, // Expire after 1 hour
+    "GET",
+  );
   const timeSinceLastGuess = lastGuessTime
     ? now - parseInt(lastGuessTime, 10)
     : now;
-
-  // Update last guess time
-  await redis.set(lastGuessKey, now.toString(), "EX", 3600); // Expire after 1 hour
 
   const isSuspicious =
     lastGuessTime !== null &&
@@ -148,11 +161,13 @@ export async function trackGuessSpeed(
     const fastGuesses = (results?.[0]?.[1] as number) || 1;
 
     if (fastGuesses >= SUSPICIOUS_THRESHOLDS.maxSuspiciousGuesses) {
-      // Increment total flagged
-      await redis
+      // Increment total flagged, reset counter, and read the new total
+      // in a single pipeline.
+      const flagResults = await redis
         .pipeline()
         .hincrby(key, "tf", 1)
         .hset(key, "fg", "0") // Reset counter after flagging
+        .hget(key, "tf")
         .exec();
 
       logger.warn(
@@ -165,8 +180,8 @@ export async function trackGuessSpeed(
       // Auto-challenge: repeatedly flagged users get a captcha in the chat where
       // the suspicious activity happened. Cooldown prevents re-challenging on
       // every subsequent flag within the window.
-      const totalFlagged = await redis.hget(key, "tf");
-      if (totalFlagged && parseInt(totalFlagged, 10) >= 3) {
+      const totalFlagged = flagResults?.[2]?.[1] as number | string | null;
+      if (totalFlagged && parseInt(String(totalFlagged), 10) >= 3) {
         const challengeCooldownKey = `autocaptcha:${userId}`;
         const recentlyChallenged = await safeGet(challengeCooldownKey);
         if (!recentlyChallenged) {
@@ -182,17 +197,15 @@ export async function trackGuessSpeed(
       }
     }
   } else {
-    // Decay the counter for normal users - use single pipeline
-    const exists = await redis.exists(key);
-    if (exists) {
-      const fastGuesses = await redis.hget(key, "fg");
-      if (fastGuesses && parseInt(fastGuesses, 10) > 0) {
-        await redis
-          .pipeline()
-          .hincrby(key, "fg", -1)
-          .expire(key, SUSPICIOUS_THRESHOLDS.suspiciousDecayHours * 3600)
-          .exec();
-      }
+    // Decay the counter for normal users - use single pipeline.
+    // HGET returns null when the key is missing, so no EXISTS round-trip.
+    const fastGuesses = await redis.hget(key, "fg");
+    if (fastGuesses && parseInt(fastGuesses, 10) > 0) {
+      await redis
+        .pipeline()
+        .hincrby(key, "fg", -1)
+        .expire(key, SUSPICIOUS_THRESHOLDS.suspiciousDecayHours * 3600)
+        .exec();
     }
   }
 }
@@ -209,16 +222,16 @@ async function flagUserForReview(
   const key = `flag:${userId}`;
   const timestamp = Date.now().toString();
 
-  // Use Redis hash for efficient flag tracking
+  // Use Redis hash for efficient flag tracking. The HINCRBY result carries
+  // the new count, so no extra round-trip to read it back.
   const pipeline = redis.pipeline();
   pipeline.hincrby(key, "count", 1);
   pipeline.hsetnx(key, "reasons", ""); // Initialize reasons list if not exists
   pipeline.hset(key, `reason:${timestamp}`, reason);
   pipeline.expire(key, 7 * 24 * 3600); // Keep for 7 days
 
-  await pipeline.exec();
-
-  const count = await redis.hget(key, "count");
+  const results = await pipeline.exec();
+  const count = results?.[0]?.[1] as number | string | null;
   logger.info({ userId, reason, totalFlags: count }, "User flagged for review");
 
   // Notify bot admins (best-effort, rate-limited to once per user per hour so

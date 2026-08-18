@@ -9,18 +9,31 @@ export function getDateStringFromDate(d: Date) {
   return `${year}-${month}-${day}`;
 }
 
+// Constructing an Intl.DateTimeFormat is expensive (~10-100us) and this runs
+// on every guess, so cache one formatter per timezone.
+const formatterCache = new Map<string, Intl.DateTimeFormat>();
+
+function getFormatter(timeZone: string): Intl.DateTimeFormat {
+  let formatter = formatterCache.get(timeZone);
+  if (!formatter) {
+    formatter = new Intl.DateTimeFormat("en-CA", {
+      timeZone,
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+      hour: "2-digit",
+      hourCycle: "h23",
+    });
+    formatterCache.set(timeZone, formatter);
+  }
+  return formatter;
+}
+
 // Returns the "YYYY-MM-DD" game-day string for the given instant in `timeZone`.
 // Uses local calendar arithmetic so it is correct regardless of the server's
 // own timezone. Instants before 06:00 belong to the previous game day.
 export function getGameDateStringForZone(date: Date, timeZone: string): string {
-  const formatter = new Intl.DateTimeFormat("en-CA", {
-    timeZone,
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-    hour: "2-digit",
-    hourCycle: "h23",
-  });
+  const formatter = getFormatter(timeZone);
 
   const parts = formatter.formatToParts(date);
   const get = (t: string) => {

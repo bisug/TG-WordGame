@@ -1,7 +1,16 @@
 export class MemoryTtlCache<T> {
   private store = new Map<string, { value: T; expiresAt: number }>();
 
-  constructor(private readonly defaultTtlMs: number) {}
+  /**
+   * @param defaultTtlMs Default time-to-live for entries.
+   * @param maxSize Optional hard cap on entry count. When exceeded, the
+   *   oldest-inserted entries are evicted (FIFO). Prevents unbounded memory
+   *   growth for long-lived caches keyed by user/chat ids.
+   */
+  constructor(
+    private readonly defaultTtlMs: number,
+    private readonly maxSize: number = Number.POSITIVE_INFINITY,
+  ) {}
 
   /**
    * Defensive clone so callers mutating a returned value can't corrupt the
@@ -40,10 +49,18 @@ export class MemoryTtlCache<T> {
   }
 
   set(key: string, value: T, ttlMs = this.defaultTtlMs) {
+    // Re-inserting an existing key moves it to the end of the Map's insertion
+    // order, so eviction below always drops the oldest-inserted entry.
     this.store.set(key, {
       value: this.clone(value),
       expiresAt: Date.now() + ttlMs,
     });
+
+    while (this.store.size > this.maxSize) {
+      const oldest = this.store.keys().next().value;
+      if (oldest === undefined) break;
+      this.store.delete(oldest);
+    }
   }
 
   delete(key: string) {

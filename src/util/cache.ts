@@ -7,7 +7,7 @@ import { MemoryTtlCache } from "./memory-cache";
 
 // Ban Cache
 const BAN_CACHE_SECONDS = 3600;
-const banMemoryCache = new MemoryTtlCache<boolean>(60 * 1000);
+const banMemoryCache = new MemoryTtlCache<boolean>(60 * 1000, 20_000);
 
 export async function getCachedBanStatus(userId: string) {
   const key = `ban:${userId}`;
@@ -45,7 +45,7 @@ export type CachedTopic = {
   allowedLengths: unknown;
 };
 
-const topicMemoryCache = new MemoryTtlCache<CachedTopic[]>(60 * 1000);
+const topicMemoryCache = new MemoryTtlCache<CachedTopic[]>(60 * 1000, 10_000);
 
 export async function getCachedTopics(chatId: string): Promise<CachedTopic[]> {
   const key = `topics:${chatId}`;
@@ -81,7 +81,10 @@ export async function invalidateTopicsCache(chatId: string) {
 }
 
 // Tracking Cache
-const trackingMemoryCache = new MemoryTtlCache<string | null>(60 * 1000);
+const trackingMemoryCache = new MemoryTtlCache<string | null>(
+  60 * 1000,
+  10_000,
+);
 
 export async function getTrackingAdminChatId(chatId: string | number) {
   const key = `tracking:${chatId}`;
@@ -122,7 +125,7 @@ export type CachedGame = {
   startedBy: string | null;
 } | null;
 
-const gameMemoryCache = new MemoryTtlCache<CachedGame>(60 * 1000);
+const gameMemoryCache = new MemoryTtlCache<CachedGame>(60 * 1000, 10_000);
 const gameInflight = new Map<string, Promise<CachedGame | undefined>>();
 
 export async function getCachedGame(

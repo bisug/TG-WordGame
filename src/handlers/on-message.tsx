@@ -28,8 +28,9 @@ import { rateLimit, trackGuessSpeed } from "./anticheat";
 // Pre-warm font on module load to avoid blocking on first image generation
 prewarmFont();
 
-// Cache for generated Wordle images (in-memory, short TTL)
-const imageCache = new MemoryTtlCache<Buffer>(5 * 60 * 1000); // 5 minutes
+// Cache for generated Wordle images (in-memory, short TTL, bounded so a busy
+// day can't accumulate unbounded PNG buffers).
+const imageCache = new MemoryTtlCache<Buffer>(5 * 60 * 1000, 500); // 5 minutes
 
 function getImageCacheKey(guesses: GuessEntry[], solution: string): string {
   const guessPattern = guesses.map((g) => g.guess).join("|");

@@ -25,8 +25,10 @@ export type SyncedUser = {
   username: string | null;
 };
 
-const userSyncMemory = new MemoryTtlCache<boolean>(60 * 60 * 1000);
-const chatSyncMemory = new MemoryTtlCache<boolean>(60 * 60 * 1000);
+// Bounded so a long-running process doesn't grow memory without limit as it
+// sees new users/chats (1h TTL, keyed by id).
+const userSyncMemory = new MemoryTtlCache<boolean>(60 * 60 * 1000, 50_000);
+const chatSyncMemory = new MemoryTtlCache<boolean>(60 * 60 * 1000, 50_000);
 
 function getUserData(user: SyncUser): SyncedUser {
   return {
