@@ -189,13 +189,21 @@ function scheduleNextDailyRun(fn: () => void | Promise<void>) {
   let timer: ReturnType<typeof setTimeout> | null = null;
 
   function planNext() {
-    const now = new Date();
-    const target = new Date();
-    target.setHours(6, 0, 0, 0);
-    if (target.getTime() <= now.getTime()) {
-      target.setDate(target.getDate() + 1);
-    }
-    const msUntilTarget = target.getTime() - now.getTime();
+    // The game day rolls over at 06:00 in env.TIME_ZONE, NOT in the server's
+    // local timezone. Anchor the next run to 06:00 of the day after the
+    // current game day, resolved in env.TIME_ZONE (DST-safe via
+    // getZonedInstant). Using setHours(6) here previously fired at the wrong
+    // instant whenever server TZ != env.TIME_ZONE, making the cron a no-op.
+    const gameDay = getGameDateString();
+    const nextDay = new Date(`${gameDay}T00:00:00Z`);
+    nextDay.setUTCDate(nextDay.getUTCDate() + 1);
+    const nextDatePart = nextDay.toISOString().slice(0, 10);
+
+    const target = getZonedInstant(nextDatePart, "06:00:00", env.TIME_ZONE);
+    let msUntilTarget = target.getTime() - Date.now();
+
+    // Safety net for clock skew: never schedule in the past, retry shortly.
+    if (msUntilTarget <= 0) msUntilTarget = 60_000;
 
     timer = setTimeout(async () => {
       try {
