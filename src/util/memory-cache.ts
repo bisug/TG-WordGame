@@ -4,15 +4,24 @@ export class MemoryTtlCache<T> {
   constructor(private readonly defaultTtlMs: number) {}
 
   /**
-   * Fast clone for primitives and plain objects.
-   * Avoids structuredClone overhead for the common case of cached strings/buffers.
+   * Defensive clone so callers mutating a returned value can't corrupt the
+   * cache (and vice versa).
+   *
+   * Buffers/Uint8Arrays are returned as-is: cloning them per read is wasteful
+   * for image-sized payloads, and JSON round-tripping would corrupt them into
+   * `{"type":"Buffer","data":[...]}` plain objects. Callers must treat
+   * returned Buffers as read-only.
+   *
+   * Other objects use structuredClone, which preserves Date/Map/Set (a JSON
+   * round-trip would stringify nested Dates).
    */
   private clone(value: T): T {
     if (value === null || value === undefined) return value;
     const type = typeof value;
     if (type !== "object" && type !== "function") return value;
+    if (Buffer.isBuffer(value) || value instanceof Uint8Array) return value;
     try {
-      return JSON.parse(JSON.stringify(value)) as T;
+      return structuredClone(value);
     } catch {
       return value;
     }
