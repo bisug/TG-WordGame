@@ -1,4 +1,4 @@
-import { Composer } from "grammy";
+import { Composer, GrammyError } from "grammy";
 
 import { z } from "zod";
 import { bot } from "../config/bot";
@@ -9,6 +9,35 @@ import { redis } from "../config/redis";
 import { formatDuration } from "../util/format-duration";
 
 const composer = new Composer();
+
+// Permanent failures mean the chat can never receive broadcasts again, so it
+// is safe to delete it from broadcastChats. Transient failures (network
+// errors, flood waits, Telegram 5xx) must NOT delete the chat — a flaky hour
+// during a broadcast would otherwise shrink the audience forever.
+function isPermanentBroadcastFailure(error: unknown): boolean {
+  if (error instanceof GrammyError) {
+    // 429 = flood wait, 5xx = Telegram server issue: both transient.
+    if (error.error_code === 429 || error.error_code >= 500) return false;
+
+    const desc = error.description.toLowerCase();
+    const permanentPatterns = [
+      "blocked",
+      "kicked",
+      "deactivated",
+      "chat not found",
+      "peer_id_invalid",
+      "not enough rights",
+      "have no rights",
+      "chat_write_forbidden",
+      "can't access the chat",
+      "chat_admin_required",
+    ];
+    return permanentPatterns.some((p) => desc.includes(p));
+  }
+  // HttpError = network failure: transient. Unknown errors: treat as transient
+  // to avoid permanently deleting chats on an unrecognized error.
+  return false;
+}
 
 const broadcastStateSchema = z.object({
   messageId: z.number(),
@@ -84,28 +113,32 @@ async function performBroadcast(
       await bot.api.copyMessage(Number(chat.id), state.chatId, state.messageId);
       state.successCount++;
     } catch (error) {
-      const errorMessage =
-        error instanceof Error ? error.message : "Unknown error";
-      if (
-        errorMessage.includes("blocked") ||
-        errorMessage.includes("bot was kicked")
-      ) {
+      if (isPermanentBroadcastFailure(error)) {
         state.blockedCount++;
-      } else {
-        state.unknownErrorCount++;
-      }
 
-      try {
-        await db
-          .deleteFrom("broadcastChats")
-          .where("id", "=", chat.id)
-          .execute();
-        state.deletedCount++;
-      } catch (deleteError) {
-        logger.error(
-          { err: deleteError, chatId: chat.id },
-          "Failed to delete chat from broadcastChats",
+        try {
+          await db
+            .deleteFrom("broadcastChats")
+            .where("id", "=", chat.id)
+            .execute();
+          state.deletedCount++;
+        } catch (deleteError) {
+          logger.error(
+            { err: deleteError, chatId: chat.id },
+            "Failed to delete chat from broadcastChats",
+          );
+        }
+      } else {
+        // Transient failure (network, flood wait, Telegram 5xx). Keep the chat
+        // in the DB and out of the processed set so a resumed run retries it.
+        state.unknownErrorCount++;
+        logger.warn(
+          { err: error, chatId: chat.id },
+          "Transient broadcast error, chat kept for retry",
         );
+        state.currentIndex = i + 1;
+        await saveBroadcastState(state);
+        continue;
       }
     }
 
