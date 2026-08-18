@@ -309,6 +309,7 @@ latency setup is usually:
 | `WEB_SERVICE`                      | No       | `false`                          | Starts a `/healthz` and `/metrics` HTTP server when `true`.    |
 | `TIME_ZONE`                        | No       | `UTC`                            | Timezone for daily reset logic and scheduled jobs.      |
 | `DAILY_WORDLE_START_DATE`          | No       | `2025-01-01`                     | Start date for the daily word rotation.                 |
+| `DAILY_WORDLE_SECRET`              | No       | Empty                            | Per-instance salt for the daily word rotation. Set a unique random value so future words can't be precomputed from the public word list. |
 | `DATABASE_SSL`                     | No       | Auto                             | Overrides PostgreSQL SSL usage.                         |
 | `DATABASE_SSL_REJECT_UNAUTHORIZED` | No       | `false`                          | Enables strict PostgreSQL TLS certificate verification. |
 | `CUSTOM_API_ROOT`                  | No       | `https://api.telegram.org`       | Telegram Bot API endpoint.                              |

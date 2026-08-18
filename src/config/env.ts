@@ -52,6 +52,11 @@ export const env = z
       .optional()
       .default("2025-01-01")
       .transform((val) => new Date(val)),
+    // Per-instance salt mixed into the daily word selection hash. Without it,
+    // anyone with the (public) word list can precompute every future daily
+    // word. Set a unique random value per deployment; changing it reshuffles
+    // the word rotation.
+    DAILY_WORDLE_SECRET: z.string().optional().default(""),
     UPDATES_CHANNEL: z.url().default("https://t.me/WordSeek"),
     DISCUSSION_GROUP: z.url().default("https://t.me/WordGuesser"),
     WEB_SERVICE: z

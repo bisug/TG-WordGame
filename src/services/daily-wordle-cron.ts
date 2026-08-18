@@ -177,12 +177,28 @@ function getRandomWordForDate(gameDate: string): string {
     (targetDate.getTime() - env.DAILY_WORDLE_START_DATE.getTime()) / msPerDay,
   );
 
-  // Simple hash-based selection for consistency
-  const hash = (dayNumber * 2654435761) >>> 0; // Knuth multiplicative hash
+  // Hash-based selection for consistency. When DAILY_WORDLE_SECRET is set it
+  // is mixed in so the rotation can't be precomputed from the public word
+  // list; without a secret we keep the legacy day-number hash so existing
+  // deployments don't get a reshuffled rotation on upgrade.
+  const hash = env.DAILY_WORDLE_SECRET
+    ? fnv1a(`${env.DAILY_WORDLE_SECRET}:${dayNumber}`)
+    : (dayNumber * 2654435761) >>> 0; // Knuth multiplicative hash
   const index = hash % words.length;
   const word = words[index];
   if (!word) throw new Error(`No daily word found for index ${index}`);
   return word;
+}
+
+// FNV-1a 32-bit string hash. Deterministic across processes/restarts, which is
+// all the daily rotation needs (not cryptographic).
+function fnv1a(input: string): number {
+  let hash = 0x811c9dc5;
+  for (let i = 0; i < input.length; i++) {
+    hash ^= input.charCodeAt(i);
+    hash = Math.imul(hash, 0x01000193) >>> 0;
+  }
+  return hash >>> 0;
 }
 
 function scheduleNextDailyRun(fn: () => void | Promise<void>) {
