@@ -3,12 +3,13 @@ import { Composer, type Context } from "grammy";
 import { db } from "../config/db";
 import { env } from "../config/env";
 import { redis } from "../config/redis";
-import { deleteCachedGame } from "../util/cache";
+import { deleteCachedGame, getGamePlayerCount } from "../util/cache";
 import { CommandsHelper } from "../util/commands-helper";
 import {
   formatUserLink,
   getCurrentTopicId,
   getEndVoteKey,
+  getEndVoteThreshold,
 } from "../util/end-vote";
 import { requireAllowedTopic, runGuards } from "../util/guards";
 
@@ -77,14 +78,19 @@ composer.command("end", async (ctx) => {
   if (!currentGame) return ctx.reply("There is no game in progress.");
 
   const userId = ctx.from.id.toString();
-  const chatMember = await ctx.getChatMember(parseInt(userId, 10));
+  const isPrivate = ctx.chat.type === "private";
 
-  const isAdmin =
-    chatMember.status === "administrator" || chatMember.status === "creator";
+  // getChatMember is only valid in group/supergroup chats; calling it in a
+  // private chat throws. Private chats need no permission check anyway.
+  let isAdmin = false;
+  if (!isPrivate) {
+    const chatMember = await ctx.getChatMember(parseInt(userId, 10));
+    isAdmin =
+      chatMember.status === "administrator" || chatMember.status === "creator";
+  }
   const isSystemAdmin = env.ADMIN_USERS.includes(ctx.from.id);
   const isGameStarter = currentGame.startedBy === userId;
   const isAuthorized = await isUserAuthorized(userId, chatId.toString());
-  const isPrivate = ctx.chat.type === "private";
 
   const isPermitted =
     isAdmin || isSystemAdmin || isGameStarter || isAuthorized || isPrivate;
@@ -130,12 +136,22 @@ composer.command("end", async (ctx) => {
     );
   }
 
+  // Scale the threshold with the number of participants so small groups
+  // (1-2 players) can actually finish a vote. Falls back to 3 when the
+  // player count is unknown.
+  const playerCount = await getGamePlayerCount(String(chatId), topicId);
+  const threshold = getEndVoteThreshold(playerCount);
+
   // Store voters as a Redis SET so concurrent votes are counted atomically.
-  // Pipeline the three ops so a crash can't leave the key without a TTL.
+  // Pipeline the ops so a crash can't leave the key without a TTL. The
+  // threshold is stored alongside so the callback handler applies the same
+  // value that was announced when the vote started.
   const voteSetup = redis.pipeline();
   voteSetup.del(voteKey);
   voteSetup.sadd(voteKey, userId);
+  voteSetup.set(`${voteKey}:threshold`, threshold);
   voteSetup.expire(voteKey, 300); // 5 minutes expiry
+  voteSetup.expire(`${voteKey}:threshold`, 300);
   await voteSetup.exec();
 
   const userLink = formatUserLink(
@@ -144,11 +160,25 @@ composer.command("end", async (ctx) => {
     ctx.from.last_name,
   );
 
+  // A single-participant game needs only one vote (the initiator's), so the
+  // vote passes immediately instead of posting an unwinnable poll.
+  if (threshold <= 1) {
+    await redis.del(voteKey);
+    await redis.del(`${voteKey}:threshold`);
+    return await endGame(
+      ctx,
+      chatId,
+      currentGame.topicId,
+      currentGame.word,
+      "<b>Game ended - vote to end the game passed</b>",
+    );
+  }
+
   await ctx.reply(
     `<b>🗳️ Vote to End Game</b>\n\n` +
       `${userLink} wants to end the game.\n\n` +
-      `<b>Votes needed: 3 out of remaining players</b>\n` +
-      `<b>Current votes: 1/3</b>\n\n` +
+      `<b>Votes needed: ${threshold} out of remaining players</b>\n` +
+      `<b>Current votes: 1/${threshold}</b>\n\n` +
       `React with the button below to vote for ending the game.`,
     {
       parse_mode: "HTML",
@@ -156,7 +186,7 @@ composer.command("end", async (ctx) => {
         inline_keyboard: [
           [
             {
-              text: "✅ Vote to End (1/3)",
+              text: `✅ Vote to End (1/${threshold})`,
               callback_data: `vote_end ${chatId} ${topicId}`,
             },
           ],

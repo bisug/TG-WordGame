@@ -1,5 +1,6 @@
 import { Composer, InlineKeyboard } from "grammy";
 
+import { env } from "../config/env";
 import { getCachedBanStatus } from "../util/ban-cache";
 
 const composer = new Composer();
@@ -11,8 +12,8 @@ composer.on("message", async (ctx, next) => {
   if (!isUserBanned) return await next();
 
   const keyboard = new InlineKeyboard();
-  keyboard.url("Appeal Ban", "t.me/binamralamsal").primary();
-  
+  keyboard.url("Appeal Ban", env.BAN_APPEAL_URL).primary();
+
   // Friendly, less accusatory message with clear appeal path
   const banMessage =
     "⛔ <b>Access Restricted</b>\n\n" +

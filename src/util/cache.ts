@@ -1,5 +1,6 @@
 import { db } from "../config/db";
-import { safeDel, safeGet, safeSet } from "../config/redis";
+import { logger } from "../config/logger";
+import { redis, safeDel, safeGet, safeSet } from "../config/redis";
 import { toUtcMidnight } from "../services/daily-wordle-cron";
 import { safeJsonParse } from "./formatting";
 import { MemoryTtlCache } from "./memory-cache";
@@ -191,6 +192,45 @@ export async function deleteCachedGame(chatId: string, topicId: string) {
   const key = `game:${chatId}:${topicId}`;
   gameMemoryCache.delete(key);
   await safeDel(key);
+  // Also drop the participant set used for the end-game vote threshold.
+  await safeDel(getPlayersKey(chatId, topicId));
+}
+
+// Player tracking for the end-game vote. Players are recorded when they make
+// a guess (or start the game) so the vote threshold can scale with the actual
+// number of participants instead of a hardcoded 3, which is unreachable in
+// 1-2 person groups.
+const PLAYER_SET_TTL_SECONDS = 3600 * 24;
+
+function getPlayersKey(chatId: string, topicId: string) {
+  return `players:${chatId}:${topicId}`;
+}
+
+export async function addGamePlayer(
+  chatId: string,
+  topicId: string,
+  userId: string,
+): Promise<void> {
+  try {
+    const pipe = redis.pipeline();
+    pipe.sadd(getPlayersKey(chatId, topicId), userId);
+    pipe.expire(getPlayersKey(chatId, topicId), PLAYER_SET_TTL_SECONDS);
+    await pipe.exec();
+  } catch (err) {
+    logger.warn({ err, chatId, topicId }, "redis sadd players failed");
+  }
+}
+
+export async function getGamePlayerCount(
+  chatId: string,
+  topicId: string,
+): Promise<number> {
+  try {
+    return await redis.scard(getPlayersKey(chatId, topicId));
+  } catch (err) {
+    logger.warn({ err, chatId, topicId }, "redis scard players failed");
+    return 0;
+  }
 }
 
 // Daily Word Cache
@@ -204,16 +244,23 @@ export type CachedDailyWord = {
   sentence: string | null;
 };
 
-const dailyWordMemoryCache = new MemoryTtlCache<CachedDailyWord>(60 * 60 * 1000); // 1 hour
+const dailyWordMemoryCache = new MemoryTtlCache<CachedDailyWord>(
+  60 * 60 * 1000,
+); // 1 hour
 
-export async function getCachedDailyWord(dateKey: string): Promise<CachedDailyWord | undefined> {
+export async function getCachedDailyWord(
+  dateKey: string,
+): Promise<CachedDailyWord | undefined> {
   const key = `dailyWord:${dateKey}`;
   const memoryValue = dailyWordMemoryCache.get(key);
   if (memoryValue) return memoryValue;
 
   const cached = await safeGet(key);
   if (cached) {
-    const parsed = safeJsonParse<CachedDailyWord | undefined>(cached, undefined);
+    const parsed = safeJsonParse<CachedDailyWord | undefined>(
+      cached,
+      undefined,
+    );
     if (parsed) {
       dailyWordMemoryCache.set(key, parsed);
       return parsed;

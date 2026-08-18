@@ -60,35 +60,45 @@ composer.command("transfer", async (ctx) => {
   }
 
   try {
-    const leaderboardEntries = await db
-      .selectFrom("leaderboard")
-      .selectAll()
-      .where("userId", "=", fromUser.id)
-      .execute();
+    // Run the read + update atomically so a concurrent insert or a partial
+    // failure can't leave the transfer in an inconsistent state.
+    const result = await db.transaction().execute(async (trx) => {
+      const leaderboardEntries = await trx
+        .selectFrom("leaderboard")
+        .selectAll()
+        .where("userId", "=", fromUser.id)
+        .execute();
 
-    if (leaderboardEntries.length === 0) {
+      if (leaderboardEntries.length === 0) {
+        return null;
+      }
+
+      await trx
+        .updateTable("leaderboard")
+        .set({ userId: toUser.id })
+        .where("userId", "=", fromUser.id)
+        .execute();
+
+      const totalScore = leaderboardEntries.reduce(
+        (sum, entry) => sum + entry.score,
+        0,
+      );
+
+      return { count: leaderboardEntries.length, totalScore };
+    });
+
+    if (!result) {
       return ctx.reply(
         `ℹ️ ${fromUser.name} has no leaderboard entries to transfer`,
       );
     }
 
-    await db
-      .updateTable("leaderboard")
-      .set({ userId: toUser.id })
-      .where("userId", "=", fromUser.id)
-      .execute();
-
-    const totalScore = leaderboardEntries.reduce(
-      (sum, entry) => sum + entry.score,
-      0,
-    );
-
     await ctx.reply(
       `✅ Successfully transferred leaderboard data:\n\n` +
         `From: ${fromUser.name} (${fromUser.id})\n` +
         `To: ${toUser.name} (${toUser.id})\n\n` +
-        `Entries transferred: ${leaderboardEntries.length}\n` +
-        `Total score transferred: ${totalScore}`,
+        `Entries transferred: ${result.count}\n` +
+        `Total score transferred: ${result.totalScore}`,
     );
   } catch (error) {
     logger.error({ err: error }, "Error transferring leaderboard");

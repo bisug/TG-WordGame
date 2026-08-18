@@ -4,7 +4,7 @@ import { DatabaseError } from "pg";
 
 import { db } from "../config/db";
 import { logger } from "../config/logger";
-import { getCachedTopics, setCachedGame } from "../util/cache";
+import { addGamePlayer, getCachedTopics, setCachedGame } from "../util/cache";
 import { CommandsHelper } from "../util/commands-helper";
 import { regularGameGuards, runGuards } from "../util/guards";
 import { type WordLength, WordSelector } from "../util/word-selector";
@@ -86,6 +86,9 @@ async function startGame(
       topicId,
       startedBy: ctx.from.id.toString(),
     });
+
+    // The starter counts as a participant for the end-game vote threshold.
+    await addGamePlayer(chatId.toString(), topicId, ctx.from.id.toString());
 
     return ctx.reply(`Game started! Guess the ${wordLength}-letter word!`);
   } catch (error) {

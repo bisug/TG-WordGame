@@ -11,6 +11,7 @@ import allFourWords from "../data/all-four.json";
 import allSixWords from "../data/all-six.json";
 import { getGameDateString } from "../services/daily-wordle-cron";
 import {
+  addGamePlayer,
   deleteCachedGame,
   getCachedDailyWord,
   getCachedGame,
@@ -118,6 +119,9 @@ composer.on("message:text", rateLimit("guess"), async (ctx) => {
     return ctx.reply(
       "Someone has already guessed your word. Please try another one!",
     );
+
+  // Record the guesser as a participant for the end-game vote threshold.
+  await addGamePlayer(chatIdStr, currentTopicId, userId);
 
   if (currentGuess === currentGame.word) {
     // Atomically claim the win: only the first correct guess deletes the game
@@ -457,7 +461,7 @@ async function handleDailyWordleLoss(
   });
 }
 
-export const onMessageHander = composer;
+export const onMessageHandler = composer;
 
 interface GuessEntry {
   id: number;
@@ -611,32 +615,31 @@ export async function generateWordleImage(
   return pngBuffer;
 }
 
-async function reactWithRandom(ctx: Context) {
-  const emojis: ReactionTypeEmoji["emoji"][] = [
-    "🎉",
-    "🏆",
-    "🤩",
-    "⚡",
-    "🫡",
-    "💯",
-    "❤‍🔥",
-    "🦄",
-  ];
+const REACTION_EMOJIS: ReactionTypeEmoji["emoji"][] = [
+  "🎉",
+  "🏆",
+  "🤩",
+  "⚡",
+  "🫡",
+  "💯",
+  "❤‍🔥",
+  "🦄",
+];
 
-  const shuffled = emojis.sort(() => Math.random() - 0.5);
+async function reactWithRandom(ctx: Context) {
+  // Copy before sorting so the module-level list is never mutated.
+  const shuffled = [...REACTION_EMOJIS].sort(() => Math.random() - 0.5);
 
   for (const emoji of shuffled) {
     try {
       await ctx.react(emoji);
       return;
     } catch (err) {
-      if (
+      const notAllowed =
         err instanceof GrammyError &&
-        err.description?.includes("REACTION_NOT_ALLOWED")
-      ) {
-      } else {
-        break;
-      }
+        err.description?.includes("REACTION_NOT_ALLOWED");
+      if (!notAllowed) break;
+      // Emoji not available in this chat; try the next one.
     }
   }
 }

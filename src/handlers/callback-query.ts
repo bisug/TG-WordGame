@@ -26,12 +26,17 @@ import { getLeaderboardScores } from "../services/get-leaderboard-scores";
 import { getUserScores } from "../services/get-user-scores";
 import type { AllowedChatSearchKey, AllowedChatTimeKey } from "../types";
 import { BACK_BUTTONS, LEADERBOARD_ACTIONS } from "../util/button-actions";
+import { getGamePlayerCount } from "../util/cache";
 import {
   buildCaptchaKeyboard,
   buildMessage,
   formatUserMention,
 } from "../util/captcha-challenge";
-import { formatUserLink, getEndVoteKey } from "../util/end-vote";
+import {
+  formatUserLink,
+  getEndVoteKey,
+  getEndVoteThreshold,
+} from "../util/end-vote";
 import { formatLeaderboardMessage } from "../util/format-leaderboard-message";
 import { formatNoScoresMessage } from "../util/format-no-scores-message";
 import { formatUserScoreMessage } from "../util/format-user-score-message";
@@ -404,13 +409,20 @@ composer.on("callback_query:data", async (ctx) => {
       });
     }
 
-    const chatMember = await ctx.getChatMember(parseInt(userId, 10));
-    const isAdmin =
-      chatMember.status === "administrator" || chatMember.status === "creator";
+    const isPrivate = ctx.chat.type === "private";
+
+    // getChatMember is only valid in group/supergroup chats; skip it in
+    // private chats where no permission check is needed anyway.
+    let isAdmin = false;
+    if (!isPrivate) {
+      const chatMember = await ctx.getChatMember(parseInt(userId, 10));
+      isAdmin =
+        chatMember.status === "administrator" ||
+        chatMember.status === "creator";
+    }
     const isSystemAdmin = env.ADMIN_USERS.includes(ctx.from.id);
     const isAuthorized = await isUserAuthorized(userId, chatId.toString());
     const isGameStarter = existingGame.startedBy === userId;
-    const isPrivate = ctx.chat.type === "private";
     const isPermitted =
       isAdmin || isSystemAdmin || isGameStarter || isAuthorized || isPrivate;
 
@@ -437,6 +449,7 @@ composer.on("callback_query:data", async (ctx) => {
       }
 
       await redis.del(voteKey);
+      await redis.del(`${voteKey}:threshold`);
       await ctx.deleteMessage();
       await endGame(
         ctx,
@@ -467,10 +480,18 @@ composer.on("callback_query:data", async (ctx) => {
 
     const voterCount = await redis.scard(voteKey);
 
-    if (voterCount >= 3) {
-      await redis.del(voteKey);
+    // Use the threshold announced when the vote started; fall back to the
+    // current player count (or legacy 3) if the stored value expired.
+    const storedThreshold = await redis.get(`${voteKey}:threshold`);
+    const threshold =
+      Number.parseInt(storedThreshold ?? "", 10) ||
+      getEndVoteThreshold(await getGamePlayerCount(chatId.toString(), topicId));
 
-      const reason = "<b>Game ended - 3 players voted to end the game</b>";
+    if (voterCount >= threshold) {
+      await redis.del(voteKey);
+      await redis.del(`${voteKey}:threshold`);
+
+      const reason = `<b>Game ended - ${voterCount} players voted to end the game</b>`;
       await ctx.deleteMessage();
       await endGame(
         ctx,
@@ -488,15 +509,15 @@ composer.on("callback_query:data", async (ctx) => {
     await ctx.editMessageText(
       `<b>🗳️ Vote to End Game</b>\n\n` +
         `Players are voting to end the game.\n\n` +
-        `<b>Votes needed: 3 total</b>\n` +
-        `<b>Current votes: ${voterCount}/3</b>\n\n` +
+        `<b>Votes needed: ${threshold} total</b>\n` +
+        `<b>Current votes: ${voterCount}/${threshold}</b>\n\n` +
         `React with the button below to vote for ending the game.`,
       {
         reply_markup: {
           inline_keyboard: [
             [
               {
-                text: `✅ Vote to End (${voterCount}/3)`,
+                text: `✅ Vote to End (${voterCount}/${threshold})`,
                 callback_data: `vote_end ${chatId} ${topicId}`,
               },
             ],
@@ -507,7 +528,7 @@ composer.on("callback_query:data", async (ctx) => {
     );
 
     return await ctx.answerCallbackQuery({
-      text: `Vote recorded! ${3 - voterCount} more votes needed.`,
+      text: `Vote recorded! ${threshold - voterCount} more votes needed.`,
     });
   } else if (data.startsWith("help_")) {
     type HelpSection = "HOWTO" | "SCORES" | "GROUP" | "OTHER" | "ADMIN";

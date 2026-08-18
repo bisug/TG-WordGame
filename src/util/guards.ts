@@ -3,6 +3,7 @@ import type { Context } from "grammy";
 import { redis } from "../config/redis";
 import { dailyWordleSchema } from "../handlers/on-message";
 import { getCachedGame, getCachedTopics } from "./cache";
+import { safeJsonParse } from "./formatting";
 
 type GuardResult = { ok: true } | { ok: false; message: string };
 
@@ -24,9 +25,9 @@ export async function requireNoActiveDailyGame(
   const userId = ctx.from.id.toString();
 
   const dailyGameData = await redis.get(`daily_wordle:${userId}`);
-  const result = dailyWordleSchema.safeParse(JSON.parse(dailyGameData || "{}"));
+  const result = dailyWordleSchema.safeParse(safeJsonParse(dailyGameData, {}));
 
-  if (result.data) {
+  if (result.success) {
     return {
       ok: false,
       message:

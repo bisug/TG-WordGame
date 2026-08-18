@@ -11,7 +11,7 @@ import { callbackQueryHandler } from "./handlers/callback-query";
 import { errorHandler } from "./handlers/error-handler";
 import { handleBannedUsers } from "./handlers/handle-banned-users";
 import { onBotAddedInChat } from "./handlers/on-bot-added-in-chat";
-import { onMessageHander } from "./handlers/on-message";
+import { onMessageHandler } from "./handlers/on-message";
 import { topicEditedHandler } from "./handlers/topic-edited-handler";
 import { trackMessagesHandler } from "./handlers/track-messages-handler";
 import { userAndChatSyncHandler } from "./handlers/user-and-chat-sync-handler";
@@ -63,7 +63,7 @@ bot.use(handleBannedUsers);
 
 bot.use(commands);
 bot.use(callbackQueryHandler);
-bot.use(onMessageHander);
+bot.use(onMessageHandler);
 bot.use(onBotAddedInChat);
 
 bot.catch((err) => {

@@ -36,7 +36,12 @@ export const env = z
     ADMIN_USERS: z
       .string()
       .default("")
-      .transform((val) => val.split(",").filter(Boolean).map(Number)),
+      .transform((val) =>
+        val
+          .split(",")
+          .map((s) => Number(s.trim()))
+          .filter((n) => Number.isFinite(n)),
+      ),
     REDIS_URI: z.string().default("redis://127.0.0.1:6379"),
     CUSTOM_API_ROOT: z
       .url({ error: "CUSTOM_API_ROOT must be a valid URL" })
@@ -59,6 +64,9 @@ export const env = z
     DAILY_WORDLE_SECRET: z.string().optional().default(""),
     UPDATES_CHANNEL: z.url().default("https://t.me/WordSeek"),
     DISCUSSION_GROUP: z.url().default("https://t.me/WordGuesser"),
+    // Contact link shown to banned users for appealing their ban. Must be a
+    // full URL (Telegram URL buttons reject scheme-less links like t.me/x).
+    BAN_APPEAL_URL: z.url().default("https://t.me/WordGuesser"),
     WEB_SERVICE: z
       .string()
       .optional()
