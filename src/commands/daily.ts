@@ -10,6 +10,7 @@ import {
 } from "../services/daily-wordle-cron";
 import { CommandsHelper } from "../util/commands-helper";
 import { dailyGameGuards, runGuards } from "../util/guards";
+import { ensureUser } from "../util/sync-entities";
 
 const composer = new Composer();
 
@@ -30,6 +31,10 @@ composer.command("daily", async (ctx) => {
         "Today's WordSeek is not ready yet due to a server issue. Please try again in a few moments!",
       );
     }
+
+    // User sync is fire-and-forget; make sure the users row exists before the
+    // userStats insert below (its userId is an FK to users).
+    await ensureUser(ctx.from);
 
     await db
       .insertInto("userStats")

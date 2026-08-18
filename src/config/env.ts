@@ -40,7 +40,9 @@ export const env = z
         val
           .split(",")
           .map((s) => Number(s.trim()))
-          .filter((n) => Number.isFinite(n)),
+          // Telegram user ids are positive; this also drops the 0 that
+          // Number("") produces for empty segments.
+          .filter((n) => Number.isFinite(n) && n > 0),
       ),
     REDIS_URI: z.string().default("redis://127.0.0.1:6379"),
     CUSTOM_API_ROOT: z

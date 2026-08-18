@@ -108,6 +108,12 @@ export async function getTargetUser(
 composer.command("seekauth", async (ctx) => {
   if (!ctx.chat || !ctx.from) return;
 
+  // Authorization is per-chat and getChatMember is invalid in private chats;
+  // the command only makes sense inside a group.
+  if (ctx.chat.type === "private") {
+    return ctx.reply("This command only works in groups.");
+  }
+
   const chatId = ctx.chat.id.toString();
   const userId = ctx.from.id;
   const chatMember = await ctx.getChatMember(userId);

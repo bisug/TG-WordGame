@@ -24,6 +24,7 @@ import { safeJsonParse, toFancyText } from "../util/formatting";
 import { requireAllowedTopic, runGuards } from "../util/guards";
 import { MemoryTtlCache } from "../util/memory-cache";
 import { computeStreakAfterWin } from "../util/streak";
+import { ensureUser } from "../util/sync-entities";
 import { rateLimit, trackGuessSpeed } from "./anticheat";
 
 // Pre-warm font on module load to avoid blocking on first image generation
@@ -143,6 +144,11 @@ composer.on("message:text", rateLimit("guess"), async (ctx) => {
       const score = 30 - existingGuesses.length;
       const additionalMessage = `Added ${score} to the leaderboard.`;
 
+      // User sync is fire-and-forget; a brand-new user's first message could
+      // win before their users row commits, failing the leaderboard FK and
+      // losing the score. Ensure the row exists before the scoring insert.
+      await ensureUser(ctx.from);
+
       await db
         .insertInto("leaderboard")
         .values({
@@ -205,7 +211,7 @@ composer.on("message:text", rateLimit("guess"), async (ctx) => {
     await trackGuessSpeed(userId, chatIdStr, currentTopicId);
   }
 
-  if (allGuesses.length === 30) {
+  if (allGuesses.length >= 30) {
     await db.deleteFrom("games").where("id", "=", currentGame.id).execute();
     await deleteCachedGame(chatIdStr, currentTopicId);
     return ctx.reply(
@@ -349,6 +355,10 @@ async function handleDailyWordleWin(
   // update below is persisted.
   await safeDel(`daily_wordle:${userId}`);
 
+  // User sync is fire-and-forget; make sure the users row exists before the
+  // userStats upsert below (its userId is an FK to users).
+  await ensureUser(ctx.from);
+
   const userStats = await db
     .selectFrom("userStats")
     .selectAll()
@@ -471,6 +481,10 @@ async function handleDailyWordleLoss(
   // safeDel so a Redis hiccup can't abort the loss flow before the stats
   // update below is persisted.
   await safeDel(`daily_wordle:${userId}`);
+
+  // User sync is fire-and-forget; make sure the users row exists before the
+  // userStats upsert below (its userId is an FK to users).
+  await ensureUser(ctx.from);
 
   await db
     .insertInto("userStats")

@@ -58,6 +58,9 @@ type BroadcastState = z.infer<typeof broadcastStateSchema>;
 const BROADCAST_KEY = "broadcast:state";
 const BROADCAST_LOCK_KEY = "broadcast:lock";
 const BROADCAST_PROCESSED_KEY = "broadcast:processed";
+// Chats that already counted as a transient failure in this run, so a resumed
+// run retrying the same chat doesn't inflate unknownErrorCount.
+const BROADCAST_FAILED_KEY = "broadcast:failed";
 
 async function saveBroadcastState(state: BroadcastState) {
   await redis.set(BROADCAST_KEY, JSON.stringify(state), "EX", 86400);
@@ -79,6 +82,7 @@ async function clearBroadcastState() {
   await redis.del(BROADCAST_KEY);
   await redis.del(BROADCAST_LOCK_KEY);
   await redis.del(BROADCAST_PROCESSED_KEY);
+  await redis.del(BROADCAST_FAILED_KEY);
 }
 
 export async function acquireBroadcastLock() {
@@ -131,7 +135,10 @@ async function performBroadcast(
       } else {
         // Transient failure (network, flood wait, Telegram 5xx). Keep the chat
         // in the DB and out of the processed set so a resumed run retries it.
-        state.unknownErrorCount++;
+        // SADD dedupes: a resumed run retrying this chat must not count it
+        // twice.
+        const firstFailure = await redis.sadd(BROADCAST_FAILED_KEY, chat.id);
+        if (firstFailure) state.unknownErrorCount++;
         logger.warn(
           { err: error, chatId: chat.id },
           "Transient broadcast error, chat kept for retry",
@@ -170,6 +177,10 @@ Deleted: <code>${state.deletedCount}</code>`,
           "Failed to update broadcast progress message (non-critical)",
         );
       }
+
+      // Refresh the lock: a large audience outlives the 1h TTL, and an
+      // expired lock lets another instance resume concurrently, double-sending.
+      await redis.set(BROADCAST_LOCK_KEY, "1", "EX", 3600);
 
       await sleep(10_000);
     }

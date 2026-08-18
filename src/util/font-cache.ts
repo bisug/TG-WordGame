@@ -6,7 +6,12 @@ let fontDataPromise: Promise<Buffer> | null = null;
 
 export function getFontData(): Promise<Buffer> {
   if (!fontDataPromise) {
-    fontDataPromise = readFile(FONT_PATH);
+    fontDataPromise = readFile(FONT_PATH).catch((err) => {
+      // Don't cache a rejection: one transient FS error would otherwise kill
+      // every image generation until a process restart.
+      fontDataPromise = null;
+      throw err;
+    });
   }
   return fontDataPromise;
 }
