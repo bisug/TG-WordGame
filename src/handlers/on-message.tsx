@@ -15,11 +15,13 @@ import {
   getCachedDailyWord,
   getCachedGame,
 } from "../util/cache";
+import { getFeedback } from "../util/feedback";
 import { getFontData, prewarmFont } from "../util/font-cache";
 import { formatDailyWordDetails } from "../util/format-word-details";
 import { safeJsonParse, toFancyText } from "../util/formatting";
 import { requireAllowedTopic, runGuards } from "../util/guards";
 import { MemoryTtlCache } from "../util/memory-cache";
+import { computeStreakAfterWin } from "../util/streak";
 import { rateLimit, trackGuessSpeed } from "./anticheat";
 
 // Pre-warm font on module load to avoid blocking on first image generation
@@ -307,21 +309,15 @@ async function handleDailyWordleWin(
     new Date(Date.now() - 24 * 60 * 60 * 1000),
   );
 
-  let newStreak = 1;
-  let highestStreak = 1;
-
-  if (userStats?.lastGuessed) {
-    const lastGuessGameDay = getGameDateString(new Date(userStats.lastGuessed));
-
-    if (lastGuessGameDay === todayGameDay) {
-      newStreak = userStats.currentStreak;
-    } else if (lastGuessGameDay === yesterdayGameDay) {
-      newStreak = userStats.currentStreak + 1;
-    } else {
-      newStreak = 1;
-    }
-    highestStreak = Math.max(newStreak, userStats.highestStreak);
-  }
+  const { newStreak, highestStreak } = computeStreakAfterWin({
+    lastGuessGameDay: userStats?.lastGuessed
+      ? getGameDateString(new Date(userStats.lastGuessed))
+      : null,
+    currentStreak: userStats?.currentStreak ?? 0,
+    highestStreak: userStats?.highestStreak ?? 0,
+    todayGameDay,
+    yesterdayGameDay,
+  });
 
   await db
     .insertInto("userStats")
@@ -471,41 +467,6 @@ interface GuessEntry {
   attemptNumber?: number;
   createdAt: Date;
   updatedAt: Date;
-}
-
-function getFeedback(data: GuessEntry[], solution: string) {
-  return data
-    .map((entry) => {
-      let feedback = "";
-      const guess = entry.guess.toUpperCase();
-      const solutionCount: Record<string, number> = {};
-
-      for (const char of solution.toUpperCase()) {
-        solutionCount[char] = (solutionCount[char] || 0) + 1;
-      }
-
-      const result = Array(guess.length).fill("🟥");
-      for (let i = 0; i < guess.length; i++) {
-        const gChar = guess[i];
-        const sChar = solution[i]?.toUpperCase();
-        if (gChar && sChar && gChar === sChar) {
-          result[i] = "🟩";
-          solutionCount[gChar] = (solutionCount[gChar] ?? 0) - 1;
-        }
-      }
-
-      for (let i = 0; i < guess.length; i++) {
-        const gChar = guess[i];
-        if (gChar && result[i] === "🟥" && (solutionCount[gChar] ?? 0) > 0) {
-          result[i] = "🟨";
-          solutionCount[gChar] = (solutionCount[gChar] ?? 0) - 1;
-        }
-      }
-
-      feedback = result.join(" ");
-      return `${feedback} ${guess}`;
-    })
-    .join("\n");
 }
 
 export async function generateWordleImage(
