@@ -9,7 +9,7 @@ import {
   UPDATES_CHANNEL,
 } from "../config/constants";
 import type { AllowedChatSearchKey, AllowedChatTimeKey } from "../types";
-import { BACK_BUTTONS, NAV_EMOJIS } from "./button-actions";
+import { NAV_EMOJIS } from "./button-actions";
 import { formatActiveButton } from "./button-helpers";
 
 const allowedWordLengths: AllowedWordLength[] = [4, 5, 6];

@@ -68,7 +68,10 @@ export function buildToggleGrid<T extends string>(
   options.forEach((option, index) => {
     const isActive = option === currentValue;
     keyboard
-      .text(formatActiveButton(labels[option], isActive), `${callbackPrefix} ${option}`)
+      .text(
+        formatActiveButton(labels[option], isActive),
+        `${callbackPrefix} ${option}`,
+      )
       .style(isActive ? "primary" : undefined);
 
     if ((index + 1) % columnsPerRow === 0) {

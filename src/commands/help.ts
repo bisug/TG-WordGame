@@ -5,9 +5,9 @@ import {
   UPDATES_CHANNEL,
 } from "../config/constants";
 import { env } from "../config/env";
-import { CommandsHelper } from "../util/commands-helper";
 import { HELP_ACTIONS } from "../util/button-actions";
 import { formatActiveButton } from "../util/button-helpers";
+import { CommandsHelper } from "../util/commands-helper";
 
 const composer = new Composer();
 
@@ -46,7 +46,10 @@ export function getMainHelpKeyboard(
   active: keyof typeof HELP_ACTIONS = "HOWTO",
 ) {
   const keyboard = new InlineKeyboard()
-    .text(formatActiveButton("How to Play", active === "HOWTO"), HELP_ACTIONS.HOWTO)
+    .text(
+      formatActiveButton("How to Play", active === "HOWTO"),
+      HELP_ACTIONS.HOWTO,
+    )
     .style(active === "HOWTO" ? "primary" : undefined)
     .text(
       formatActiveButton("Leaderboard & Scores", active === "SCORES"),

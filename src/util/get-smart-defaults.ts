@@ -24,14 +24,20 @@ export async function getSmartDefaults({
   const [groupStats, globalStats] = await Promise.all([
     db
       .selectFrom("leaderboard")
-      .select(["wordLength", db.fn.max<Date>("createdAt").as("latestCreatedAt")])
+      .select([
+        "wordLength",
+        db.fn.max<Date>("createdAt").as("latestCreatedAt"),
+      ])
       .where("userId", "=", userId)
       .where("chatId", "=", chatId)
       .groupBy("wordLength")
       .execute(),
     db
       .selectFrom("leaderboard")
-      .select(["wordLength", db.fn.max<Date>("createdAt").as("latestCreatedAt")])
+      .select([
+        "wordLength",
+        db.fn.max<Date>("createdAt").as("latestCreatedAt"),
+      ])
       .where("userId", "=", userId)
       .groupBy("wordLength")
       .execute(),
@@ -47,9 +53,11 @@ export async function getSmartDefaults({
   }
 
   const statsMap =
-    searchKey === "group" ? groupStatsMap : new Map(
-      globalStats.map((s) => [s.wordLength as string, s.latestCreatedAt]),
-    );
+    searchKey === "group"
+      ? groupStatsMap
+      : new Map(
+          globalStats.map((s) => [s.wordLength as string, s.latestCreatedAt]),
+        );
 
   let wordLength: AllowedWordLength = 5;
   if (requestedWordLength) {

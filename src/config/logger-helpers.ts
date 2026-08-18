@@ -1,6 +1,4 @@
-import type { Context } from "grammy";
-import type { BotError } from "grammy";
-import pino from "pino";
+import type { BotError, Context } from "grammy";
 import type { Logger } from "pino";
 
 import { logger as rootLogger } from "./logger";
