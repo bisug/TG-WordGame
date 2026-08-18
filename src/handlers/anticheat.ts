@@ -5,6 +5,7 @@ import { env } from "../config/env";
 import { logger } from "../config/logger";
 import { redis, safeGet, safeSet } from "../config/redis";
 import { sendCaptchaChallenge } from "../util/captcha-challenge";
+import { MemoryTtlCache } from "../util/memory-cache";
 
 // Rate limit configuration
 const RATE_LIMITS = {
@@ -115,9 +116,9 @@ const SUSPICIOUS_THRESHOLDS = {
   suspiciousDecayHours: 24, // Decay suspicious points after 24 hours
 };
 
-// Cache for user account age to avoid repeated DB queries
-const userAgeCache = new Map<string, { age: number; cachedAt: number }>();
-const USER_AGE_CACHE_TTL = 5 * 60 * 1000; // 5 minutes
+// Cache for user account age to avoid repeated DB queries. Bounded so a
+// large influx of one-off users can't grow the cache without limit.
+const userAgeCache = new MemoryTtlCache<number>(5 * 60 * 1000, 20_000);
 
 /**
  * Track suspicious guess speed - optimized with Redis hashes
@@ -132,81 +133,88 @@ export async function trackGuessSpeed(
   const key = `susp:${userId}`;
   const now = Date.now();
 
-  // Get and update last guess time in a single round-trip:
-  // SET ... GET atomically returns the previous value.
-  const lastGuessKey = `lastguess:${chatId}:${topicId}:${userId}`;
-  const lastGuessTime = await redis.set(
-    lastGuessKey,
-    now.toString(),
-    "EX",
-    3600, // Expire after 1 hour
-    "GET",
-  );
-  const timeSinceLastGuess = lastGuessTime
-    ? now - parseInt(lastGuessTime, 10)
-    : now;
+  try {
+    // Get and update last guess time in a single round-trip:
+    // SET ... GET atomically returns the previous value.
+    const lastGuessKey = `lastguess:${chatId}:${topicId}:${userId}`;
+    const lastGuessTime = await redis.set(
+      lastGuessKey,
+      now.toString(),
+      "EX",
+      3600, // Expire after 1 hour
+      "GET",
+    );
+    const timeSinceLastGuess = lastGuessTime
+      ? now - parseInt(lastGuessTime, 10)
+      : now;
 
-  const isSuspicious =
-    lastGuessTime !== null &&
-    timeSinceLastGuess < SUSPICIOUS_THRESHOLDS.guessSpeedThreshold;
+    const isSuspicious =
+      lastGuessTime !== null &&
+      timeSinceLastGuess < SUSPICIOUS_THRESHOLDS.guessSpeedThreshold;
 
-  if (isSuspicious) {
-    // Use Redis hash for atomic operations
-    const pipeline = redis.pipeline();
-    pipeline.hincrby(key, "fg", 1);
-    pipeline.hset(key, "la", now.toString());
-    pipeline.expire(key, SUSPICIOUS_THRESHOLDS.suspiciousDecayHours * 3600);
+    if (isSuspicious) {
+      // Use Redis hash for atomic operations
+      const pipeline = redis.pipeline();
+      pipeline.hincrby(key, "fg", 1);
+      pipeline.hset(key, "la", now.toString());
+      pipeline.expire(key, SUSPICIOUS_THRESHOLDS.suspiciousDecayHours * 3600);
 
-    const results = await pipeline.exec();
-    const fastGuesses = (results?.[0]?.[1] as number) || 1;
+      const results = await pipeline.exec();
+      const fastGuesses = (results?.[0]?.[1] as number) || 1;
 
-    if (fastGuesses >= SUSPICIOUS_THRESHOLDS.maxSuspiciousGuesses) {
-      // Increment total flagged, reset counter, and read the new total
-      // in a single pipeline.
-      const flagResults = await redis
-        .pipeline()
-        .hincrby(key, "tf", 1)
-        .hset(key, "fg", "0") // Reset counter after flagging
-        .hget(key, "tf")
-        .exec();
+      if (fastGuesses >= SUSPICIOUS_THRESHOLDS.maxSuspiciousGuesses) {
+        // Increment total flagged, reset counter, and read the new total
+        // in a single pipeline.
+        const flagResults = await redis
+          .pipeline()
+          .hincrby(key, "tf", 1)
+          .hset(key, "fg", "0") // Reset counter after flagging
+          .hget(key, "tf")
+          .exec();
 
-      logger.warn(
-        { userId, fastGuesses },
-        "User flagged for suspicious activity",
-      );
+        logger.warn(
+          { userId, fastGuesses },
+          "User flagged for suspicious activity",
+        );
 
-      await flagUserForReview(userId, "SPEED_BOT");
+        await flagUserForReview(userId, "SPEED_BOT");
 
-      // Auto-challenge: repeatedly flagged users get a captcha in the chat where
-      // the suspicious activity happened. Cooldown prevents re-challenging on
-      // every subsequent flag within the window.
-      const totalFlagged = flagResults?.[2]?.[1] as number | string | null;
-      if (totalFlagged && parseInt(String(totalFlagged), 10) >= 3) {
-        const challengeCooldownKey = `autocaptcha:${userId}`;
-        const recentlyChallenged = await safeGet(challengeCooldownKey);
-        if (!recentlyChallenged) {
-          await safeSet(challengeCooldownKey, "1", 3600);
-          const result = await sendCaptchaChallenge(chatId, userId, userId);
-          if (result.ok) {
-            logger.info(
-              { userId, chatId },
-              "Auto-challenged suspicious user with captcha",
-            );
+        // Auto-challenge: repeatedly flagged users get a captcha in the chat where
+        // the suspicious activity happened. Cooldown prevents re-challenging on
+        // every subsequent flag within the window.
+        const totalFlagged = flagResults?.[2]?.[1] as number | string | null;
+        if (totalFlagged && parseInt(String(totalFlagged), 10) >= 3) {
+          const challengeCooldownKey = `autocaptcha:${userId}`;
+          const recentlyChallenged = await safeGet(challengeCooldownKey);
+          if (!recentlyChallenged) {
+            await safeSet(challengeCooldownKey, "1", 3600);
+            const result = await sendCaptchaChallenge(chatId, userId, userId);
+            if (result.ok) {
+              logger.info(
+                { userId, chatId },
+                "Auto-challenged suspicious user with captcha",
+              );
+            }
           }
         }
       }
+    } else {
+      // Decay the counter for normal users - use single pipeline.
+      // HGET returns null when the key is missing, so no EXISTS round-trip.
+      const fastGuesses = await redis.hget(key, "fg");
+      if (fastGuesses && parseInt(fastGuesses, 10) > 0) {
+        await redis
+          .pipeline()
+          .hincrby(key, "fg", -1)
+          .expire(key, SUSPICIOUS_THRESHOLDS.suspiciousDecayHours * 3600)
+          .exec();
+      }
     }
-  } else {
-    // Decay the counter for normal users - use single pipeline.
-    // HGET returns null when the key is missing, so no EXISTS round-trip.
-    const fastGuesses = await redis.hget(key, "fg");
-    if (fastGuesses && parseInt(fastGuesses, 10) > 0) {
-      await redis
-        .pipeline()
-        .hincrby(key, "fg", -1)
-        .expire(key, SUSPICIOUS_THRESHOLDS.suspiciousDecayHours * 3600)
-        .exec();
-    }
+  } catch (err) {
+    // Anticheat tracking must never break gameplay: a Redis hiccup here
+    // would otherwise swallow the user's already-inserted guess without a
+    // reply. Fail open and skip tracking.
+    logger.warn({ err, userId }, "trackGuessSpeed failed, skipping");
   }
 }
 
@@ -266,43 +274,40 @@ export async function getUserFlags(userId: string): Promise<{
   reasons: Array<{ reason: string; timestamp: number }>;
 } | null> {
   const key = `flag:${userId}`;
-  const exists = await redis.exists(key);
 
-  if (!exists) return null;
+  try {
+    // One HGETALL instead of EXISTS + HGET + HKEYS + one HGET per reason.
+    // Returns {} for a missing key, so no separate existence check.
+    const fields = await redis.hgetall(key);
+    const count = fields.count;
+    if (!count) return null;
 
-  const count = await redis.hget(key, "count");
-  if (!count) return null;
-
-  // Get all reason entries
-  const allKeys = await redis.hkeys(key);
-  const reasons: Array<{ reason: string; timestamp: number }> = [];
-
-  for (const k of allKeys) {
-    if (k.startsWith("reason:")) {
-      const timestamp = parseInt(k.replace("reason:", ""), 10);
-      const reason = await redis.hget(key, k);
-      if (reason) {
-        reasons.push({ reason, timestamp });
+    const reasons: Array<{ reason: string; timestamp: number }> = [];
+    for (const [k, reason] of Object.entries(fields)) {
+      if (k.startsWith("reason:")) {
+        reasons.push({
+          reason,
+          timestamp: parseInt(k.slice("reason:".length), 10),
+        });
       }
     }
-  }
 
-  return { count: parseInt(count, 10), reasons };
+    return { count: parseInt(count, 10), reasons };
+  } catch (err) {
+    // Fail open: unknown flags are treated as no flags so a Redis outage
+    // never blocks legitimate users.
+    logger.warn({ err, userId }, "getUserFlags failed, treating as unflagged");
+    return null;
+  }
 }
 
 /**
  * Get cached user account age (avoids repeated DB queries)
  */
 async function getUserAccountAge(userId: string): Promise<number | null> {
-  const now = Date.now();
-
-  // Check cache first
   const cached = userAgeCache.get(userId);
-  if (cached && now - cached.cachedAt < USER_AGE_CACHE_TTL) {
-    return cached.age;
-  }
+  if (cached !== undefined) return cached;
 
-  // Query DB
   const user = await db
     .selectFrom("users")
     .select(["createdAt"])
@@ -311,10 +316,8 @@ async function getUserAccountAge(userId: string): Promise<number | null> {
 
   if (!user) return null;
 
-  const age = now - new Date(user.createdAt).getTime();
-
-  // Cache the result
-  userAgeCache.set(userId, { age, cachedAt: now });
+  const age = Date.now() - new Date(user.createdAt).getTime();
+  userAgeCache.set(userId, age);
 
   return age;
 }

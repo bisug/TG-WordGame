@@ -1,6 +1,6 @@
 import type { Context } from "grammy";
 
-import { redis } from "../config/redis";
+import { safeGet } from "../config/redis";
 import { dailyWordleSchema } from "../handlers/on-message";
 import { getCachedGame, getCachedTopics } from "./cache";
 import { safeJsonParse } from "./formatting";
@@ -24,7 +24,7 @@ export async function requireNoActiveDailyGame(
   if (!ctx.from) return { ok: true };
   const userId = ctx.from.id.toString();
 
-  const dailyGameData = await redis.get(`daily_wordle:${userId}`);
+  const dailyGameData = await safeGet(`daily_wordle:${userId}`);
   const result = dailyWordleSchema.safeParse(safeJsonParse(dailyGameData, {}));
 
   if (result.success) {

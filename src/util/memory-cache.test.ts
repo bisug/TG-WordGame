@@ -64,4 +64,25 @@ describe("MemoryTtlCache", () => {
     cache.clear();
     expect(cache.get("b")).toBeUndefined();
   });
+
+  test("maxSize evicts oldest-inserted entries (FIFO)", () => {
+    const cache = new MemoryTtlCache<string>(60_000, 2);
+    cache.set("a", "1");
+    cache.set("b", "2");
+    cache.set("c", "3"); // evicts "a"
+    expect(cache.get("a")).toBeUndefined();
+    expect(cache.get("b")).toBe("2");
+    expect(cache.get("c")).toBe("3");
+  });
+
+  test("re-setting a key refreshes its eviction position", () => {
+    const cache = new MemoryTtlCache<string>(60_000, 2);
+    cache.set("a", "1");
+    cache.set("b", "2");
+    cache.set("a", "1b"); // "a" moves to newest position
+    cache.set("c", "3"); // evicts "b", not "a"
+    expect(cache.get("a")).toBe("1b");
+    expect(cache.get("b")).toBeUndefined();
+    expect(cache.get("c")).toBe("3");
+  });
 });

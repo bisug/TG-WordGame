@@ -412,13 +412,19 @@ composer.on("callback_query:data", async (ctx) => {
     const isPrivate = ctx.chat.type === "private";
 
     // getChatMember is only valid in group/supergroup chats; skip it in
-    // private chats where no permission check is needed anyway.
+    // private chats where no permission check is needed anyway. A transient
+    // Telegram API failure defaults to non-admin; the other permission
+    // checks still apply.
     let isAdmin = false;
     if (!isPrivate) {
-      const chatMember = await ctx.getChatMember(parseInt(userId, 10));
-      isAdmin =
-        chatMember.status === "administrator" ||
-        chatMember.status === "creator";
+      try {
+        const chatMember = await ctx.getChatMember(parseInt(userId, 10));
+        isAdmin =
+          chatMember.status === "administrator" ||
+          chatMember.status === "creator";
+      } catch (err) {
+        logger.warn({ err, chatId }, "getChatMember failed in vote callback");
+      }
     }
     const isSystemAdmin = env.ADMIN_USERS.includes(ctx.from.id);
     const isAuthorized = await isUserAuthorized(userId, chatId.toString());
@@ -697,10 +703,16 @@ composer.on("callback_query:data", async (ctx) => {
       if (session.attempts >= 3) {
         await redis.del(key);
 
-        // Track failed attempts for potential auto-ban
+        // Track failed attempts for potential auto-ban. Pipeline INCR +
+        // EXPIRE so a crash between the two can't leave a TTL-less counter
+        // that never resets.
         const failKey = `captcha_fail:${session.userId}`;
-        const failCount = await redis.incr(failKey);
-        await redis.expire(failKey, 24 * 3600); // Reset after 24 hours
+        const failRes = await redis
+          .pipeline()
+          .incr(failKey)
+          .expire(failKey, 24 * 3600) // Reset after 24 hours
+          .exec();
+        const failCount = Number(failRes?.[0]?.[1] ?? 1);
 
         const banThreshold = 3; // Ban after 3 failed captchas in 24 hours
         let shouldBan = false;

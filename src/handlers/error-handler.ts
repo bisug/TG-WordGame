@@ -2,7 +2,7 @@ import { type BotError, type Context, GrammyError, HttpError } from "grammy";
 
 import { db } from "../config/db";
 import { logger } from "../config/logger";
-import { redis } from "../config/redis";
+import { safeDel } from "../config/redis";
 import { getEndVoteKey } from "../util/end-vote";
 import { deleteCachedGame } from "../util/game-cache";
 
@@ -83,7 +83,8 @@ export async function errorHandler(error: BotError<Context>) {
         // Clear the topic-scoped vote key (the bare `vote:${chatId}` key is
         // never written, so deleting it was a no-op) and any game tied to the
         // now-defunct topic so a stale "Vote to End" button can't end it.
-        await redis.del(getEndVoteKey(ctx.chatId.toString(), currentTopicId));
+        // safeDel: a Redis hiccup must not abort topic recreation mid-way.
+        await safeDel(getEndVoteKey(ctx.chatId.toString(), currentTopicId));
         await db
           .deleteFrom("games")
           .where("activeChat", "=", ctx.chatId.toString())

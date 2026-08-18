@@ -1,11 +1,12 @@
 import { Composer, type Context, GrammyError, InputFile } from "grammy";
 import type { ReactionTypeEmoji } from "grammy/types";
+import { DatabaseError } from "pg";
 import satori from "satori";
 import sharp from "sharp";
 import z from "zod";
 
 import { db } from "../config/db";
-import { redis } from "../config/redis";
+import { safeDel, safeGet } from "../config/redis";
 import allFiveWords from "../data/all-five.json";
 import allFourWords from "../data/all-four.json";
 import allSixWords from "../data/all-six.json";
@@ -71,7 +72,7 @@ composer.on("message:text", rateLimit("guess"), async (ctx) => {
   const chatId = ctx.chat.id.toString();
 
   if (ctx.chat.type === "private") {
-    const dailyGameData = await redis.get(`daily_wordle:${userId}`);
+    const dailyGameData = await safeGet(`daily_wordle:${userId}`);
     const result = dailyWordleSchema.safeParse(
       safeJsonParse(dailyGameData, {}),
     );
@@ -79,7 +80,7 @@ composer.on("message:text", rateLimit("guess"), async (ctx) => {
       const todayDate = getGameDateString();
 
       if (result.data.date !== todayDate) {
-        await redis.del(`daily_wordle:${userId}`);
+        await safeDel(`daily_wordle:${userId}`);
         return ctx.reply(
           "Your previous game has expired. Please start today's WordSeek with /daily",
         );
@@ -171,15 +172,29 @@ composer.on("message:text", rateLimit("guess"), async (ctx) => {
     return;
   }
 
-  const insertedGuess = await db
-    .insertInto("guesses")
-    .values({
-      gameId: currentGame.id,
-      guess: currentGuess,
-      chatId,
-    })
-    .returningAll()
-    .executeTakeFirstOrThrow();
+  let insertedGuess: GuessEntry;
+  try {
+    insertedGuess = await db
+      .insertInto("guesses")
+      .values({
+        gameId: currentGame.id,
+        guess: currentGuess,
+        chatId,
+      })
+      .returningAll()
+      .executeTakeFirstOrThrow();
+  } catch (error) {
+    // Private chats are not sequentialized, so two identical rapid guesses
+    // can both pass the in-memory duplicate check. The unique constraint
+    // (guesses_game_id_guess_unique) turns the second insert into a clean
+    // violation instead of a double row.
+    if (error instanceof DatabaseError && error.code === "23505") {
+      return ctx.reply(
+        "Someone has already guessed your word. Please try another one!",
+      );
+    }
+    throw error;
+  }
   const allGuesses = [...existingGuesses, insertedGuess];
 
   // Track guess speed for bot detection (only for non-bots)
@@ -256,10 +271,17 @@ async function handleDailyWordleGuess(ctx: Context, currentGuess: string) {
       })
       .returningAll()
       .executeTakeFirstOrThrow();
-  } catch (_error) {
+  } catch (error) {
     // Handle race condition where two messages arrive nearly simultaneously
-    // (or a duplicate guess slips past the in-memory check).
-    return ctx.reply("You've already guessed this word. Try a different one!");
+    // (or a duplicate guess slips past the in-memory check). Only the unique
+    // violation is swallowed: any other DB error must surface, not be
+    // misreported as "already guessed".
+    if (error instanceof DatabaseError && error.code === "23505") {
+      return ctx.reply(
+        "You've already guessed this word. Try a different one!",
+      );
+    }
+    throw error;
   }
 
   const allGuesses = [...existingGuesses, insertedGuess];
@@ -301,7 +323,9 @@ async function handleDailyWordleWin(
     return;
   }
 
-  await redis.del(`daily_wordle:${userId}`);
+  // safeDel so a Redis hiccup can't abort the win flow before the streak
+  // update below is persisted.
+  await safeDel(`daily_wordle:${userId}`);
 
   const userStats = await db
     .selectFrom("userStats")
@@ -422,7 +446,9 @@ async function handleDailyWordleLoss(
     return;
   }
 
-  await redis.del(`daily_wordle:${userId}`);
+  // safeDel so a Redis hiccup can't abort the loss flow before the stats
+  // update below is persisted.
+  await safeDel(`daily_wordle:${userId}`);
 
   await db
     .insertInto("userStats")

@@ -2,6 +2,7 @@ import { Composer, type Context } from "grammy";
 
 import { db } from "../config/db";
 import { env } from "../config/env";
+import { logger } from "../config/logger";
 import { redis } from "../config/redis";
 import { deleteCachedGame, getGamePlayerCount } from "../util/cache";
 import { CommandsHelper } from "../util/commands-helper";
@@ -76,11 +77,18 @@ composer.command("end", async (ctx) => {
 
   // getChatMember is only valid in group/supergroup chats; calling it in a
   // private chat throws. Private chats need no permission check anyway.
+  // A transient Telegram API failure must not block ending the game either:
+  // default to non-admin and let the other permission checks decide.
   let isAdmin = false;
   if (!isPrivate) {
-    const chatMember = await ctx.getChatMember(parseInt(userId, 10));
-    isAdmin =
-      chatMember.status === "administrator" || chatMember.status === "creator";
+    try {
+      const chatMember = await ctx.getChatMember(parseInt(userId, 10));
+      isAdmin =
+        chatMember.status === "administrator" ||
+        chatMember.status === "creator";
+    } catch (err) {
+      logger.warn({ err, chatId }, "getChatMember failed in /end");
+    }
   }
   const isSystemAdmin = env.ADMIN_USERS.includes(ctx.from.id);
   const isGameStarter = currentGame.startedBy === userId;
@@ -122,7 +130,15 @@ composer.command("end", async (ctx) => {
   }
 
   const voteKey = getEndVoteKey(chatId, topicId);
-  const existingVotes = await redis.scard(voteKey);
+  // Fail-open: if Redis is unreachable, treat as no vote in progress so a
+  // permitted user can still end the game directly (the DB delete below
+  // doesn't need Redis).
+  let existingVotes = 0;
+  try {
+    existingVotes = await redis.scard(voteKey);
+  } catch (err) {
+    logger.warn({ err, voteKey }, "vote check failed, proceeding as if none");
+  }
 
   if (existingVotes > 0) {
     return await ctx.reply(

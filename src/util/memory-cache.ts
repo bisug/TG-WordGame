@@ -49,8 +49,10 @@ export class MemoryTtlCache<T> {
   }
 
   set(key: string, value: T, ttlMs = this.defaultTtlMs) {
-    // Re-inserting an existing key moves it to the end of the Map's insertion
-    // order, so eviction below always drops the oldest-inserted entry.
+    // Map.set on an existing key keeps its ORIGINAL insertion position, so
+    // delete first: re-insertion moves the key to the end, ensuring eviction
+    // drops the oldest-inserted entry and not a recently-refreshed hot key.
+    this.store.delete(key);
     this.store.set(key, {
       value: this.clone(value),
       expiresAt: Date.now() + ttlMs,
