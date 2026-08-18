@@ -70,7 +70,6 @@ export const buildMessage = ({
   return message;
 };
 
-
 export type ChallengeResult =
   | { ok: true }
   | { ok: false; reason: "already_active" | "send_failed" };

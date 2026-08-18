@@ -14,11 +14,11 @@ const RATE_LIMITS = {
   guess: { window: 60_000, max: 50 }, // 50 guesses per minute (very generous for active player)
   score: { window: 60_000, max: 40 },
   stats: { window: 60_000, max: 40 },
-  
+
   // Admin/sensitive commands - stricter limits
   ban: { window: 60_000, max: 20 },
   captcha: { window: 60_000, max: 20 },
-  
+
   // General message rate (prevents spam)
   message: { window: 60_000, max: 120 },
 } as const;
@@ -73,13 +73,13 @@ async function checkRateLimit(
 export function rateLimit(command: RateLimitKey): MiddlewareFn {
   return async (ctx, next) => {
     if (!ctx.from) return await next();
-    
+
     const userId = ctx.from.id.toString();
     const result = await checkRateLimit(userId, command);
-    
+
     if (result.limited) {
       logger.debug({ userId, command }, "Rate limit exceeded");
-      
+
       // Only respond to callback queries and commands
       if (ctx.callbackQuery) {
         return ctx.answerCallbackQuery({
@@ -87,18 +87,18 @@ export function rateLimit(command: RateLimitKey): MiddlewareFn {
           show_alert: true,
         });
       }
-      
+
       if (ctx.message) {
         const retryAfter = Math.ceil((result.retryAfter || 5000) / 1000);
         return ctx.reply(
           `⏳ You're sending messages too quickly. Please wait ${retryAfter}s before trying again.`,
-          { reply_parameters: { message_id: ctx.message.message_id } }
+          { reply_parameters: { message_id: ctx.message.message_id } },
         );
       }
-      
+
       return; // Silent drop for other update types
     }
-    
+
     return await next();
   };
 }
@@ -126,38 +126,50 @@ export type SuspiciousActivity = {
  * Real users take 1-5+ seconds between guesses
  * Bots are typically faster than 500ms
  */
-export async function trackGuessSpeed(userId: string, chatId: string, topicId: string): Promise<void> {
+export async function trackGuessSpeed(
+  userId: string,
+  chatId: string,
+  topicId: string,
+): Promise<void> {
   const key = `susp:${userId}`;
   const now = Date.now();
-  
+
   // Get last guess time from Redis
   const lastGuessKey = `lastguess:${chatId}:${topicId}:${userId}`;
   const lastGuessTime = await redis.get(lastGuessKey);
-  const timeSinceLastGuess = lastGuessTime ? now - parseInt(lastGuessTime, 10) : now;
-  
+  const timeSinceLastGuess = lastGuessTime
+    ? now - parseInt(lastGuessTime, 10)
+    : now;
+
   // Update last guess time
   await redis.set(lastGuessKey, now.toString(), "EX", 3600); // Expire after 1 hour
-  
-  const isSuspicious = lastGuessTime !== null && timeSinceLastGuess < SUSPICIOUS_THRESHOLDS.guessSpeedThreshold;
-  
+
+  const isSuspicious =
+    lastGuessTime !== null &&
+    timeSinceLastGuess < SUSPICIOUS_THRESHOLDS.guessSpeedThreshold;
+
   if (isSuspicious) {
     // Use Redis hash for atomic operations
     const pipeline = redis.pipeline();
     pipeline.hincrby(key, "fg", 1);
     pipeline.hset(key, "la", now.toString());
     pipeline.expire(key, SUSPICIOUS_THRESHOLDS.suspiciousDecayHours * 3600);
-    
+
     const results = await pipeline.exec();
-    const fastGuesses = results?.[0]?.[1] as number || 1;
-    
+    const fastGuesses = (results?.[0]?.[1] as number) || 1;
+
     if (fastGuesses >= SUSPICIOUS_THRESHOLDS.maxSuspiciousGuesses) {
       // Increment total flagged
-      await redis.pipeline()
+      await redis
+        .pipeline()
         .hincrby(key, "tf", 1)
         .hset(key, "fg", "0") // Reset counter after flagging
         .exec();
 
-      logger.warn({ userId, fastGuesses }, "User flagged for suspicious activity");
+      logger.warn(
+        { userId, fastGuesses },
+        "User flagged for suspicious activity",
+      );
 
       await flagUserForReview(userId, "SPEED_BOT");
 
@@ -186,7 +198,8 @@ export async function trackGuessSpeed(userId: string, chatId: string, topicId: s
     if (exists) {
       const fastGuesses = await redis.hget(key, "fg");
       if (fastGuesses && parseInt(fastGuesses, 10) > 0) {
-        await redis.pipeline()
+        await redis
+          .pipeline()
           .hincrby(key, "fg", -1)
           .expire(key, SUSPICIOUS_THRESHOLDS.suspiciousDecayHours * 3600)
           .exec();
@@ -200,7 +213,10 @@ export async function trackGuessSpeed(userId: string, chatId: string, topicId: s
  * Also notifies configured bot admins so flags are actually reviewed,
  * instead of only being written to Redis and forgotten.
  */
-async function flagUserForReview(userId: string, reason: string): Promise<void> {
+async function flagUserForReview(
+  userId: string,
+  reason: string,
+): Promise<void> {
   const key = `flag:${userId}`;
   const timestamp = Date.now().toString();
 
@@ -243,19 +259,22 @@ async function flagUserForReview(userId: string, reason: string): Promise<void> 
 /**
  * Check if a user has been flagged - optimized with Redis hash
  */
-export async function getUserFlags(userId: string): Promise<{ count: number; reasons: Array<{ reason: string; timestamp: number }> } | null> {
+export async function getUserFlags(userId: string): Promise<{
+  count: number;
+  reasons: Array<{ reason: string; timestamp: number }>;
+} | null> {
   const key = `flag:${userId}`;
   const exists = await redis.exists(key);
-  
+
   if (!exists) return null;
-  
+
   const count = await redis.hget(key, "count");
   if (!count) return null;
-  
+
   // Get all reason entries
   const allKeys = await redis.hkeys(key);
   const reasons: Array<{ reason: string; timestamp: number }> = [];
-  
+
   for (const k of allKeys) {
     if (k.startsWith("reason:")) {
       const timestamp = parseInt(k.replace("reason:", ""), 10);
@@ -265,7 +284,7 @@ export async function getUserFlags(userId: string): Promise<{ count: number; rea
       }
     }
   }
-  
+
   return { count: parseInt(count, 10), reasons };
 }
 
@@ -282,27 +301,27 @@ export async function clearUserFlags(userId: string): Promise<void> {
  */
 async function getUserAccountAge(userId: string): Promise<number | null> {
   const now = Date.now();
-  
+
   // Check cache first
   const cached = userAgeCache.get(userId);
   if (cached && now - cached.cachedAt < USER_AGE_CACHE_TTL) {
     return cached.age;
   }
-  
+
   // Query DB
   const user = await db
     .selectFrom("users")
     .select(["createdAt"])
     .where("id", "=", userId)
     .executeTakeFirst();
-  
+
   if (!user) return null;
-  
+
   const age = now - new Date(user.createdAt).getTime();
-  
+
   // Cache the result
   userAgeCache.set(userId, { age, cachedAt: now });
-  
+
   return age;
 }
 
@@ -310,19 +329,21 @@ async function getUserAccountAge(userId: string): Promise<number | null> {
  * Check if user should be challenged with captcha - optimized
  * Only challenges users with suspicious activity, not random new users
  */
-export async function shouldChallengeUser(userId: string): Promise<{ challenge: boolean; reason?: string }> {
+export async function shouldChallengeUser(
+  userId: string,
+): Promise<{ challenge: boolean; reason?: string }> {
   // Check flags first (fast path - most users won't have flags)
   const flags = await getUserFlags(userId);
   if (flags && flags.count >= 2) {
     return { challenge: true, reason: "suspicious_activity" };
   }
-  
+
   // Check for rapid account creation pattern (new users with suspicious behavior)
   const accountAge = await getUserAccountAge(userId);
-  
+
   if (accountAge !== null) {
     const oneHour = 60 * 60 * 1000;
-    
+
     // New accounts (< 1 hour) with fast guesses are suspicious
     if (accountAge < oneHour) {
       const fastGuesses = await redis.hget(`susp:${userId}`, "fg");
@@ -331,7 +352,7 @@ export async function shouldChallengeUser(userId: string): Promise<{ challenge: 
       }
     }
   }
-  
+
   return { challenge: false };
 }
 

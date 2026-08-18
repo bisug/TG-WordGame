@@ -25,15 +25,15 @@ composer.command("captcha", rateLimit("captcha"), async (ctx) => {
   if (!chatId || !userId) {
     return ctx.reply(
       "📖 <b>Captcha Command Help</b>\n\n" +
-      "Send a verification challenge to a user.\n\n" +
-      "<b>Usage:</b>\n" +
-      "/captcha <chatId> <userId>\n\n" +
-      "<b>When to use:</b>\n" +
-      "• User shows suspicious activity\n" +
-      "• User was flagged by the system\n" +
-      "• You suspect bot behavior\n\n" +
-      "<b>Note:</b> Users are only challenged automatically if they show suspicious patterns. This command is for manual review cases.",
-      { parse_mode: "HTML" }
+        "Send a verification challenge to a user.\n\n" +
+        "<b>Usage:</b>\n" +
+        "/captcha <chatId> <userId>\n\n" +
+        "<b>When to use:</b>\n" +
+        "• User shows suspicious activity\n" +
+        "• User was flagged by the system\n" +
+        "• You suspect bot behavior\n\n" +
+        "<b>Note:</b> Users are only challenged automatically if they show suspicious patterns. This command is for manual review cases.",
+      { parse_mode: "HTML" },
     );
   }
 
@@ -42,8 +42,8 @@ composer.command("captcha", rateLimit("captcha"), async (ctx) => {
   if (!challengeCheck.challenge) {
     return ctx.reply(
       `✅ This user doesn't need verification.\n\n` +
-      `They haven't shown any suspicious activity.\n\n` +
-      `Use this command only for users with flags.`,
+        `They haven't shown any suspicious activity.\n\n` +
+        `Use this command only for users with flags.`,
     );
   }
 

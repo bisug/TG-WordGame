@@ -1,11 +1,6 @@
 import { Composer, GrammyError, InlineKeyboard } from "grammy";
 
 import { sql } from "kysely";
-import {
-  buildCaptchaKeyboard,
-  buildMessage,
-  formatUserMention,
-} from "../util/captcha-challenge";
 import { endGame, isUserAuthorized } from "../commands/end-game";
 import {
   getAdminCommandsMessage,
@@ -30,6 +25,12 @@ import { captchaSchema } from "../schemas";
 import { getLeaderboardScores } from "../services/get-leaderboard-scores";
 import { getUserScores } from "../services/get-user-scores";
 import type { AllowedChatSearchKey, AllowedChatTimeKey } from "../types";
+import { BACK_BUTTONS, LEADERBOARD_ACTIONS } from "../util/button-actions";
+import {
+  buildCaptchaKeyboard,
+  buildMessage,
+  formatUserMention,
+} from "../util/captcha-challenge";
 import { formatUserLink, getEndVoteKey } from "../util/end-vote";
 import { formatLeaderboardMessage } from "../util/format-leaderboard-message";
 import { formatNoScoresMessage } from "../util/format-no-scores-message";
@@ -38,55 +39,11 @@ import { safeJsonParse } from "../util/formatting";
 import { generateLeaderboardKeyboard } from "../util/generate-leaderboard-keyboard";
 import { generateUserSelectionKeyboard } from "../util/generate-user-selection-keyboard";
 import { getSmartDefaults } from "../util/get-smart-defaults";
-import { BACK_BUTTONS, HELP_ACTIONS, LEADERBOARD_ACTIONS } from "../util/button-actions";
 
 const composer = new Composer();
 
 composer.on("callback_query:data", async (ctx) => {
   const data = ctx.callbackQuery.data;
-
-  // Help section callbacks
-  if (data.startsWith("help_")) {
-    const section = data.replace("help_", "").toUpperCase();
-    const validSections = ["HOWTO", "SCORES", "GROUP", "OTHER", "ADMIN", "START"] as const;
-    const activeSection = validSections.includes(section as typeof validSections[number])
-      ? (section as typeof validSections[number])
-      : "HOWTO";
-
-    let message: string;
-    let showAdmin = false;
-
-    switch (activeSection) {
-      case "HOWTO":
-        message = getHowToPlayMessage();
-        break;
-      case "SCORES":
-        message = getScoresMessage();
-        break;
-      case "GROUP":
-        message = getGroupSettingsMessage();
-        break;
-      case "OTHER":
-        message = getOtherCommandsMessage();
-        break;
-      case "ADMIN":
-        message = getAdminCommandsMessage();
-        showAdmin = true;
-        break;
-      case "START":
-        message = getStartMessage();
-        break;
-      default:
-        message = getHowToPlayMessage();
-    }
-
-    await ctx.editMessageText(message, {
-      parse_mode: "HTML",
-      reply_markup: getMainHelpKeyboard(showAdmin, activeSection),
-    });
-
-    return await ctx.answerCallbackQuery();
-  }
 
   if (data.startsWith(LEADERBOARD_ACTIONS.PREFIX)) {
     const [, searchKey, timeKey, wordLength] = data.split(" ");
@@ -132,7 +89,9 @@ composer.on("callback_query:data", async (ctx) => {
           link_preview_options: { is_disabled: true },
         },
       )
-      .catch((e) => logger.error({ err: e }, "Failed to update leaderboard message"));
+      .catch((e) =>
+        logger.error({ err: e }, "Failed to update leaderboard message"),
+      );
 
     return await ctx.answerCallbackQuery({
       text: "Leaderboard updated! 🔄",
@@ -169,7 +128,9 @@ composer.on("callback_query:data", async (ctx) => {
           reply_markup: keyboard,
         },
       )
-      .catch((e) => logger.error({ err: e }, "Failed to update user selection message"));
+      .catch((e) =>
+        logger.error({ err: e }, "Failed to update user selection message"),
+      );
 
     return await ctx.answerCallbackQuery();
   } else if (data.startsWith(LEADERBOARD_ACTIONS.SCORE_PREFIX)) {
@@ -726,12 +687,16 @@ composer.on("callback_query:data", async (ctx) => {
         if (failCount >= banThreshold) {
           shouldBan = true;
           // Auto-ban the user
-          await db.insertInto("bannedUsers").values({
-            userId: session.userId,
-          }).onConflict((eb) => eb.doNothing()).execute();
-          
+          await db
+            .insertInto("bannedUsers")
+            .values({
+              userId: session.userId,
+            })
+            .onConflict((eb) => eb.doNothing())
+            .execute();
+
           await redis.del(failKey); // Clear fail count after ban
-          
+
           logger.warn(
             { userId: session.userId, failCount },
             "User auto-banned after repeated captcha failures",
@@ -741,10 +706,10 @@ composer.on("callback_query:data", async (ctx) => {
         await ctx.api.sendMessage(
           session.adminId,
           `❌ ${mentionText} failed verification.\n` +
-          `Expected: ${session.answer.join(" ")}\n` +
-          `Got: ${session.progress.join(" ")}\n` +
-          `Total failures (24h): ${failCount}/${banThreshold}` +
-          (shouldBan ? "\n\n⛔ User has been automatically banned." : ""),
+            `Expected: ${session.answer.join(" ")}\n` +
+            `Got: ${session.progress.join(" ")}\n` +
+            `Total failures (24h): ${failCount}/${banThreshold}` +
+            (shouldBan ? "\n\n⛔ User has been automatically banned." : ""),
           { parse_mode: "HTML" },
         );
 
@@ -755,7 +720,7 @@ composer.on("callback_query:data", async (ctx) => {
               progress: session.answer,
               attempts: session.attempts,
               maxAttempts: 3,
-              status: shouldBan 
+              status: shouldBan
                 ? "❌ Access denied. Contact support if you believe this is an error."
                 : "❌ Verification failed. Please try again later or contact support.",
             }),
@@ -768,7 +733,9 @@ composer.on("callback_query:data", async (ctx) => {
             ),
           );
         return await ctx.answerCallbackQuery({
-          text: shouldBan ? "You have been restricted. Contact support." : "Verification failed. Please try again later.",
+          text: shouldBan
+            ? "You have been restricted. Contact support."
+            : "Verification failed. Please try again later.",
           show_alert: true,
         });
       }
@@ -793,10 +760,7 @@ composer.on("callback_query:data", async (ctx) => {
           },
         )
         .catch((e) =>
-          logger.error(
-            { err: e },
-            "Failed to update captcha retry message",
-          ),
+          logger.error({ err: e }, "Failed to update captcha retry message"),
         );
       return await ctx.answerCallbackQuery({
         text: `Incorrect! ${remaining} ${remaining === 1 ? "try" : "tries"} left.`,

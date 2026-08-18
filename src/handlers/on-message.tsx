@@ -1,5 +1,3 @@
-import { readFile } from "node:fs/promises";
-import { join } from "node:path";
 import { Composer, type Context, GrammyError, InputFile } from "grammy";
 import type { ReactionTypeEmoji } from "grammy/types";
 import satori from "satori";
@@ -11,12 +9,13 @@ import { redis } from "../config/redis";
 import allFiveWords from "../data/all-five.json";
 import allFourWords from "../data/all-four.json";
 import allSixWords from "../data/all-six.json";
-import {
-  getFontData,
-  prewarmFont,
-} from "../util/font-cache";
 import { getGameDateString } from "../services/daily-wordle-cron";
-import { deleteCachedGame, getCachedDailyWord, getCachedGame } from "../util/cache";
+import {
+  deleteCachedGame,
+  getCachedDailyWord,
+  getCachedGame,
+} from "../util/cache";
+import { getFontData, prewarmFont } from "../util/font-cache";
 import { formatDailyWordDetails } from "../util/format-word-details";
 import { safeJsonParse, toFancyText } from "../util/formatting";
 import { requireAllowedTopic, runGuards } from "../util/guards";

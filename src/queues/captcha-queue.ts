@@ -1,11 +1,11 @@
 import { Queue, Worker } from "bullmq";
-import { formatUserMention } from "../util/user-mention";
 import { bot } from "../config/bot";
 import { env } from "../config/env";
 import { logger } from "../config/logger";
 import { redis } from "../config/redis";
 import { captchaSchema } from "../schemas";
 import { safeJsonParse } from "../util/safe-json-parse";
+import { formatUserMention } from "../util/user-mention";
 
 // Bullmq bundles its own copy of ioredis, so passing our shared ioredis
 // instance would cross two module copies and fail type-checking. We instead

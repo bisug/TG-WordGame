@@ -178,7 +178,7 @@ function getRandomWordForDate(gameDate: string): string {
   );
 
   // Simple hash-based selection for consistency
-  const hash = dayNumber * 2654435761 >>> 0; // Knuth multiplicative hash
+  const hash = (dayNumber * 2654435761) >>> 0; // Knuth multiplicative hash
   const index = hash % words.length;
   const word = words[index];
   if (!word) throw new Error(`No daily word found for index ${index}`);
