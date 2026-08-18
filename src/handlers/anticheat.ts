@@ -1,12 +1,10 @@
-import { Composer, type MiddlewareFn } from "grammy";
+import type { MiddlewareFn } from "grammy";
 import { bot } from "../config/bot";
 import { db } from "../config/db";
 import { env } from "../config/env";
 import { logger } from "../config/logger";
 import { redis, safeGet, safeSet } from "../config/redis";
 import { sendCaptchaChallenge } from "../util/captcha-challenge";
-
-const composer = new Composer();
 
 // Rate limit configuration
 const RATE_LIMITS = {
@@ -18,9 +16,6 @@ const RATE_LIMITS = {
   // Admin/sensitive commands - stricter limits
   ban: { window: 60_000, max: 20 },
   captcha: { window: 60_000, max: 20 },
-
-  // General message rate (prevents spam)
-  message: { window: 60_000, max: 120 },
 } as const;
 
 type RateLimitKey = keyof typeof RATE_LIMITS;
@@ -114,12 +109,6 @@ const SUSPICIOUS_THRESHOLDS = {
 // Cache for user account age to avoid repeated DB queries
 const userAgeCache = new Map<string, { age: number; cachedAt: number }>();
 const USER_AGE_CACHE_TTL = 5 * 60 * 1000; // 5 minutes
-
-export type SuspiciousActivity = {
-  fastGuesses: number;
-  lastActivity: number;
-  totalFlagged: number;
-};
 
 /**
  * Track suspicious guess speed - optimized with Redis hashes
@@ -289,14 +278,6 @@ export async function getUserFlags(userId: string): Promise<{
 }
 
 /**
- * Clear flags for a user (after admin review)
- */
-export async function clearUserFlags(userId: string): Promise<void> {
-  const key = `flag:${userId}`;
-  await redis.del(key);
-}
-
-/**
  * Get cached user account age (avoids repeated DB queries)
  */
 async function getUserAccountAge(userId: string): Promise<number | null> {
@@ -355,5 +336,3 @@ export async function shouldChallengeUser(
 
   return { challenge: false };
 }
-
-export const anticheat = composer;

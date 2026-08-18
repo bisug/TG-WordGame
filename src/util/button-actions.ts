@@ -28,23 +28,9 @@ export const CAPTCHA_ACTIONS = {
   CLEAR: "captcha_clear",
 } as const;
 
-// Ban/unban actions
-export const BAN_ACTIONS = {
-  CONFIRM: "ban_confirm",
-  CANCEL: "ban_cancel",
-} as const;
-
-// Game actions
-export const GAME_ACTIONS = {
-  END_VOTE: "end_vote",
-  END_CONFIRM: "end_confirm",
-} as const;
-
 // Back button labels
 export const BACK_BUTTONS = {
-  MAIN_HELP: "⬅️ Back to Main Help",
   USER_LIST: "⬅️ Back to user list",
-  LEADERBOARD: "⬅️ Back to Leaderboard",
 } as const;
 
 // Navigation emojis for buttons

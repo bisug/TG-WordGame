@@ -47,12 +47,6 @@ export async function endGame(
 
   const wordLength = game.word.length;
 
-  //   await ctx.reply(
-  //     `<blockquote>🎮 <b>Game Ended</b></blockquote>
-  // ${formatWordDetails(word)}<blockquote>${reason ? `${reason}\n` : ""}Start a new game with /new</blockquote>`,
-  //     { parse_mode: "HTML" },
-  //   );
-
   await ctx.reply(
     `<blockquote>🎮 <b>Game Ended</b>\nCorrect Word: <b>${word}</b></blockquote>
 <blockquote>${reason ? `${reason}\n` : ""}Start a new game with /new${wordLength}</blockquote>`,
