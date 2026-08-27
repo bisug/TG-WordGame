@@ -34,7 +34,7 @@
     "@grammyjs/auto-retry": "^2.0.2",
     "@grammyjs/parse-mode": "^2.3.0",
     "@grammyjs/runner": "^2.0.3",
-    "bullmq": "6.1.2",
+    "bullmq": "6.2.0",
     "grammy": "1.45.1",
     "ioredis": "6.0.0",
     "kysely": "0.29.5",
