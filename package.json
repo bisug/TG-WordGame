@@ -18,7 +18,7 @@
     "db:codegen": "kysely-codegen --out-file ./src/database-schemas.ts --singularize --camel-case"
   },
   "devDependencies": {
-    "@biomejs/biome": "2.5.9",
+    "@biomejs/biome": "2.5.11",
     "@types/bun": "1.3.14",
     "@types/pg": "8.23.1",
     "@types/react": "19.2.18",
