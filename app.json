@@ -51,8 +51,9 @@
       "value": "https://t.me/WordGuesser"
     },
     "DAILY_WORDLE_SECRET": {
-      "description": "Long random string used to seed the daily word rotation. Must be unique per deployment so future daily words cannot be precomputed from the public word list.",
-      "required": true
+      "description": "Long random string salt for the daily word rotation. Strongly recommended: without it, future daily words can be precomputed from the public word list. A random secret is generated automatically if left blank.",
+      "generator": "secret",
+      "required": false
     },
     "WEB_SERVICE": {
       "description": "Set false for worker-style long polling on Heroku",
