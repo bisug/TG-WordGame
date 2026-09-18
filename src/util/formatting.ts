@@ -107,35 +107,10 @@ const fancyMap: Record<string, string> = {
   x: "𝘅",
   y: "𝘆",
   z: "𝘇",
-  "!": "!",
+  // "?" is the only punctuation mark with a fullwidth equivalent; every other
+  // punctuation char is deliberately left out of the map and passes through
+  // unchanged via the fallback in toFancyText.
   "?": "？",
-  "@": "@",
-  "#": "#",
-  $: "$",
-  "%": "%",
-  "^": "^",
-  "&": "&",
-  "*": "*",
-  "(": "(",
-  ")": ")",
-  "-": "-",
-  "+": "+",
-  "=": "=",
-  ":": ":",
-  ";": ";",
-  '"': '"',
-  "'": "'",
-  "<": "<",
-  ">": ">",
-  ",": ",",
-  ".": ".",
-  "/": "/",
-  "\\": "\\",
-  "|": "|",
-  "[": "[",
-  "]": "]",
-  "{": "{",
-  "}": "}",
 };
 
 export function toFancyText(text: string): string {
