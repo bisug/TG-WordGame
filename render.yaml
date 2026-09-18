@@ -17,6 +17,8 @@ services:
         value: production
       - key: ADMIN_USERS
         sync: false
+      - key: DAILY_WORDLE_SECRET
+        sync: false
       - key: UPDATES_CHANNEL
         sync: false
       - key: DISCUSSION_GROUP

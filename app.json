@@ -1,6 +1,6 @@
 {
   "name": "WordSeek",
-  "description": "A fun and competitive Wordle-style game for Telegram",
+  "description": "Wordle-style word game bot for Telegram - solo & multiplayer rounds, daily challenge, leaderboards, moderation.",
   "repository": "https://github.com/bisug/TG-WordGame",
   "logo": "https://github.com/user-attachments/assets/bf444d36-2eea-4ad5-83e7-4a99acda2bfe",
   "stack": "container",
@@ -11,13 +11,19 @@
     "game",
     "wordseek",
     "word game",
+    "grammy",
     "grammyjs",
+    "bun",
     "typescript",
-    "binamra",
     "postgres",
+    "postgresql",
+    "valkey",
     "redis"
   ],
-  "addons": ["heroku-postgresql", "heroku-redis"],
+  "addons": [
+    "heroku-postgresql",
+    "heroku-key-value-store"
+  ],
   "env": {
     "BOT_TOKEN": {
       "description": "Your Telegram Bot Token from @BotFather",
@@ -44,9 +50,17 @@
       "description": "Link to the discussion group",
       "value": "https://t.me/WordGuesser"
     },
+    "DAILY_WORDLE_SECRET": {
+      "description": "Long random string used to seed the daily word rotation. Must be unique per deployment so future daily words cannot be precomputed from the public word list.",
+      "required": true
+    },
     "WEB_SERVICE": {
       "description": "Set false for worker-style long polling on Heroku",
       "value": "false"
+    },
+    "REDIS_URI": {
+      "description": "Valkey/Redis connection string. Optional: the Heroku Key-Value Store add-on injects REDIS_URL, which is used automatically when this is unset.",
+      "required": false
     }
   }
 }
