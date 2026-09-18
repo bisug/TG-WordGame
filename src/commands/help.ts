@@ -26,8 +26,10 @@ function getTimezoneLabel(): string {
     const parts = formatter.formatToParts(now);
     const tzName = parts.find((p) => p.type === "timeZoneName")?.value;
 
-    const [, cityRaw] = tz.split("/");
-    const city = cityRaw?.replace(/_/g, " ") ?? tz; // e.g. "Kathmandu"
+    // Zone IDs can be multi-segment ("America/Argentina/Buenos_Aires");
+    // the city is the last segment.
+    const cityRaw = tz.split("/").pop();
+    const city = cityRaw?.replace(/_/g, " ") || tz; // e.g. "Kathmandu"
 
     if (city && tzName) {
       return `${city} time (${tzName})`;

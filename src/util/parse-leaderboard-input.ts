@@ -25,7 +25,7 @@ export function parseLeaderboardInput(
   let foundTimeKey: AllowedChatTimeKey | undefined;
   let foundWordLength: AllowedWordLength | undefined;
 
-  for (const part of parts) {
+  for (const [index, part] of parts.entries()) {
     if (allowedChatSearchKeys.includes(part as AllowedChatSearchKey)) {
       foundSearchKey = part as AllowedChatSearchKey;
       continue;
@@ -46,7 +46,10 @@ export function parseLeaderboardInput(
       continue;
     }
 
-    if (!target && parts.indexOf(part) === 0) {
+    // Use the loop index, not parts.indexOf(part): indexOf returns the FIRST
+    // occurrence, so a repeated first token (e.g. "5 bob 5") would be
+    // misidentified as position 0 and overwrite the target.
+    if (!target && index === 0) {
       target = part;
     }
   }
