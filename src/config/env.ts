@@ -32,7 +32,9 @@ export const env = z
       .optional()
       .default("false")
       .transform((val) => val.trim().toLowerCase() !== "false"),
-    NODE_ENV: z.enum(["development", "production"]).default("development"),
+    NODE_ENV: z
+      .enum(["development", "test", "production"])
+      .default("development"),
     ADMIN_USERS: z
       .string()
       .default("")

@@ -305,7 +305,7 @@ latency setup is usually:
 | `DATABASE_URL`                     | Yes      | None                             | PostgreSQL connection string.                           |
 | `REDIS_URI`                        | Yes      | `redis://127.0.0.1:6379`         | Valkey/Redis URI. Falls back to `REDIS_URL`.            |
 | `ADMIN_USERS`                      | Yes      | Empty                            | Comma-separated Telegram user IDs with owner access.    |
-| `NODE_ENV`                         | No       | `development`                    | Use `production` in hosted environments.                |
+| `NODE_ENV`                         | No       | `development`                    | One of `development`, `test`, `production`. Use `production` in hosted environments. |
 | `WEB_SERVICE`                      | No       | `false`                          | Starts a `/healthz` and `/metrics` HTTP server when `true`.    |
 | `TIME_ZONE`                        | No       | `UTC`                            | Timezone for daily reset logic and scheduled jobs.      |
 | `DAILY_WORDLE_START_DATE`          | No       | `2025-01-01`                     | Start date for the daily word rotation.                 |
