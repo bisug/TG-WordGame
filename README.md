@@ -376,6 +376,9 @@ version comment. Dependabot watches the `github-actions` ecosystem and raises
 PRs that bump the SHA and the comment together, so upgrades arrive as reviewable
 diffs rather than silently via a moved tag.
 
+CI installs the Bun toolchain from the repository's `.bun-version` file, so
+bumping it there is what changes the CI runtime.
+
 ### Database Migrations
 
 Migrations live in `migrations/` and are executed with:
