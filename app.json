@@ -20,14 +20,16 @@
     "valkey",
     "redis"
   ],
-  "addons": [
-    "heroku-postgresql",
-    "heroku-key-value-store"
-  ],
+  "addons": [],
   "env": {
     "BOT_TOKEN": {
       "description": "Your Telegram Bot Token from @BotFather",
       "required": true
+    },
+    "DATABASE_URL": {
+      "description": "PostgreSQL connection string (bring your own DB in the same region as the dyno, e.g. Supabase/Neon/Railway EU)",
+      "required": true,
+      "example": "postgresql://user:pass@host:5432/dbname"
     },
     "NODE_ENV": {
       "description": "Environment setting",
@@ -60,7 +62,7 @@
       "value": "false"
     },
     "REDIS_URI": {
-      "description": "Valkey/Redis connection string. Optional: the Heroku Key-Value Store add-on injects REDIS_URL, which is used automatically when this is unset.",
+      "description": "Valkey/Redis connection string from your own provider, ideally in the same region as the dyno (cache only — safe to leave empty and repopulate)",
       "required": false
     }
   }
