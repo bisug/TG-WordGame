@@ -13,8 +13,6 @@ permissions:
 # moved to different code by whoever controls the action's repo, a SHA cannot.
 # Dependabot (.github/dependabot.yml) tracks the github-actions ecosystem and
 # opens PRs that bump the SHA and the trailing version comment together.
-env:
-  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
 jobs:
   build:
