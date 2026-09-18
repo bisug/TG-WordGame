@@ -301,7 +301,6 @@ latency setup is usually:
 | Variable                           | Required | Default                          | Description                                             |
 | :--------------------------------- | :------- | :------------------------------- | :------------------------------------------------------ |
 | `BOT_TOKEN`                        | Yes      | None                             | Telegram bot token from BotFather.                      |
-| `DAILY_WORDLE_SECRET`              | Yes      | None                             | Secret used for daily challenge verification.           |
 | `DATABASE_URL`                     | Yes      | None                             | PostgreSQL connection string.                           |
 | `REDIS_URI`                        | Yes      | `redis://127.0.0.1:6379`         | Valkey/Redis URI. Falls back to `REDIS_URL`.            |
 | `ADMIN_USERS`                      | Yes      | Empty                            | Comma-separated Telegram user IDs with owner access.    |
