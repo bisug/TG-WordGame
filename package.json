@@ -33,7 +33,6 @@
   },
   "dependencies": {
     "@grammyjs/auto-retry": "^2.0.2",
-    "@grammyjs/parse-mode": "^2.3.0",
     "@grammyjs/runner": "^2.0.3",
     "bullmq": "^6.3.6",
     "grammy": "^1.46.0",
