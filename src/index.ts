@@ -1,6 +1,7 @@
 import { autoRetry } from "@grammyjs/auto-retry";
 import { run, sequentialize } from "@grammyjs/runner";
 import { commands } from "./commands";
+import { resumeBroadcast } from "./commands/broadcast";
 import { bot } from "./config/bot";
 import { db } from "./config/db";
 import { env } from "./config/env";
@@ -21,7 +22,6 @@ import {
   ensureDailyWordExists,
 } from "./services/daily-wordle-cron";
 import { CommandsHelper } from "./util/commands-helper";
-import { resumeBroadcast } from "./util/resume-broadcast";
 
 bot.api.config.use(autoRetry());
 
