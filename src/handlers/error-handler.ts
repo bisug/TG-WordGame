@@ -10,13 +10,16 @@ import { invalidateTopicsCache } from "../util/topic-cache";
 export async function errorHandler(error: BotError<Context>) {
   const ctx = error.ctx;
   logger.error(
-    { update_id: ctx.update.update_id },
-    `Error while handling update:`,
+    { err: error.error, update_id: ctx.update.update_id },
+    "Failed to handle update",
   );
   const e = error.error;
 
   if (e instanceof GrammyError) {
-    logger.error({ description: e.description }, "Error in request:");
+    logger.error(
+      { description: e.description },
+      "Telegram API rejected the request",
+    );
 
     // Specific case: bot doesn't have permission to send messages
     if (
