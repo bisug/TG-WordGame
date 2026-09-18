@@ -26,11 +26,14 @@ export async function isUserAuthorized(userId: string, chatId: string) {
   return !!authorized;
 }
 
+// The word is read from the deleted row rather than taken as a parameter: the
+// callers' value comes from a cache that can be up to 24h older than the row,
+// and the returned word also drives `wordLength` below. Taking both from the
+// same authoritative source keeps the message internally consistent.
 export async function endGame(
   ctx: Context,
   chatId: number,
   topicId: string,
-  word: string,
   reason: string,
 ) {
   const game = await db
@@ -49,7 +52,7 @@ export async function endGame(
   const wordLength = game.word.length;
 
   await ctx.reply(
-    `<blockquote>🎮 <b>Game Ended</b>\nCorrect Word: <b>${word}</b></blockquote>
+    `<blockquote>🎮 <b>Game Ended</b>\nCorrect Word: <b>${game.word}</b></blockquote>
 <blockquote>${reason ? `${reason}\n` : ""}Start a new game with /new${wordLength}</blockquote>`,
     { parse_mode: "HTML" },
   );
@@ -136,13 +139,7 @@ composer.command("end", async (ctx) => {
   );
 
   if (permitted) {
-    return await endGame(
-      ctx,
-      chatId,
-      currentGame.topicId,
-      currentGame.word,
-      reason,
-    );
+    return await endGame(ctx, chatId, currentGame.topicId, reason);
   }
 
   const voteKey = getEndVoteKey(chatId, topicId);
@@ -195,7 +192,6 @@ composer.command("end", async (ctx) => {
       ctx,
       chatId,
       currentGame.topicId,
-      currentGame.word,
       "<b>Game ended - vote to end the game passed</b>",
     );
   }
