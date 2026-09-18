@@ -558,9 +558,13 @@ export async function generateWordleImage(
   });
   while (paddedTiles.length < 6) {
     const rowKey = `empty-${paddedTiles.length}`;
+    // Derive the blank row from the solution like `columnWidth` above; a
+    // hardcoded width would overflow the canvas for any non-5-letter word.
+    const blanks = " ".repeat(solution.length);
+    const emptyStatuses = Array<string>(solution.length).fill("empty");
     paddedTiles.push({
       rowKey,
-      cells: buildCells(rowKey, "     ", Array(5).fill("empty")),
+      cells: buildCells(rowKey, blanks, emptyStatuses),
     });
   }
 

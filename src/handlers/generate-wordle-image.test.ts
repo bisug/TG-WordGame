@@ -65,6 +65,26 @@ describe("generateWordleImage", () => {
     expect(metadata.height).toBe(expectedHeight);
   });
 
+  test("blank rows match the solution width instead of a fixed five cells", async () => {
+    // Guards a hardcoded five-cell blank row: that stays invisible only while
+    // every daily word is five letters, and it overflows the canvas otherwise.
+    // Four letters checks the geometry without depending on the word lists.
+    const png = await generateWordleImage([guessEntry(1, "game")], "game");
+    const { data, info } = await sharp(png).raw().toBuffer({
+      resolveWithObject: true,
+    });
+
+    expect(info.width).toBe(expectedWidth(4));
+
+    // Past the last column, level with the first blank row. A five-cell blank
+    // row puts its final tile over this pixel instead of page background.
+    const bleedX = PADDING + 4 * TILE_SIZE + 3 * GAP + 12;
+    const blankRowY = PADDING + TILE_SIZE + GAP + TILE_SIZE / 2;
+    const offset = (blankRowY * info.width + bleedX) * info.channels;
+
+    expect(data.subarray(offset, offset + 3).toString("hex")).toBe("121213");
+  });
+
   test("caches by solution and guess sequence", async () => {
     const guesses = [guessEntry(1, "slate"), guessEntry(2, "tribe")];
 
