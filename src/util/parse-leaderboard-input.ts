@@ -61,27 +61,27 @@ export function parseLeaderboardInput(
   return { searchKey, timeKey, wordLength, target };
 }
 
+// Same tokenizer, same accepted keys, same defaults — so it delegates to the
+// parser above instead of re-scanning the input a second time. One deliberate
+// behavior change: repeated filters now resolve to the last occurrence, matching
+// parseLeaderboardInput (a CLI-style "later overrides earlier"). The previous
+// Array.find scan made the first occurrence win, so `/leaderboard week month`
+// picked "week" while `/score week month` picked "month". Only input that names
+// the same field twice is affected; single-value input is identical.
 export function parseLeaderboardFilters(
   input: string,
   defaultSearchKey: AllowedChatSearchKey = "group",
   defaultTimeKey: AllowedChatTimeKey = "month",
 ) {
-  const parts = input.toLowerCase().trim().split(/\s+/).filter(Boolean);
-
-  const searchKey = (parts.find((part) =>
-    allowedChatSearchKeys.includes(part as AllowedChatSearchKey),
-  ) || defaultSearchKey) as AllowedChatSearchKey;
-
-  const timeKey = (parts.find((part) =>
-    allowedChatTimeKeys.includes(part as AllowedChatTimeKey),
-  ) || defaultTimeKey) as AllowedChatTimeKey;
-
-  const wordLengthPart = parts.find((part) =>
-    allowedWordLengths.includes(Number(part) as AllowedWordLength),
+  const { searchKey, timeKey, wordLength } = parseLeaderboardInput(
+    input,
+    defaultSearchKey,
+    defaultTimeKey,
   );
-  const wordLength: AllowedWordLength = wordLengthPart
-    ? (Number(wordLengthPart) as AllowedWordLength)
-    : 5;
 
-  return { searchKey, timeKey, wordLength };
+  return {
+    searchKey: searchKey as AllowedChatSearchKey,
+    timeKey: timeKey as AllowedChatTimeKey,
+    wordLength: wordLength ?? 5,
+  };
 }
