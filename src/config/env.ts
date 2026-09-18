@@ -74,5 +74,20 @@ export const env = z
       .optional()
       .default("false")
       .transform((val) => val.toLowerCase() === "true"),
+    PORT: z
+      .string()
+      .optional()
+      .default("3000")
+      .transform((val) => {
+        const port = Number(val);
+        if (!Number.isInteger(port) || port < 1 || port > 65535) {
+          throw new Error("PORT must be an integer between 1 and 65535");
+        }
+        return port;
+      }),
+    LOG_LEVEL: z
+      .enum(["fatal", "error", "warn", "info", "debug", "trace"])
+      .optional()
+      .default("info"),
   })
   .parse(rawEnv);

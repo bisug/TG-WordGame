@@ -87,7 +87,7 @@ logger.info("Bot started");
 // Health check & metrics server for cloud containers
 if (env.WEB_SERVICE) {
   Bun.serve({
-    port: process.env.PORT || 3000,
+    port: env.PORT,
     async fetch(req) {
       const url = new URL(req.url);
       if (url.pathname === "/healthz") {
