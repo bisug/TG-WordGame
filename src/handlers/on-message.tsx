@@ -392,6 +392,24 @@ async function handleDailyWordleWin(
     )
     .execute();
 
+  await publishDailyResult(
+    ctx,
+    dailyWord,
+    allGuesses,
+    `🎉 Congratulations! You guessed it in ${allGuesses.length} ${allGuesses.length === 1 ? "try" : "tries"}!\n\n🔥 Current Streak: ${newStreak}\n⭐ Highest Streak: ${highestStreak}\n\n${formatDailyWordDetails(dailyWord)}`,
+  );
+
+  reactWithRandom(ctx);
+}
+
+// Shared tail of the daily result flow: render the board, attach the share
+// button, send it. Only the caption differs between win and loss.
+async function publishDailyResult(
+  ctx: Context,
+  dailyWord: DailyWord,
+  allGuesses: GuessEntry[],
+  caption: string,
+) {
   const imageBuffer = await generateWordleImage(allGuesses, dailyWord.word);
   const shareText = generateWordleShareText(
     dailyWord.dayNumber,
@@ -400,7 +418,7 @@ async function handleDailyWordleWin(
   );
 
   await ctx.replyWithPhoto(new InputFile(new Uint8Array(imageBuffer)), {
-    caption: `🎉 Congratulations! You guessed it in ${allGuesses.length} ${allGuesses.length === 1 ? "try" : "tries"}!\n\n🔥 Current Streak: ${newStreak}\n⭐ Highest Streak: ${highestStreak}\n\n${formatDailyWordDetails(dailyWord)}`,
+    caption,
     parse_mode: "HTML",
     reply_markup: {
       inline_keyboard: [
@@ -413,8 +431,6 @@ async function handleDailyWordleWin(
       ],
     },
   });
-
-  reactWithRandom(ctx);
 }
 
 export function generateWordleShareText(
@@ -469,27 +485,12 @@ async function handleDailyWordleLoss(
     )
     .execute();
 
-  const imageBuffer = await generateWordleImage(allGuesses, dailyWord.word);
-  const shareText = generateWordleShareText(
-    dailyWord.dayNumber,
+  await publishDailyResult(
+    ctx,
+    dailyWord,
     allGuesses,
-    dailyWord.word,
+    `Game Over! The word was: ${dailyWord.word.toUpperCase()}\n\n💔 Streak reset to 0\n\n${formatDailyWordDetails(dailyWord)}\n\nCome back tomorrow for a new challenge!`,
   );
-
-  await ctx.replyWithPhoto(new InputFile(new Uint8Array(imageBuffer)), {
-    caption: `Game Over! The word was: ${dailyWord.word.toUpperCase()}\n\n💔 Streak reset to 0\n\n${formatDailyWordDetails(dailyWord)}\n\nCome back tomorrow for a new challenge!`,
-    parse_mode: "HTML",
-    reply_markup: {
-      inline_keyboard: [
-        [
-          {
-            text: "📤 Share",
-            switch_inline_query: shareText,
-          },
-        ],
-      ],
-    },
-  });
 }
 
 export const onMessageHandler = composer;
