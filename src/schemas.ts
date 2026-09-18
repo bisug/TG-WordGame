@@ -13,8 +13,6 @@ export const captchaSchema = z.object({
   username: z.string().optional().nullable(),
 });
 
-export type CaptchaSession = z.infer<typeof captchaSchema>;
-
 // Per-user WordSeek of the Day state stored under `daily_wordle:${userId}`
 // (written by /daily and /pausedaily, read by the guess handler and the
 // guards). It lives here rather than in handlers/on-message so util/guards.ts
