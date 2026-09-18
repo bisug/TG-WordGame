@@ -9,6 +9,10 @@ on:
 permissions:
   contents: read
 
+# Actions are pinned to full commit SHAs, not floating major tags: a tag can be
+# moved to different code by whoever controls the action's repo, a SHA cannot.
+# Dependabot (.github/dependabot.yml) tracks the github-actions ecosystem and
+# opens PRs that bump the SHA and the trailing version comment together.
 env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
@@ -16,8 +20,8 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v7
-      - uses: oven-sh/setup-bun@v2
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
         with:
           bun-version: 1.4.0
       - run: bun install
@@ -61,8 +65,8 @@ jobs:
       DATABASE_SSL: "false"
       INTEGRATION_DB: "1"
     steps:
-      - uses: actions/checkout@v7
-      - uses: oven-sh/setup-bun@v2
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
         with:
           bun-version: 1.4.0
       - run: bun install
@@ -72,6 +76,6 @@ jobs:
   docker-build:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - name: Build Docker Image
         run: docker build -t wordseek-bot:ci .

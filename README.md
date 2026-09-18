@@ -371,6 +371,11 @@ CI (`.github/workflows/ci.yml`) runs three jobs: `build` (lint, typecheck, unit
 tests, bundle), `integration` (Postgres + Redis services on the same pinned
 images as `docker-compose.yml`, migrations, full suite), and `docker-build`.
 
+Workflow actions are pinned to full commit SHAs with a trailing `# vX.Y.Z`
+version comment. Dependabot watches the `github-actions` ecosystem and raises
+PRs that bump the SHA and the comment together, so upgrades arrive as reviewable
+diffs rather than silently via a moved tag.
+
 ### Database Migrations
 
 Migrations live in `migrations/` and are executed with:
