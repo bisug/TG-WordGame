@@ -1,7 +1,7 @@
 import { Composer, GrammyError, InlineKeyboard } from "grammy";
 
 import { sql } from "kysely";
-import { endGame, isUserAuthorized } from "../commands/end-game";
+import { endGame, resolveGameEndPermission } from "../commands/end-game";
 import {
   getAdminCommandsMessage,
   getGroupSettingsMessage,
@@ -32,11 +32,7 @@ import {
   buildMessage,
   formatUserMention,
 } from "../util/captcha-challenge";
-import {
-  formatUserLink,
-  getEndVoteKey,
-  getEndVoteThreshold,
-} from "../util/end-vote";
+import { getEndVoteKey, getEndVoteThreshold } from "../util/end-vote";
 import { formatLeaderboardMessage } from "../util/format-leaderboard-message";
 import { formatNoScoresMessage } from "../util/format-no-scores-message";
 import { formatUserScoreMessage } from "../util/format-user-score-message";
@@ -409,51 +405,12 @@ composer.on("callback_query:data", async (ctx) => {
       });
     }
 
-    const isPrivate = ctx.chat.type === "private";
+    const { permitted, reason } = await resolveGameEndPermission(
+      ctx,
+      existingGame,
+    );
 
-    // getChatMember is only valid in group/supergroup chats; skip it in
-    // private chats where no permission check is needed anyway. A transient
-    // Telegram API failure defaults to non-admin; the other permission
-    // checks still apply.
-    let isAdmin = false;
-    if (!isPrivate) {
-      try {
-        const chatMember = await ctx.getChatMember(parseInt(userId, 10));
-        isAdmin =
-          chatMember.status === "administrator" ||
-          chatMember.status === "creator";
-      } catch (err) {
-        logger.warn({ err, chatId }, "getChatMember failed in vote callback");
-      }
-    }
-    const isSystemAdmin = env.ADMIN_USERS.includes(ctx.from.id);
-    const isAuthorized = await isUserAuthorized(userId, chatId.toString());
-    const isGameStarter = existingGame.startedBy === userId;
-    const isPermitted =
-      isAdmin || isSystemAdmin || isGameStarter || isAuthorized || isPrivate;
-
-    if (isPermitted) {
-      const userLink = formatUserLink(
-        ctx.from.id,
-        ctx.from.first_name,
-        ctx.from.last_name,
-      );
-
-      let reason = "";
-      if (isPrivate) {
-        reason = "";
-      } else if (isGameStarter) {
-        reason = `<b>Ended by game starter: </b>${userLink}`;
-      } else if (isSystemAdmin) {
-        reason = `<b>Ended by system administrator: </b>${userLink}`;
-      } else if (isAdmin) {
-        reason = `<b>Ended by group administrator: </b>${userLink}`;
-      } else if (isAuthorized) {
-        reason = `<b>Ended by authorized user: </b>${userLink}`;
-      } else {
-        reason = `<b>Ended by: </b>${userLink}`;
-      }
-
+    if (permitted) {
       await redis.del(voteKey);
       await redis.del(`${voteKey}:threshold`);
       await ctx.deleteMessage();

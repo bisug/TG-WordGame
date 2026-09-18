@@ -6,36 +6,27 @@ import { getTrackingAdminChatId } from "../util/tracking-cache";
 
 const composer = new Composer();
 
-const SUSPICIOUS_PATTERNS = {
-  autoPlayer: /auto-player/i,
-  swsCommand: /\/sws/i,
-  ewsCommand: /\/ews/i,
-  dotCommand: /^\.xx\b/i,
-  wordhckCommand: /\/wordhck/i,
-  stophckCommand: /\/stophck/i,
-  wordonCommand: /\/wordon/i,
-  wordoffCommand: /\/wordoff/i,
-  benableCommand: /^\.benable\b/i,
-  wordSeekCommand: /^\.word_seek\b/i,
-  stopSeekCommand: /^\.stop_seek\b/i,
-};
+// Ordered [pattern, reason] table: first match wins, so the chain of
+// individual tests stays short and adding a pattern is a one-line change.
+const SUSPICIOUS_PATTERNS: Array<[RegExp, string]> = [
+  [/auto-player/i, "Auto-player keyword detected"],
+  [/\/sws/i, "Contains /sws command"],
+  [/\/ews/i, "Contains /ews command"],
+  [/^\.xx\b/i, "Dot command detected (e.g., .xx)"],
+  [/\/wordhck/i, "Contains /wordhck command"],
+  [/\/stophck/i, "Contains /stophck command"],
+  [/\/wordon/i, "Contains /wordon command"],
+  [/\/wordoff/i, "Contains /wordoff command"],
+  [/^\.benable\b/i, "Contains .benable command"],
+  [/^\.word_seek\b/i, "Contains .word_seek command"],
+  [/^\.stop_seek\b/i, "Contains .stop_seek command"],
+];
 
-const isSuspiciousMessage = (text: string | undefined): boolean => {
-  if (!text) return false;
-
-  return (
-    SUSPICIOUS_PATTERNS.autoPlayer.test(text) ||
-    SUSPICIOUS_PATTERNS.swsCommand.test(text) ||
-    SUSPICIOUS_PATTERNS.ewsCommand.test(text) ||
-    SUSPICIOUS_PATTERNS.dotCommand.test(text) ||
-    SUSPICIOUS_PATTERNS.wordhckCommand.test(text) ||
-    SUSPICIOUS_PATTERNS.stophckCommand.test(text) ||
-    SUSPICIOUS_PATTERNS.wordonCommand.test(text) ||
-    SUSPICIOUS_PATTERNS.wordoffCommand.test(text) ||
-    SUSPICIOUS_PATTERNS.benableCommand.test(text) ||
-    SUSPICIOUS_PATTERNS.wordSeekCommand.test(text) ||
-    SUSPICIOUS_PATTERNS.stopSeekCommand.test(text)
-  );
+const detectSuspiciousPattern = (
+  text: string | undefined,
+): string | undefined => {
+  if (!text) return undefined;
+  return SUSPICIOUS_PATTERNS.find(([re]) => re.test(text))?.[1];
 };
 
 const sendSuspiciousAlert = async (
@@ -88,51 +79,20 @@ composer.use(async (ctx, next) => {
   if (ctx.message?.text || ctx.message?.caption) {
     messageText = ctx.message.text || ctx.message.caption || "";
 
-    if (SUSPICIOUS_PATTERNS.swsCommand.test(messageText)) {
+    const reason = detectSuspiciousPattern(messageText);
+    if (reason) {
       isSuspicious = true;
-      suspiciousReason = "Contains /sws command";
-    } else if (SUSPICIOUS_PATTERNS.ewsCommand.test(messageText)) {
-      isSuspicious = true;
-      suspiciousReason = "Contains /ews command";
-    } else if (SUSPICIOUS_PATTERNS.dotCommand.test(messageText)) {
-      isSuspicious = true;
-      suspiciousReason = "Dot command detected (e.g., .xx)";
-    } else if (SUSPICIOUS_PATTERNS.autoPlayer.test(messageText)) {
-      isSuspicious = true;
-      suspiciousReason = "Auto-player keyword detected";
-    } else if (SUSPICIOUS_PATTERNS.wordhckCommand.test(messageText)) {
-      isSuspicious = true;
-      suspiciousReason = "Contains /wordhck command";
-    } else if (SUSPICIOUS_PATTERNS.stophckCommand.test(messageText)) {
-      isSuspicious = true;
-      suspiciousReason = "Contains /stophck command";
-    } else if (SUSPICIOUS_PATTERNS.wordonCommand.test(messageText)) {
-      isSuspicious = true;
-      suspiciousReason = "Contains /wordon command";
-    } else if (SUSPICIOUS_PATTERNS.wordoffCommand.test(messageText)) {
-      isSuspicious = true;
-      suspiciousReason = "Contains /wordoff command";
-    } else if (SUSPICIOUS_PATTERNS.benableCommand.test(messageText)) {
-      isSuspicious = true;
-      suspiciousReason = "Contains .benable command";
-    } else if (SUSPICIOUS_PATTERNS.wordSeekCommand.test(messageText)) {
-      isSuspicious = true;
-      suspiciousReason = "Contains .word_seek command";
-    } else if (SUSPICIOUS_PATTERNS.stopSeekCommand.test(messageText)) {
-      isSuspicious = true;
-      suspiciousReason = "Contains .stop_seek command";
+      suspiciousReason = reason;
     }
   }
 
   if (ctx.editedMessage?.text || ctx.editedMessage?.caption) {
     messageText = ctx.editedMessage.text || ctx.editedMessage.caption || "";
 
-    if (SUSPICIOUS_PATTERNS.autoPlayer.test(messageText)) {
+    const reason = detectSuspiciousPattern(messageText);
+    if (reason) {
       isSuspicious = true;
-      suspiciousReason = "Edited message contains auto-player keyword";
-    } else if (isSuspiciousMessage(messageText)) {
-      isSuspicious = true;
-      suspiciousReason = "Edited message contains suspicious pattern";
+      suspiciousReason = `Edited message: ${reason.toLowerCase()}`;
     }
   }
 

@@ -1,9 +1,9 @@
 import { Composer } from "grammy";
 
-import { sql } from "kysely";
 import { db } from "../config/db";
 import { env } from "../config/env";
 import { logger } from "../config/logger";
+import { findUserByIdentifier } from "../util/find-user";
 
 const composer = new Composer();
 
@@ -32,23 +32,8 @@ composer.command("transfer", async (ctx) => {
     );
   }
 
-  const getUser = async (identifier: string) => {
-    const isUsername = identifier.startsWith("@");
-    const value = isUsername ? identifier.substring(1) : identifier;
-    // Telegram usernames are case-insensitive; match like the rest of the
-    // codebase (lower(username)).
-    return await db
-      .selectFrom("users")
-      .selectAll()
-      .$if(isUsername, (q) =>
-        q.where(sql`lower(username)`, "=", value.toLowerCase()),
-      )
-      .$if(!isUsername, (q) => q.where("id", "=", value))
-      .executeTakeFirst();
-  };
-
-  const fromUser = await getUser(fromIdentifier);
-  const toUser = await getUser(toIdentifier);
+  const fromUser = await findUserByIdentifier(fromIdentifier);
+  const toUser = await findUserByIdentifier(toIdentifier);
 
   if (!fromUser) {
     return ctx.reply(`❌ Source user not found: ${fromIdentifier}`);

@@ -55,6 +55,63 @@ export async function endGame(
   );
 }
 
+// Shared by /end and the vote-to-end callback so permission rules and the
+// "Ended by ..." reason text stay identical in both entry points. Missing
+// from/chat means the caller's own guards already returned, so treat it as
+// not permitted.
+export async function resolveGameEndPermission(
+  ctx: Context,
+  game: { startedBy: string | null; topicId: string },
+): Promise<{ permitted: boolean; reason: string }> {
+  if (!ctx.from || !ctx.chat) return { permitted: false, reason: "" };
+  const userId = ctx.from.id.toString();
+  const isPrivate = ctx.chat.type === "private";
+
+  // getChatMember is only valid in group/supergroup chats; calling it in a
+  // private chat throws. Private chats need no permission check anyway.
+  // A transient Telegram API failure must not block ending the game either:
+  // default to non-admin and let the other permission checks decide.
+  let isAdmin = false;
+  if (!isPrivate) {
+    try {
+      const chatMember = await ctx.getChatMember(parseInt(userId, 10));
+      isAdmin =
+        chatMember.status === "administrator" ||
+        chatMember.status === "creator";
+    } catch (err) {
+      logger.warn({ err, chatId: ctx.chat.id }, "getChatMember failed");
+    }
+  }
+
+  const isSystemAdmin = env.ADMIN_USERS.includes(ctx.from.id);
+  const isGameStarter = game.startedBy === userId;
+  const isAuthorized = await isUserAuthorized(userId, ctx.chat.id.toString());
+
+  const permitted =
+    isAdmin || isSystemAdmin || isGameStarter || isAuthorized || isPrivate;
+  if (!permitted) return { permitted: false, reason: "" };
+
+  const userLink = formatUserLink(
+    ctx.from.id,
+    ctx.from.first_name,
+    ctx.from.last_name,
+  );
+
+  const reason = isPrivate
+    ? ""
+    : isGameStarter
+      ? `<b>Ended by game starter: </b>${userLink}`
+      : isSystemAdmin
+        ? `<b>Ended by system administrator: </b>${userLink}`
+        : isAdmin
+          ? `<b>Ended by group administrator: </b>${userLink}`
+          : isAuthorized
+            ? `<b>Ended by authorized user: </b>${userLink}`
+            : `<b>Ended by: </b>${userLink}`;
+
+  return { permitted: true, reason };
+}
+
 composer.command("end", async (ctx) => {
   const chatId = ctx.chat.id;
   if (!ctx.message) return;
@@ -73,53 +130,12 @@ composer.command("end", async (ctx) => {
   if (!currentGame) return ctx.reply("There is no game in progress.");
 
   const userId = ctx.from.id.toString();
-  const isPrivate = ctx.chat.type === "private";
+  const { permitted, reason } = await resolveGameEndPermission(
+    ctx,
+    currentGame,
+  );
 
-  // getChatMember is only valid in group/supergroup chats; calling it in a
-  // private chat throws. Private chats need no permission check anyway.
-  // A transient Telegram API failure must not block ending the game either:
-  // default to non-admin and let the other permission checks decide.
-  let isAdmin = false;
-  if (!isPrivate) {
-    try {
-      const chatMember = await ctx.getChatMember(parseInt(userId, 10));
-      isAdmin =
-        chatMember.status === "administrator" ||
-        chatMember.status === "creator";
-    } catch (err) {
-      logger.warn({ err, chatId }, "getChatMember failed in /end");
-    }
-  }
-  const isSystemAdmin = env.ADMIN_USERS.includes(ctx.from.id);
-  const isGameStarter = currentGame.startedBy === userId;
-  const isAuthorized = await isUserAuthorized(userId, chatId.toString());
-
-  const isPermitted =
-    isAdmin || isSystemAdmin || isGameStarter || isAuthorized || isPrivate;
-
-  if (isPermitted) {
-    const userLink = formatUserLink(
-      ctx.from.id,
-      ctx.from.first_name,
-      ctx.from.last_name,
-    );
-
-    let reason = "";
-
-    if (isPrivate) {
-      reason = "";
-    } else if (isGameStarter) {
-      reason = `<b>Ended by game starter: </b>${userLink}`;
-    } else if (isSystemAdmin) {
-      reason = `<b>Ended by system administrator: </b>${userLink}`;
-    } else if (isAdmin) {
-      reason = `<b>Ended by group administrator: </b>${userLink}`;
-    } else if (isAuthorized) {
-      reason = `<b>Ended by authorized user: </b>${userLink}`;
-    } else {
-      reason = `<b>Ended by: </b>${userLink}`;
-    }
-
+  if (permitted) {
     return await endGame(
       ctx,
       chatId,

@@ -17,7 +17,7 @@ import {
   getCachedDailyWord,
   getCachedGame,
 } from "../util/cache";
-import { getFeedback } from "../util/feedback";
+import { getFeedback, scoreGuess } from "../util/feedback";
 import { getFontData, prewarmFont } from "../util/font-cache";
 import { formatDailyWordDetails } from "../util/format-word-details";
 import { safeJsonParse, toFancyText } from "../util/formatting";
@@ -431,36 +431,9 @@ export function generateWordleShareText(
   const attemptLine = `${dayNumber} ${totalAttempts}/6`;
 
   const lines = guesses.map((entry) => {
-    const guess = entry.guess.toUpperCase();
-    const sol = solution.toUpperCase();
-    const result: string[] = [];
-
-    const solutionCount: Record<string, number> = {};
-
-    for (const c of sol) {
-      solutionCount[c] = (solutionCount[c] || 0) + 1;
-    }
-
-    for (let i = 0; i < guess.length; i++) {
-      const gChar = guess[i];
-      const sChar = sol[i];
-      if (gChar && sChar && gChar === sChar) {
-        result[i] = "🟩";
-        solutionCount[gChar] = (solutionCount[gChar] ?? 0) - 1;
-      }
-    }
-
-    for (let i = 0; i < guess.length; i++) {
-      if (result[i]) continue;
-      const gChar = guess[i];
-      if (gChar && (solutionCount[gChar] ?? 0) > 0) {
-        result[i] = "🟨";
-        solutionCount[gChar] = (solutionCount[gChar] ?? 0) - 1;
-      } else {
-        result[i] = "⬛";
-      }
-    }
-
+    const statuses = scoreGuess(entry.guess, solution);
+    const emoji = { correct: "🟩", present: "🟨", absent: "⬛" };
+    const result = statuses.map((st) => emoji[st]);
     return result.join("");
   });
 
@@ -547,35 +520,10 @@ export async function generateWordleImage(
     return cached;
   }
 
-  const tiles = data.map((entry) => {
-    const guess = entry.guess.toUpperCase();
-    const solutionCount: Record<string, number> = {};
-
-    for (const char of solution.toUpperCase()) {
-      solutionCount[char] = (solutionCount[char] || 0) + 1;
-    }
-
-    const result = Array(guess.length).fill("absent");
-
-    for (let i = 0; i < guess.length; i++) {
-      const gChar = guess[i];
-      const sChar = solution[i]?.toUpperCase();
-      if (gChar && sChar && gChar === sChar) {
-        result[i] = "correct";
-        solutionCount[gChar] = (solutionCount[gChar] ?? 0) - 1;
-      }
-    }
-
-    for (let i = 0; i < guess.length; i++) {
-      const gChar = guess[i];
-      if (gChar && result[i] === "absent" && (solutionCount[gChar] ?? 0) > 0) {
-        result[i] = "present";
-        solutionCount[gChar] = (solutionCount[gChar] ?? 0) - 1;
-      }
-    }
-
-    return { guess, result };
-  });
+  const tiles = data.map((entry) => ({
+    guess: entry.guess.toUpperCase(),
+    result: scoreGuess(entry.guess, solution),
+  }));
 
   const getColor = (state: string) => {
     if (state === "correct") return "#538d4e";

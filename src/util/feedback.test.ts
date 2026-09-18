@@ -1,5 +1,21 @@
 import { describe, expect, test } from "bun:test";
-import { getFeedback, getFeedbackRows } from "./feedback";
+import { getFeedback, getFeedbackRows, scoreGuess } from "./feedback";
+
+describe("scoreGuess", () => {
+  test("status vocabulary", () => {
+    expect(scoreGuess("SPEED", "ERASE")).toEqual([
+      "present",
+      "absent",
+      "present",
+      "present",
+      "absent",
+    ]);
+  });
+
+  test("case-insensitive", () => {
+    expect(scoreGuess("speed", "erase")).toEqual(scoreGuess("SPEED", "ERASE"));
+  });
+});
 
 describe("getFeedbackRows", () => {
   test("all correct positions are green", () => {
