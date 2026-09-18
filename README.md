@@ -352,6 +352,25 @@ migrations/      Kysely database migrations
 | `bun run db:seed`    | Run configured Kysely seeds.       |
 | `bun run db:codegen` | Regenerate Kysely database types.  |
 
+### Testing
+
+`bun run test` runs the unit suite. The Postgres/Redis-backed tests in
+`src/util/db-integration.test.ts` are skipped unless `INTEGRATION_DB=1` is set,
+so a plain `bun test` never needs a database. Enable them locally against the
+Compose services (they are not published to the host, so run the suite inside
+the container):
+
+```bash
+docker compose build
+docker compose up -d postgres redis
+docker compose run --rm wordseek-migrate
+docker compose run --rm -e INTEGRATION_DB=1 wordseek-migrate bun test
+```
+
+CI (`.github/workflows/ci.yml`) runs three jobs: `build` (lint, typecheck, unit
+tests, bundle), `integration` (Postgres + Redis services on the same pinned
+images as `docker-compose.yml`, migrations, full suite), and `docker-build`.
+
 ### Database Migrations
 
 Migrations live in `migrations/` and are executed with:

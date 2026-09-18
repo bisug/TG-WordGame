@@ -2,9 +2,9 @@ name: CI
 
 on:
   push:
-    branches: [master]
+    branches: [main]
   pull_request:
-    branches: [master]
+    branches: [main]
 
 permissions:
   contents: read
@@ -26,9 +26,52 @@ jobs:
       - run: bun run test
       - run: bun run build
 
+  integration:
+    runs-on: ubuntu-latest
+    # Image pins track docker-compose.yml so CI validates the exact postgres /
+    # valkey versions production runs; a major-version drift here would let
+    # migrations pass in CI and fail on deploy.
+    services:
+      postgres:
+        image: postgres:18.4-alpine3.23
+        env:
+          POSTGRES_USER: wordseek
+          POSTGRES_PASSWORD: wordseek
+          POSTGRES_DB: wordseek_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U wordseek"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+      valkey:
+        image: valkey/valkey:9.1.0-alpine3.23
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "valkey-cli ping"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      BOT_TOKEN: ci-dummy-token
+      DATABASE_URL: postgres://wordseek:wordseek@localhost:5432/wordseek_test
+      REDIS_URI: redis://127.0.0.1:6379
+      DATABASE_SSL: "false"
+      INTEGRATION_DB: "1"
+    steps:
+      - uses: actions/checkout@v7
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.4.0
+      - run: bun install
+      - run: bun run db:migrate
+      - run: bun test
+
   docker-build:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
       - name: Build Docker Image
         run: docker build -t wordseek-bot:ci .
