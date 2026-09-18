@@ -68,7 +68,14 @@ bot.use(onBotAddedInChat);
 
 bot.catch((err) => {
   metrics.incErrors();
-  return errorHandler(err);
+  // The error handler talks to DB/Redis (topic recreation); if it throws,
+  // don't let the failure path itself take down the runner.
+  try {
+    return errorHandler(err);
+  } catch (handlerErr) {
+    logger.error({ err: handlerErr }, "Error handler itself failed");
+    return;
+  }
 });
 dailyWordleCron.start();
 await ensureDailyWordExists();
@@ -125,7 +132,11 @@ async function shutdown(signal: string) {
     logger.error({ err }, "Error stopping bot runner");
   }
   dailyWordleCron.stop();
-  await bot.stop();
+  try {
+    await bot.stop();
+  } catch (err) {
+    logger.error({ err }, "Error stopping bot");
+  }
 
   // Release backend connections so restarts/deploys don't orphan sockets.
   try {
@@ -147,3 +158,14 @@ async function shutdown(signal: string) {
 
 process.once("SIGTERM", () => void shutdown("SIGTERM"));
 process.once("SIGINT", () => void shutdown("SIGINT"));
+
+// Last-resort safety nets. An unhandled rejection is logged but tolerated (a
+// single missed catch shouldn't restart the whole bot); an uncaught exception
+// means unknown process state, so log and exit — the deploy platform restarts.
+process.on("unhandledRejection", (reason) => {
+  logger.error({ err: reason }, "Unhandled promise rejection");
+});
+process.on("uncaughtException", (err) => {
+  logger.fatal({ err }, "Uncaught exception, exiting");
+  process.exit(1);
+});
