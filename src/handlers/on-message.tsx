@@ -1,8 +1,6 @@
 import { Composer, type Context, GrammyError, InputFile } from "grammy";
 import type { ReactionTypeEmoji } from "grammy/types";
 import { DatabaseError } from "pg";
-import satori from "satori";
-import sharp from "sharp";
 
 import { db } from "../config/db";
 import { safeDel, safeGet } from "../config/redis";
@@ -33,6 +31,19 @@ prewarmFont();
 // Cache for generated Wordle images (in-memory, short TTL, bounded so a busy
 // day can't accumulate unbounded PNG buffers).
 const imageCache = new MemoryTtlCache<Buffer>(5 * 60 * 1000, 500); // 5 minutes
+
+// satori + sharp (native libvips) cost ~55MB RSS and ~700ms to load, but only
+// the daily flow renders images. Load them on first render instead of at boot;
+// node_modules is always present in production (CMD runs from source).
+let renderDeps: Promise<
+  [typeof import("satori"), typeof import("sharp")]
+> | null = null;
+function loadRenderDeps() {
+  if (!renderDeps) {
+    renderDeps = Promise.all([import("satori"), import("sharp")]);
+  }
+  return renderDeps;
+}
 
 function getImageCacheKey(guesses: GuessEntry[], solution: string): string {
   const guessPattern = guesses.map((g) => g.guess).join("|");
@@ -122,7 +133,10 @@ composer.on("message:text", rateLimit("guess"), async (ctx) => {
     );
 
   // Record the guesser as a participant for the end-game vote threshold.
-  await addGamePlayer(chatIdStr, currentTopicId, userId);
+  // Fire-and-forget: pure telemetry consumed seconds later at /end, and the
+  // function catches its own errors — awaiting it would put a Redis round-trip
+  // on the user-visible guess path.
+  void addGamePlayer(chatIdStr, currentTopicId, userId);
 
   if (currentGuess === currentGame.word) {
     // Atomically claim the win: only the first correct guess deletes the game
@@ -201,9 +215,11 @@ composer.on("message:text", rateLimit("guess"), async (ctx) => {
   }
   const allGuesses = [...existingGuesses, insertedGuess];
 
-  // Track guess speed for bot detection (only for non-bots)
+  // Track guess speed for bot detection (only for non-bots). Fire-and-forget:
+  // anticheat telemetry must not add latency to the reply, and the function
+  // fails open with its own catch.
   if (!ctx.from.is_bot) {
-    await trackGuessSpeed(userId, chatIdStr, currentTopicId);
+    void trackGuessSpeed(userId, chatIdStr, currentTopicId);
   }
 
   if (allGuesses.length >= 30) {
@@ -563,6 +579,8 @@ export async function generateWordleImage(
       cells: buildCells(rowKey, blanks, emptyStatuses),
     });
   }
+
+  const [{ default: satori }, { default: sharp }] = await loadRenderDeps();
 
   const svg = await satori(
     <div
