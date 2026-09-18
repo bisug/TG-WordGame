@@ -3,13 +3,13 @@ import type { ReactionTypeEmoji } from "grammy/types";
 import { DatabaseError } from "pg";
 import satori from "satori";
 import sharp from "sharp";
-import z from "zod";
 
 import { db } from "../config/db";
 import { safeDel, safeGet } from "../config/redis";
 import allFiveWords from "../data/all-five.json";
 import allFourWords from "../data/all-four.json";
 import allSixWords from "../data/all-six.json";
+import { dailyWordleSchema } from "../schemas";
 import { getGameDateString } from "../services/daily-wordle-cron";
 import {
   addGamePlayer,
@@ -54,11 +54,6 @@ const MODE_LABEL: Record<WordLength, string> = {
   5: "5-letter mode",
   6: "6-letter mode",
 };
-
-export const dailyWordleSchema = z.object({
-  dailyWordId: z.number(),
-  date: z.string(),
-});
 
 composer.on("message:text", rateLimit("guess"), async (ctx) => {
   const currentGuess = ctx.message.text?.toLowerCase();

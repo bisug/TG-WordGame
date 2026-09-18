@@ -1,7 +1,7 @@
 import type { Context } from "grammy";
 
 import { safeGet } from "../config/redis";
-import { dailyWordleSchema } from "../handlers/on-message";
+import { dailyWordleSchema } from "../schemas";
 import { getCachedGame, getCachedTopics } from "./cache";
 import { safeJsonParse } from "./formatting";
 
