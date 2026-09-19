@@ -9,6 +9,13 @@ on:
 permissions:
   contents: read
 
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+# Pinned to ubuntu-24.04: the ubuntu-latest label migrates to Ubuntu 26 on
+# 2026-10-19; move deliberately after validating the new image, not by surprise.
+
 # Actions are pinned to full commit SHAs, not floating major tags: a tag can be
 # moved to different code by whoever controls the action's repo, a SHA cannot.
 # Dependabot (.github/dependabot.yml) tracks the github-actions ecosystem and
@@ -16,20 +23,22 @@ permissions:
 
 jobs:
   build:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
         with:
           bun-version-file: .bun-version
-      - run: bun install
+      - run: bun install --frozen-lockfile
       - run: bun run lint
       - run: bun run typecheck
       - run: bun run test
       - run: bun run build
 
   integration:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
     # Image pins track docker-compose.yml so CI validates the exact postgres /
     # valkey versions production runs; a major-version drift here would let
     # migrations pass in CI and fail on deploy.
@@ -67,12 +76,13 @@ jobs:
       - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2.2.0
         with:
           bun-version-file: .bun-version
-      - run: bun install
+      - run: bun install --frozen-lockfile
       - run: bun run db:migrate
       - run: bun test
 
   docker-build:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - name: Build Docker Image
