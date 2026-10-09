@@ -605,6 +605,9 @@ export async function generateWordleImage(
                 style={{
                   width: "60px",
                   height: "60px",
+                  // satori >= 0.44 defaults to content-box, which would grow
+                  // bordered tiles to 64px and shift every blank row.
+                  boxSizing: "border-box",
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "center",

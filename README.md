@@ -48,7 +48,7 @@ This repository is a maintained fork of
 
 ## Tech Stack
 
-- Runtime: [Bun](https://bun.sh) (v1.4.0+)
+- Runtime: [Bun](https://bun.sh) (v1.4.2+)
 - Language: [TypeScript 7](https://www.typescriptlang.org/)
 - Tooling: [Biome](https://biomejs.dev/) (Formatting & Linting)
 - Bot framework: [grammY](https://grammy.dev/)
@@ -189,7 +189,7 @@ These commands are restricted to Telegram user IDs listed in `ADMIN_USERS`.
 
 ### Prerequisites
 
-- Bun 1.3.x
+- Bun 1.4.x
 - PostgreSQL
 - Valkey or Redis
 - A Telegram bot token

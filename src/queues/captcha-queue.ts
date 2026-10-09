@@ -7,10 +7,10 @@ import { captchaSchema } from "../schemas";
 import { safeJsonParse } from "../util/safe-json-parse";
 import { formatUserMention } from "../util/user-mention";
 
-// Bullmq bundles its own copy of ioredis, so passing our shared ioredis
-// instance would cross two module copies and fail type-checking. We instead
-// hand bullmq plain connection options (same target Redis) to keep a single
-// source of truth for the connection and stay on the latest ioredis.
+// The shared client (src/config/redis.ts) is tuned to fail fast, which is the
+// opposite of what a queue worker needs (bullmq requires maxRetriesPerRequest:
+// null and no command timeouts). Hand bullmq plain connection options instead
+// so it builds its own worker-safe client against the same Redis.
 function getRedisConnectionOptions() {
   const url = new URL(env.REDIS_URI);
   const useTls = url.protocol === "rediss:";
