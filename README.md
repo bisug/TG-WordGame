@@ -50,7 +50,7 @@ This repository is a maintained fork of
 
 - Runtime: [Bun](https://bun.sh) (v1.4.4+)
 - Language: [TypeScript 7](https://www.typescriptlang.org/)
-- Tooling: [Biome](https://biomejs.dev/) (Formatting & Linting)
+- Tooling: [Bun](https://bun.sh/) (Formatting & Type Checking) and [Oxlint](https://oxc.rs/) (Linting)
 - Bot framework: [grammY](https://grammy.dev/)
 - Database: [PostgreSQL](https://www.postgresql.org/) with [Kysely](https://kysely.dev/)
 - Cache and queues: [Valkey](https://valkey.io/) / [Redis](https://redis.io/) with [BullMQ](https://docs.bullmq.io/)
@@ -339,17 +339,17 @@ migrations/      Kysely database migrations
 
 ### Scripts
 
-| Command              | Purpose                                  |
-| :------------------- | :--------------------------------------- |
-| `bun run dev`        | Start the bot with Bun watch mode.       |
-| `bun run start`      | Start the bot normally.                  |
-| `bun run lint`       | Check formatting and linting with Biome. |
-| `bun run test`       | Run Bun tests.                           |
-| `bun run typecheck`  | Run TypeScript type checking.            |
-| `bun run build`      | Bundle the app to `dist/`.               |
-| `bun run db:migrate` | Apply Kysely migrations.                 |
-| `bun run db:seed`    | Run configured Kysely seeds.             |
-| `bun run db:codegen` | Regenerate Kysely database types.        |
+| Command              | Purpose                                            |
+| :------------------- | :------------------------------------------------- |
+| `bun run dev`        | Start the bot with Bun watch mode.                 |
+| `bun run start`      | Start the bot normally.                            |
+| `bun run lint`       | Check linting with Oxlint and formatting with Bun. |
+| `bun run test`       | Run Bun tests.                                     |
+| `bun run typecheck`  | Run TypeScript type checking.                      |
+| `bun run build`      | Bundle the app to `dist/`.                         |
+| `bun run db:migrate` | Apply Kysely migrations.                           |
+| `bun run db:seed`    | Run configured Kysely seeds.                       |
+| `bun run db:codegen` | Regenerate Kysely database types.                  |
 
 ### Testing
 

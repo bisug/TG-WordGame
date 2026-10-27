@@ -191,7 +191,7 @@ composer.use(async (ctx, next) => {
                 chatId,
                 msg.message_id,
               );
-            } catch (_error) {
+            } catch {
               const from = msg.from
                 ? `${msg.from.first_name}${msg.from.username ? ` (@${msg.from.username})` : ""}`
                 : "Unknown";
@@ -224,7 +224,7 @@ composer.use(async (ctx, next) => {
               chatId,
               post.message_id,
             );
-          } catch (_error) {
+          } catch {
             await ctx.api.sendMessage(
               Number(adminChatId),
               `🔔 New channel post in chat ${chatId}\nPost ID: ${post.message_id}`,
