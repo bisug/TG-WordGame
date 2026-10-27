@@ -48,7 +48,7 @@ This repository is a maintained fork of
 
 ## Tech Stack
 
-- Runtime: [Bun](https://bun.sh) (v1.4.2+)
+- Runtime: [Bun](https://bun.sh) (v1.4.4+)
 - Language: [TypeScript 7](https://www.typescriptlang.org/)
 - Tooling: [Biome](https://biomejs.dev/) (Formatting & Linting)
 - Bot framework: [grammY](https://grammy.dev/)
