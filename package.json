@@ -18,8 +18,8 @@
     "db:codegen": "kysely-codegen --out-file ./src/database-schemas.ts --singularize --camel-case"
   },
   "devDependencies": {
-    "@biomejs/biome": "^2.5.15",
-    "@types/bun": "^1.4.2",
+    "@biomejs/biome": "^2.6.3",
+    "@types/bun": "^1.4.4",
     "@types/pg": "^8.23.1",
     "@types/react": "^19.3.0",
     "kysely-codegen": "0.20.0",
@@ -34,16 +34,16 @@
   "dependencies": {
     "@grammyjs/auto-retry": "^2.0.2",
     "@grammyjs/runner": "^2.0.3",
-    "bullmq": "^6.3.12",
+    "bullmq": "^6.5.0",
     "grammy": "^1.46.0",
     "ioredis": "^6.0.0",
-    "kysely": "^0.29.6",
+    "kysely": "^0.29.7",
     "kysely-ctl": "^0.21.0",
     "pg": "^8.23.1",
     "pino": "^10.4.0",
     "react": "19.3.0",
     "satori": "^0.44.3",
     "sharp": "^0.35.5",
-    "zod": "^4.6.5"
+    "zod": "^4.6.7"
   }
 }
