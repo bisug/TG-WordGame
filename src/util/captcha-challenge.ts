@@ -71,8 +71,7 @@ export const buildMessage = ({
 };
 
 export type ChallengeResult =
-  | { ok: true }
-  | { ok: false; reason: "already_active" | "send_failed" };
+  { ok: true } | { ok: false; reason: "already_active" | "send_failed" };
 
 /**
  * Send a slot-machine captcha challenge to `userId` in `chatId`.

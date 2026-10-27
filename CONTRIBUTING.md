@@ -8,6 +8,7 @@ We welcome contributions to enhance the bot! Here's how you can help:
    ```bash
    git checkout -b feature/your-feature-name
    ```
+
 3. **Make your changes** and ensure they follow the project's coding standards.
 4. **Test your changes** thoroughly in development mode.
 5. **Commit your changes** with descriptive commit messages:
@@ -15,6 +16,7 @@ We welcome contributions to enhance the bot! Here's how you can help:
    ```bash
    git commit -m "Add: new feature description"
    ```
+
 6. **Push to your fork** and **open a pull request** with a clear description of your changes.
 
 ## Development Guidelines
