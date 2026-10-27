@@ -298,28 +298,28 @@ latency setup is usually:
 
 ## Configuration
 
-| Variable                           | Required | Default                          | Description                                             |
-| :--------------------------------- | :------- | :------------------------------- | :------------------------------------------------------ |
-| `BOT_TOKEN`                        | Yes      | None                             | Telegram bot token from BotFather.                      |
-| `DATABASE_URL`                     | Yes      | None                             | PostgreSQL connection string.                           |
-| `REDIS_URI`                        | Yes      | `redis://127.0.0.1:6379`         | Valkey/Redis URI. Falls back to `REDIS_URL`.            |
-| `ADMIN_USERS`                      | Yes      | Empty                            | Comma-separated Telegram user IDs with owner access.    |
-| `NODE_ENV`                         | No       | `development`                    | One of `development`, `test`, `production`. Use `production` in hosted environments. |
-| `WEB_SERVICE`                      | No       | `false`                          | Starts a `/healthz` and `/metrics` HTTP server when `true`.    |
-| `TIME_ZONE`                        | No       | `UTC`                            | Timezone for daily reset logic and scheduled jobs.      |
-| `DAILY_WORDLE_START_DATE`          | No       | `2025-01-01`                     | Start date for the daily word rotation.                 |
+| Variable                           | Required | Default                          | Description                                                                                                                              |
+| :--------------------------------- | :------- | :------------------------------- | :--------------------------------------------------------------------------------------------------------------------------------------- |
+| `BOT_TOKEN`                        | Yes      | None                             | Telegram bot token from BotFather.                                                                                                       |
+| `DATABASE_URL`                     | Yes      | None                             | PostgreSQL connection string.                                                                                                            |
+| `REDIS_URI`                        | Yes      | `redis://127.0.0.1:6379`         | Valkey/Redis URI. Falls back to `REDIS_URL`.                                                                                             |
+| `ADMIN_USERS`                      | Yes      | Empty                            | Comma-separated Telegram user IDs with owner access.                                                                                     |
+| `NODE_ENV`                         | No       | `development`                    | One of `development`, `test`, `production`. Use `production` in hosted environments.                                                     |
+| `WEB_SERVICE`                      | No       | `false`                          | Starts a `/healthz` and `/metrics` HTTP server when `true`.                                                                              |
+| `TIME_ZONE`                        | No       | `UTC`                            | Timezone for daily reset logic and scheduled jobs.                                                                                       |
+| `DAILY_WORDLE_START_DATE`          | No       | `2025-01-01`                     | Start date for the daily word rotation.                                                                                                  |
 | `DAILY_WORDLE_SECRET`              | No       | Empty                            | Per-instance salt for the daily word rotation. Set a unique random value so future words can't be precomputed from the public word list. |
-| `DATABASE_SSL`                     | No       | Auto                             | Overrides PostgreSQL SSL usage.                         |
-| `DATABASE_SSL_REJECT_UNAUTHORIZED` | No       | `false`                          | Enables strict PostgreSQL TLS certificate verification. |
-| `CUSTOM_API_ROOT`                  | No       | `https://api.telegram.org`       | Telegram Bot API endpoint.                              |
-| `LOGS_CHANNEL`                     | No       | None                             | Telegram channel ID for selected operational logs.      |
-| `UPDATES_CHANNEL`                  | No       | `https://t.me/WordSeek`          | Link shown in bot keyboards.                            |
-| `DISCUSSION_GROUP`                 | No       | `https://t.me/WordGuesser`       | Link shown in bot keyboards.                            |
-| `POSTGRES_IMAGE`                   | Docker   | `postgres:18.4-alpine3.23`       | Compose PostgreSQL image.                               |
-| `POSTGRES_PGDATA`                  | Docker   | `/var/lib/postgresql/18/docker`  | Compose PostgreSQL data directory.                      |
-| `CACHE_IMAGE`                      | Docker   | `valkey/valkey:9.1.0-alpine3.23` | Compose cache image; Redis `8.8.0` is supported.        |
-| `WORDSEEK_DATABASE_URL`            | Docker   | Internal Compose PostgreSQL      | Compose-only override mapped to `DATABASE_URL`.         |
-| `WORDSEEK_REDIS_URI`               | Docker   | Internal Compose Valkey          | Compose-only override mapped to `REDIS_URI`.            |
+| `DATABASE_SSL`                     | No       | Auto                             | Overrides PostgreSQL SSL usage.                                                                                                          |
+| `DATABASE_SSL_REJECT_UNAUTHORIZED` | No       | `false`                          | Enables strict PostgreSQL TLS certificate verification.                                                                                  |
+| `CUSTOM_API_ROOT`                  | No       | `https://api.telegram.org`       | Telegram Bot API endpoint.                                                                                                               |
+| `LOGS_CHANNEL`                     | No       | None                             | Telegram channel ID for selected operational logs.                                                                                       |
+| `UPDATES_CHANNEL`                  | No       | `https://t.me/WordSeek`          | Link shown in bot keyboards.                                                                                                             |
+| `DISCUSSION_GROUP`                 | No       | `https://t.me/WordGuesser`       | Link shown in bot keyboards.                                                                                                             |
+| `POSTGRES_IMAGE`                   | Docker   | `postgres:18.4-alpine3.23`       | Compose PostgreSQL image.                                                                                                                |
+| `POSTGRES_PGDATA`                  | Docker   | `/var/lib/postgresql/18/docker`  | Compose PostgreSQL data directory.                                                                                                       |
+| `CACHE_IMAGE`                      | Docker   | `valkey/valkey:9.1.0-alpine3.23` | Compose cache image; Redis `8.8.0` is supported.                                                                                         |
+| `WORDSEEK_DATABASE_URL`            | Docker   | Internal Compose PostgreSQL      | Compose-only override mapped to `DATABASE_URL`.                                                                                          |
+| `WORDSEEK_REDIS_URI`               | Docker   | Internal Compose Valkey          | Compose-only override mapped to `REDIS_URI`.                                                                                             |
 
 ## Development
 
@@ -339,17 +339,17 @@ migrations/      Kysely database migrations
 
 ### Scripts
 
-| Command              | Purpose                            |
-| :------------------- | :--------------------------------- |
-| `bun run dev`        | Start the bot with Bun watch mode. |
-| `bun run start`      | Start the bot normally.            |
-| `bun run lint`       | Check formatting and linting with Biome.    |
-| `bun run test`       | Run Bun tests.                     |
-| `bun run typecheck`  | Run TypeScript type checking.      |
-| `bun run build`      | Bundle the app to `dist/`.         |
-| `bun run db:migrate` | Apply Kysely migrations.           |
-| `bun run db:seed`    | Run configured Kysely seeds.       |
-| `bun run db:codegen` | Regenerate Kysely database types.  |
+| Command              | Purpose                                  |
+| :------------------- | :--------------------------------------- |
+| `bun run dev`        | Start the bot with Bun watch mode.       |
+| `bun run start`      | Start the bot normally.                  |
+| `bun run lint`       | Check formatting and linting with Biome. |
+| `bun run test`       | Run Bun tests.                           |
+| `bun run typecheck`  | Run TypeScript type checking.            |
+| `bun run build`      | Bundle the app to `dist/`.               |
+| `bun run db:migrate` | Apply Kysely migrations.                 |
+| `bun run db:seed`    | Run configured Kysely seeds.             |
+| `bun run db:codegen` | Regenerate Kysely database types.        |
 
 ### Testing
 
