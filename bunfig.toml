@@ -1,2 +1,6 @@
 # Bun configuration file
 # See https://bun.sh/docs/runtime/bunfig for all options
+
+[fmt]
+printWidth = 80
+tabWidth = 2
