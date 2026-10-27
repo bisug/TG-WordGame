@@ -2,7 +2,7 @@ import { Composer, InputFile } from "grammy";
 
 import { db } from "../config/db";
 import { logger } from "../config/logger";
-import { redis } from "../config/redis";
+import { safeDel, safeGet, safeSet } from "../config/redis";
 import { generateWordleImage } from "../handlers/on-message";
 import {
   ensureDailyWordExists,
@@ -72,14 +72,14 @@ composer.command("daily", async (ctx) => {
       }
     }
 
-    await redis.setex(
+    await safeSet(
       `daily_wordle:${userId}`,
-      86400,
       JSON.stringify({
         dailyWordId: dailyWord.id,
         date: gameDate,
         startedAt: new Date().toISOString(),
       }),
+      86400,
     );
 
     const attemptsUsed = existingGuesses.length;
@@ -113,7 +113,7 @@ composer.command("pausedaily", async (ctx) => {
   try {
     const userId = ctx.from.id.toString();
 
-    const dailyGameData = await redis.get(`daily_wordle:${userId}`);
+    const dailyGameData = await safeGet(`daily_wordle:${userId}`);
 
     if (!dailyGameData) {
       return ctx.reply(
@@ -121,7 +121,7 @@ composer.command("pausedaily", async (ctx) => {
       );
     }
 
-    await redis.del(`daily_wordle:${userId}`);
+    await safeDel(`daily_wordle:${userId}`);
 
     return ctx.reply(
       "✅ Your WordSeek of the Day game has been paused. You can now play regular WordSeek.\n\nTo play today's WordSeek again, use /daily (your previous attempts will still count).",

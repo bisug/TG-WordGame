@@ -658,9 +658,22 @@ const REACTION_EMOJIS: ReactionTypeEmoji["emoji"][] = [
   "🦄",
 ];
 
+function shuffleEmojis(list: readonly ReactionTypeEmoji["emoji"][]) {
+  const shuffled = [...list];
+  for (let i = shuffled.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    const current = shuffled[i];
+    const target = shuffled[j];
+    if (current !== undefined && target !== undefined) {
+      shuffled[i] = target;
+      shuffled[j] = current;
+    }
+  }
+  return shuffled;
+}
+
 async function reactWithRandom(ctx: Context) {
-  // Copy before sorting so the module-level list is never mutated.
-  const shuffled = [...REACTION_EMOJIS].sort(() => Math.random() - 0.5);
+  const shuffled = shuffleEmojis(REACTION_EMOJIS);
 
   for (const emoji of shuffled) {
     try {

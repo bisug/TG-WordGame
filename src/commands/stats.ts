@@ -46,8 +46,7 @@ composer.command("stats", rateLimit("stats"), async (ctx) => {
       .executeTakeFirstOrThrow(),
     db
       .selectFrom("leaderboard")
-      .select((eb) => eb.fn.count("chatId").distinct().as("count"))
-      .where("chatId", "not like", "-1%")
+      .select((eb) => eb.fn.count("userId").distinct().as("count"))
       .executeTakeFirstOrThrow(),
     db
       .selectFrom("leaderboard")

@@ -8,12 +8,18 @@ const composer = new Composer();
 composer.command("id", async (ctx) => {
   if (!ctx.from) return;
 
-  const userId = ctx.from.id;
-  const chatMember = await ctx.getChatMember(userId);
-  const isAdmin =
-    chatMember.status === "administrator" || chatMember.status === "creator";
-  const isNotPrivate = ctx.chat.type !== "private";
-  if (isNotPrivate && !isAdmin) return;
+  const isPrivate = ctx.chat.type === "private";
+  if (!isPrivate) {
+    try {
+      const chatMember = await ctx.getChatMember(ctx.from.id);
+      const isAdmin =
+        chatMember.status === "administrator" ||
+        chatMember.status === "creator";
+      if (!isAdmin) return;
+    } catch {
+      return;
+    }
+  }
   if (!ctx.message) return;
 
   const repliedMsg = ctx.message.reply_to_message;

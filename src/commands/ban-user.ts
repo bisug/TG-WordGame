@@ -12,7 +12,12 @@ composer.command("ban", rateLimit("ban"), async (ctx) => {
   if (!ctx.from || ctx.chat.type !== "private") return;
   if (!env.ADMIN_USERS.includes(ctx.from.id)) return;
 
-  const user = await findUserByIdentifier(ctx.match);
+  const target = ctx.match.trim();
+  if (!target) {
+    return ctx.reply("Usage: /ban <@username or userId>");
+  }
+
+  const user = await findUserByIdentifier(target);
 
   if (!user) return ctx.reply("Can't find the user");
 

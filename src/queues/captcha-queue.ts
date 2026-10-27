@@ -35,6 +35,10 @@ export const captchaQueue = new Queue("captcha-expiry", {
   skipVersionCheck: true,
 });
 
+captchaQueue.on("error", (err) => {
+  logger.warn({ err }, "Captcha queue error");
+});
+
 export const captchaWorker = new Worker(
   "captcha-expiry",
   async (job) => {

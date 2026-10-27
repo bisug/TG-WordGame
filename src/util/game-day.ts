@@ -50,12 +50,9 @@ export function getGameDateStringForZone(date: Date, timeZone: string): string {
     if (!yearPart || !monthPart || !dayPart) return dateString;
 
     const shifted = new Date(
-      Number(yearPart),
-      Number(monthPart) - 1,
-      Number(dayPart),
+      Date.UTC(Number(yearPart), Number(monthPart) - 1, Number(dayPart) - 1),
     );
-    shifted.setDate(shifted.getDate() - 1);
-    return getDateStringFromDate(shifted);
+    return shifted.toISOString().slice(0, 10);
   }
 
   return dateString;

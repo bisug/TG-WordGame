@@ -17,6 +17,10 @@ export const redis = new IORedis(env.REDIS_URI, {
   retryStrategy,
 });
 
+redis.on("error", (err) => {
+  logger.warn({ err }, "Redis client connection error");
+});
+
 // Safe wrappers so a Redis outage degrades to the DB/cache-miss path instead of
 // throwing and killing the update. Reads return null (treated as a miss);
 // writes are swallowed. Keep these thin — latency-sensitive callers rely on them.

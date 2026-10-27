@@ -12,7 +12,7 @@ export function formatLeaderboardMessage(
 
     let usernameLink = escapeHtmlEntities(entry.name);
     if (entry.username) {
-      usernameLink = `<a href="t.me/${entry.username}">${escapeHtmlEntities(
+      usernameLink = `<a href="https://t.me/${entry.username}">${escapeHtmlEntities(
         entry.name,
       )}</a>`;
     }

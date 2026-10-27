@@ -1,4 +1,3 @@
-import { createReadStream } from "node:fs";
 import { Composer, type Context, InlineKeyboard, InputFile } from "grammy";
 import {
   DISCUSSION_GROUP,
@@ -44,7 +43,7 @@ composer.command("start", async (ctx) => {
 
   try {
     await ctx.replyWithPhoto(
-      new InputFile(createReadStream("./src/data/banner.png")),
+      new InputFile(new URL("../data/banner.png", import.meta.url)),
       {
         caption,
         parse_mode: "HTML",

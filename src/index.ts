@@ -120,40 +120,48 @@ await resumeBroadcast();
 
 async function shutdown(signal: string) {
   logger.info({ signal }, "Shutting down");
-  try {
-    await captchaWorker.close();
-    await captchaQueue.close();
-  } catch (err) {
-    logger.error({ err }, "Error closing captcha queue");
-  }
-  try {
-    await runner.stop();
-  } catch (err) {
-    logger.error({ err }, "Error stopping bot runner");
-  }
-  dailyWordleCron.stop();
-  try {
-    await bot.stop();
-  } catch (err) {
-    logger.error({ err }, "Error stopping bot");
-  }
 
-  // Release backend connections so restarts/deploys don't orphan sockets.
-  try {
-    await redis.quit();
-  } catch (err) {
-    logger.error({ err }, "Error closing redis");
-  }
-  try {
-    await db.destroy();
-  } catch (err) {
-    logger.error({ err }, "Error closing db pool");
-  }
-
-  // Bounded force-exit: never hang forever if a close stalls.
-  const forceExit = setTimeout(() => process.exit(1), 10000);
+  // Bounded force-exit watchdog: never hang forever if a close stalls.
+  const forceExit = setTimeout(() => {
+    logger.warn("Shutdown timed out after 10s, forcing exit");
+    process.exit(1);
+  }, 10000);
   forceExit.unref();
-  process.exit(0);
+
+  try {
+    try {
+      await captchaWorker.close();
+      await captchaQueue.close();
+    } catch (err) {
+      logger.error({ err }, "Error closing captcha queue");
+    }
+    try {
+      await runner.stop();
+    } catch (err) {
+      logger.error({ err }, "Error stopping bot runner");
+    }
+    dailyWordleCron.stop();
+    try {
+      await bot.stop();
+    } catch (err) {
+      logger.error({ err }, "Error stopping bot");
+    }
+
+    // Release backend connections so restarts/deploys don't orphan sockets.
+    try {
+      await redis.quit();
+    } catch (err) {
+      logger.error({ err }, "Error closing redis");
+    }
+    try {
+      await db.destroy();
+    } catch (err) {
+      logger.error({ err }, "Error closing db pool");
+    }
+  } finally {
+    clearTimeout(forceExit);
+    process.exit(0);
+  }
 }
 
 process.once("SIGTERM", () => void shutdown("SIGTERM"));

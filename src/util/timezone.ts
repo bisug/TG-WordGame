@@ -55,21 +55,21 @@ export function getZonedPeriodStart(
   }).formatToParts(now);
   const get = (t: string) => parts.find((p) => p.type === t)?.value;
   const today = new Date(
-    `${get("year")}-${get("month")}-${get("day")}T00:00:00`,
+    Date.UTC(Number(get("year")), Number(get("month")) - 1, Number(get("day"))),
   );
 
-  let target = new Date(today);
+  const target = new Date(today);
   if (timeKey === "week") {
-    const dow = (today.getDay() + 6) % 7; // Monday = 0
-    target.setDate(today.getDate() - dow);
+    const dow = (today.getUTCDay() + 6) % 7; // Monday = 0
+    target.setUTCDate(today.getUTCDate() - dow);
   } else if (timeKey === "month") {
-    target = new Date(today.getFullYear(), today.getMonth(), 1);
+    target.setUTCDate(1);
   } else if (timeKey === "year") {
-    target = new Date(today.getFullYear(), 0, 1);
+    target.setUTCMonth(0, 1);
   }
 
-  const datePart = `${target.getFullYear()}-${String(
-    target.getMonth() + 1,
-  ).padStart(2, "0")}-${String(target.getDate()).padStart(2, "0")}`;
+  const datePart = `${target.getUTCFullYear()}-${String(
+    target.getUTCMonth() + 1,
+  ).padStart(2, "0")}-${String(target.getUTCDate()).padStart(2, "0")}`;
   return getZonedInstant(datePart, "00:00:00", timeZone);
 }
