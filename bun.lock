@@ -11,11 +11,11 @@
         "grammy": "^1.46.0",
         "ioredis": "^6.0.0",
         "kysely": "^0.29.7",
-        "kysely-ctl": "^0.21.0",
+        "kysely-ctl": "^0.22.0",
         "pg": "^8.23.1",
         "pino": "^10.4.0",
-        "react": "19.3.0",
-        "satori": "^0.44.3",
+        "react": "19.3.1",
+        "satori": "^0.63.2",
         "sharp": "^0.35.5",
         "zod": "^4.6.7",
       },
@@ -226,7 +226,7 @@
 
     "colorette": ["colorette@2.0.20", "", {}, "sha512-IfEDxwoWIjkeXL1eXcDiow4UbKjhLdq6/EuSVR9GMN7KVH3r9gQ83e73hsz1Nd1T3ijd5xv1wcWRYO+D6kCI2w=="],
 
-    "confbox": ["confbox@0.2.4", "", {}, "sha512-ysOGlgTFbN2/Y6Cg3Iye8YKulHw+R2fNXHrgSmXISQdMnomY6eNDprVdW9R5xBguEqI954+S6709UyiO7B+6OQ=="],
+    "confbox": ["confbox@0.3.1", "", {}, "sha512-cKUSoKa8YxFZZSmraVi7onONx3amu77ngK3kGpsYHDH7drPwCRkQE1RYMPlLRrMtnciRj274XNRxcHxnKmDSnA=="],
 
     "consola": ["consola@3.4.2", "", {}, "sha512-5IKcdX0nnYavi6G7TtOhwkYzyjfJlatbjMjuLSfE2kYT5pMDOilZ4OvMhi637CcDICTmz3wARPoyhqyX1Y+XvA=="],
 
@@ -320,7 +320,7 @@
 
     "kysely-codegen": ["kysely-codegen@0.20.0", "", { "dependencies": { "chalk": "4.1.2", "cosmiconfig": "^9.0.0", "diff": "^8.0.3", "dotenv": "^17.2.4", "dotenv-expand": "^12.0.3", "micromatch": "^4.0.8", "minimist": "^1.2.8", "pluralize": "^8.0.0", "zod": "^4.3.6" }, "peerDependencies": { "@libsql/kysely-libsql": ">=0.3.0 <0.5.0", "@tediousjs/connection-string": "^1.0.0", "better-sqlite3": ">=7.6.2 <13.0.0", "kysely": ">=0.27.0 <1.0.0", "kysely-bun-sqlite": ">=0.3.2 <1.0.0", "kysely-bun-worker": ">=1.2.0 <2.0.0", "mysql2": ">=2.3.3 <4.0.0", "pg": ">=8.8.0 <9.0.0", "tarn": ">=3.0.0 <4.0.0", "tedious": ">=18.0.0 <20.0.0" }, "optionalPeers": ["@libsql/kysely-libsql", "@tediousjs/connection-string", "better-sqlite3", "kysely-bun-sqlite", "kysely-bun-worker", "mysql2", "pg", "tarn", "tedious"], "bin": { "kysely-codegen": "dist/cli/bin.js" } }, "sha512-LSi2KBG7uDmNCZ+XurLSA9LH7XFyyoQ6xb5DLJSInPTSYLVApjOP2KwO8mSaREWTtoX+C2AG2GTlYR0DLjTbcA=="],
 
-    "kysely-ctl": ["kysely-ctl@0.21.0", "", { "dependencies": { "c12": "^3.3.3", "citty": "^0.2.2", "confbox": "^0.2.4", "consola": "^3.4.2", "jiti": "^2.7.0", "nypm": "^0.6.6", "ofetch": "^1.5.1", "pathe": "^2.0.3", "pkg-types": "^2.3.1", "std-env": "^4.1.0" }, "peerDependencies": { "kysely": ">=0.18.1 <0.30.0", "kysely-neon": "^2", "kysely-postgres-js": "^2 || ^3", "kysely-prisma-postgres": "^0.1" }, "optionalPeers": ["kysely-neon", "kysely-postgres-js", "kysely-prisma-postgres"], "bin": { "kysely": "dist/bin.mjs" } }, "sha512-tovLEh+5eHgBt1P9L42Y3lgEI7cXK0nAPIBFg+dmTXUlmb2Ats3X3D0TwUtCV63XzVEdRV5dONa8DBhRiEf8fg=="],
+    "kysely-ctl": ["kysely-ctl@0.22.0", "", { "dependencies": { "c12": "^3.3.4", "citty": "^0.2.2", "confbox": "^0.3.1", "consola": "^3.4.2", "jiti": "^2.7.0", "nypm": "^0.6.10", "ofetch": "^1.5.1", "pathe": "^2.0.3", "pkg-types": "^2.3.3", "std-env": "^4.3.0" }, "peerDependencies": { "kysely": ">=0.18.1 <0.30.0", "kysely-neon": "^2 || ^3", "kysely-postgres-js": "^2 || ^3 || ^4 || ^5", "kysely-prisma-postgres": "^0.1" }, "optionalPeers": ["kysely-neon", "kysely-postgres-js", "kysely-prisma-postgres"], "bin": { "kysely": "./dist/bin.mjs" } }, "sha512-KqmjbJvFv58PLPaYizPmTnJqgpnclR4k39Vw3mCXZz2kcbxygZgtM4hBtmlbzt03yqvVJlhJ3shLKCPUsmxNuw=="],
 
     "linebreak": ["linebreak@1.1.0", "", { "dependencies": { "base64-js": "0.0.8", "unicode-trie": "^2.0.0" } }, "sha512-MHp03UImeVhB7XZtjd0E4n6+3xr5Dq/9xI/5FptGk5FrbDR3zagPa2DS6U8ks/3HjbKWG9Q1M2ufOzxV2qLYSQ=="],
 
@@ -418,7 +418,7 @@
 
     "rc9": ["rc9@3.1.0", "", { "dependencies": { "defu": "^6.1.7", "destr": "^2.0.5" } }, "sha512-ufjkNVzbRHKcCOmTahZkmVsyc3W+MSk3jY03m+a7tGHkIsdVMG9l10/3HvFbWkkKzY5VFp3pkRsIo/UYgmFL7Q=="],
 
-    "react": ["react@19.3.0", "", {}, "sha512-E8LUcbtBWt20bbl2YoHfx4ZDBdxVTfOKtCZn9cDSJ4l6/nuoApcpIBcj47t2wZoVX8g2ZHuMHbiShgCR1T5Sog=="],
+    "react": ["react@19.3.1", "", {}, "sha512-QNhWdt7nrgVWWQG58QuGsAR3jv3Hbe4mb4vz7w2csnHavciZJgda1CPNaldF6eVxv90ud3jUXpKlHL69gO38yw=="],
 
     "readdirp": ["readdirp@5.1.1", "", {}, "sha512-Kko+Y5XQ6fM+Ce3dq3m9YGxnacYZYl9cA1wZjaF3Vbry2L3i1qVg8+CAgNPsXRArPMUMCaOR7oa9Nqntc43JKA=="],
 
@@ -430,7 +430,7 @@
 
     "safe-stable-stringify": ["safe-stable-stringify@2.5.0", "", {}, "sha512-b3rppTKm9T+PsVCBEOUR46GWI7fdOs00VKZ1+9c1EWDaDMvjQc6tUwuFyIprgGgTcWoVHSKrU8H31ZHA2e0RHA=="],
 
-    "satori": ["satori@0.44.3", "", { "dependencies": { "@shuding/opentype.js": "1.4.0-beta.0", "css-background-parser": "^0.1.0", "css-box-shadow": "1.0.0-3", "css-gradient-parser": "^0.0.17", "css-to-react-native": "^3.0.0", "emoji-regex-xs": "^2.0.1", "escape-html": "^1.0.3", "fflate": "0.7.3", "harfbuzzjs": "0.10.0", "linebreak": "^1.1.0", "parse-css-color": "^0.2.1", "postcss-value-parser": "^4.2.0" } }, "sha512-3Dj7zB2jc+806+YYinNID9nvdJK2AagSmpNeG/qeHY7Yq7jQ5EpMSQ8C5rLSw1PMxnrbQaQsQnCiEGzIKKq3HA=="],
+    "satori": ["satori@0.63.2", "", { "dependencies": { "@shuding/opentype.js": "1.4.0-beta.0", "css-background-parser": "^0.1.0", "css-box-shadow": "1.0.0-3", "css-gradient-parser": "^0.0.17", "css-to-react-native": "^3.0.0", "emoji-regex-xs": "^2.0.1", "escape-html": "^1.0.3", "fflate": "0.7.3", "harfbuzzjs": "0.10.0", "linebreak": "^1.1.0", "parse-css-color": "^0.2.1", "postcss-value-parser": "^4.2.0" } }, "sha512-h7dm4BRMo8F53l9vOXOIfJoqeVXuZvyz13VsvVuwJb72sLfq+8uddJIJcjLKLv2BqWzDvYIpzi3rvBBS+ETuvw=="],
 
     "secure-json-parse": ["secure-json-parse@4.1.1", "", {}, "sha512-lnd81MQEZKjhW/Gd2TQqdd4XP6QYNdDW/EP+I7nTrFHP9y2LmaGPIHk9xsnzcOiEr1c39c/e84xFgGviQKBTRw=="],
 
@@ -482,10 +482,10 @@
 
     "zod": ["zod@4.6.7", "", {}, "sha512-g8W2D2kU6a8untc053fX1uVBKzM7yqAxW/3zwk83+6RyF2+SKOuV+c0wBDhUwzV1PaGapmZH+rmcUzPf+3CGwg=="],
 
+    "c12/confbox": ["confbox@0.2.4", "", {}, "sha512-ysOGlgTFbN2/Y6Cg3Iye8YKulHw+R2fNXHrgSmXISQdMnomY6eNDprVdW9R5xBguEqI954+S6709UyiO7B+6OQ=="],
+
     "dotenv-expand/dotenv": ["dotenv@16.6.1", "", {}, "sha512-uBq4egWHTcTt33a72vpSG0z3HnPuIl6NqYcTrKEg2azoEyl2hpW0zqlxysq2pK9HlDIHyHyakeYaYnSAwd8bow=="],
 
     "pino/sonic-boom": ["sonic-boom@4.2.1", "", { "dependencies": { "atomic-sleep": "^1.0.0" } }, "sha512-w6AxtubXa2wTXAUsZMMWERrsIRAdrK0Sc+FUytWvYAhBJLyuI4llrMIC1DtlNSdI99EI86KZum2MMq3EAZlF9Q=="],
-
-    "pkg-types/confbox": ["confbox@0.3.1", "", {}, "sha512-cKUSoKa8YxFZZSmraVi7onONx3amu77ngK3kGpsYHDH7drPwCRkQE1RYMPlLRrMtnciRj274XNRxcHxnKmDSnA=="],
   }
 }
