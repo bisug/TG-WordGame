@@ -3,7 +3,12 @@
   "description": "Wordle-style word game bot for Telegram - solo & multiplayer rounds, daily challenge, leaderboards, moderation.",
   "repository": "https://github.com/bisug/TG-WordGame",
   "logo": "https://github.com/user-attachments/assets/bf444d36-2eea-4ad5-83e7-4a99acda2bfe",
-  "stack": "container",
+  "stack": "heroku-26",
+  "buildpacks": [
+    {
+      "url": "https://github.com/bisug/heroku-buildpack-bun"
+    }
+  ],
   "keywords": [
     "telegram",
     "bot",

@@ -1,0 +1,19 @@
+# Heroku CI is not used; GitHub Actions runs the test suite.
+.github/
+*.test.ts
+*.test.tsx
+dist/
+
+# Docs and local-development files.
+README.md
+CONTRIBUTING.md
+LICENSE
+.env.example
+.env.docker.example
+
+# Config for other deployment targets.
+.dockerignore
+Dockerfile
+docker-compose.yml
+railway.toml
+render.yaml

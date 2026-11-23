@@ -279,12 +279,26 @@ Render uses `render.yaml` to deploy the bot seamlessly as a Background Worker.
 
 ### Heroku
 
-Heroku uses `heroku.yml` for Docker-based deployment.
+Heroku deploys this app on the `heroku-26` stack with the classic
+[`heroku-buildpack-bun`](https://github.com/bisug/heroku-buildpack-bun)
+buildpack. `app.json` sets both for apps created from the manifest. For an
+existing app, set them once:
 
-1. Create the Heroku app.
+```bash
+heroku stack:set heroku-26
+heroku buildpacks:clear
+heroku buildpacks:add https://github.com/bisug/heroku-buildpack-bun
+```
+
+The buildpack reads `.bun-version`, installs from `bun.lock`, and takes process
+types from `Procfile`. The `release` process runs `bun run db:migrate` on every
+deploy. `.slugignore` keeps tests, docs, and other platforms' config out of the
+slug.
+
+1. Create the Heroku app from `app.json`, or set the stack and buildpack above.
 2. Add Heroku Postgres and Heroku Data for Redis or set external service URLs.
-3. Set the required environment variables.
-4. Deploy. Heroku runs `bun run db:migrate` as the release command.
+3. Set `BOT_TOKEN`, `ADMIN_USERS`, `DATABASE_URL`, and `REDIS_URI`.
+4. Push with `git push heroku main`, then run `heroku ps:scale worker=1`.
 
 ### Direct VPS Without Docker
 
