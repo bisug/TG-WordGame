@@ -45,7 +45,7 @@ services:
         condition: service_healthy
 
   postgres:
-    image: ${POSTGRES_IMAGE:-postgres:18.4-alpine3.23}
+    image: ${POSTGRES_IMAGE:-postgres:18.7-alpine3.24}
     restart: unless-stopped
     environment:
       POSTGRES_DB: ${POSTGRES_DB:-wordseek}
@@ -61,7 +61,7 @@ services:
       retries: 10
 
   redis:
-    image: ${CACHE_IMAGE:-valkey/valkey:9.1.0-alpine3.23}
+    image: ${CACHE_IMAGE:-valkey/valkey:9.2.0-alpine3.24}
     restart: unless-stopped
     command:
       - sh
