@@ -106,12 +106,20 @@ export async function errorHandler(error: BotError<Context>) {
             reply_parameters: { message_id: createdTopic.message_thread_id },
           },
         );
-      } catch {
-        await ctx.api.editMessageText(
-          ctx.chatId,
-          message.message_id,
-          "I don't have enough rights to create and delete topics. Please update my permissions.",
+      } catch (topicError) {
+        logger.error(
+          { err: topicError, chatId: ctx.chatId },
+          "Topic recreation failed",
         );
+        await ctx.api
+          .editMessageText(
+            ctx.chatId,
+            message.message_id,
+            "I couldn't recreate this topic. Please check my permissions or logs.",
+          )
+          .catch((err) => {
+            logger.warn({ err }, "Failed to update topic error status message");
+          });
       }
     }
   } else if (e instanceof HttpError) {

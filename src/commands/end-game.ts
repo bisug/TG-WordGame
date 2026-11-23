@@ -3,7 +3,7 @@ import { Composer, type Context } from "grammy";
 import { db } from "../config/db";
 import { env } from "../config/env";
 import { logger } from "../config/logger";
-import { redis } from "../config/redis";
+import { redis, safeDel } from "../config/redis";
 import { deleteCachedGame, getGamePlayerCount } from "../util/cache";
 import { CommandsHelper } from "../util/commands-helper";
 import {
@@ -49,6 +49,12 @@ export async function endGame(
 
   await deleteCachedGame(String(chatId), game.topicId);
 
+  // A vote from the finished game must not survive into the next one in this
+  // topic: its poll button would otherwise end a different game.
+  const voteKey = getEndVoteKey(chatId, game.topicId);
+  await safeDel(voteKey);
+  await safeDel(`${voteKey}:threshold`);
+
   const wordLength = game.word.length;
 
   await ctx.reply(
@@ -70,12 +76,15 @@ export async function resolveGameEndPermission(
   const userId = ctx.from.id.toString();
   const isPrivate = ctx.chat.type === "private";
 
-  // getChatMember is only valid in group/supergroup chats; calling it in a
-  // private chat throws. Private chats need no permission check anyway.
-  // A transient Telegram API failure must not block ending the game either:
-  // default to non-admin and let the other permission checks decide.
+  const isSystemAdmin = env.ADMIN_USERS.includes(ctx.from.id);
+  const isGameStarter = game.startedBy === userId;
+
+  // Check the cheap, local permissions first: most /end calls need neither a
+  // Telegram round trip nor a DB lookup. getChatMember is invalid in private
+  // chats, and a transient failure must not block an otherwise permitted user.
   let isAdmin = false;
-  if (!isPrivate) {
+  let isAuthorized = false;
+  if (!isPrivate && !isSystemAdmin && !isGameStarter) {
     try {
       const chatMember = await ctx.getChatMember(parseInt(userId, 10));
       isAdmin =
@@ -84,11 +93,10 @@ export async function resolveGameEndPermission(
     } catch (err) {
       logger.warn({ err, chatId: ctx.chat.id }, "getChatMember failed");
     }
+    if (!isAdmin) {
+      isAuthorized = await isUserAuthorized(userId, ctx.chat.id.toString());
+    }
   }
-
-  const isSystemAdmin = env.ADMIN_USERS.includes(ctx.from.id);
-  const isGameStarter = game.startedBy === userId;
-  const isAuthorized = await isUserAuthorized(userId, ctx.chat.id.toString());
 
   const permitted =
     isAdmin || isSystemAdmin || isGameStarter || isAuthorized || isPrivate;
