@@ -62,8 +62,8 @@
       "value": "false"
     },
     "REDIS_URI": {
-      "description": "Valkey/Redis connection string from your own provider, ideally in the same region as the dyno (cache only — safe to leave empty and repopulate)",
-      "required": false
+      "description": "Valkey/Redis connection string from your own provider, ideally in the same region as the dyno. Required: the captcha worker starts at boot and cannot run without a reachable cache.",
+      "required": true
     }
   }
 }

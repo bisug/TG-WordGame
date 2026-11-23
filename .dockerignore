@@ -9,9 +9,6 @@
 !.env.docker.example
 
 # Dev tooling / configs not needed at runtime
-.prettierrc
-vercel.json
-drizzle.config.ts
 README.md
 LICENSE
 
