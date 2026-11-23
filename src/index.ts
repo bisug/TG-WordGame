@@ -22,8 +22,30 @@ import {
   ensureDailyWordExists,
 } from "./services/daily-wordle-cron";
 import { CommandsHelper } from "./util/commands-helper";
+import { getUpdateConstraint } from "./util/update-constraint";
 
-bot.api.config.use(autoRetry());
+// Bound retries: the defaults are infinite, so a Telegram outage can pin every
+// runner slot and wedge shutdown until the force-exit watchdog fires.
+bot.api.config.use(autoRetry({ maxRetryAttempts: 3, maxDelaySeconds: 10 }));
+
+// The runner's stop() does not drain its sink. Track middleware so shutdown
+// can wait for in-flight handlers before closing Redis and the DB pool.
+let activeUpdates = 0;
+let updatesDrained: (() => void) | null = null;
+
+bot.use(async (_ctx, next) => {
+  activeUpdates++;
+  try {
+    await next();
+  } finally {
+    activeUpdates--;
+    if (activeUpdates === 0 && updatesDrained) {
+      const resolve = updatesDrained;
+      updatesDrained = null;
+      resolve();
+    }
+  }
+});
 
 // Log incoming updates & record metrics
 bot.use(async (ctx, next) => {
@@ -43,18 +65,12 @@ bot.use(async (ctx, next) => {
   );
 });
 
+// Install the lock before middleware that touches shared DB/Redis state.
+bot.use(sequentialize(getUpdateConstraint));
+
 bot.use(userAndChatSyncHandler);
 bot.use(topicEditedHandler);
 bot.use(trackMessagesHandler);
-
-bot.use(
-  sequentialize((ctx) => {
-    if (ctx.callbackQuery) return undefined;
-    if (ctx.chat?.type === "private") return undefined;
-
-    return ctx.chatId?.toString() || ctx.from?.id.toString();
-  }),
-);
 
 // Anti-cheat rate limiting is applied per-handler where it makes sense:
 // guesses (on-message), score/leaderboard, stats, ban/unban, captcha.
@@ -66,21 +82,29 @@ bot.use(callbackQueryHandler);
 bot.use(onMessageHandler);
 bot.use(onBotAddedInChat);
 
-bot.catch((err) => {
+bot.catch(async (err) => {
   metrics.incErrors();
-  // The error handler talks to DB/Redis (topic recreation); if it throws,
-  // don't let the failure path itself take down the runner.
+  // The error handler talks to DB/Redis (topic recreation). Awaiting it lets
+  // this catch contain its rejection instead of leaking it to the runner.
   try {
-    return errorHandler(err);
+    await errorHandler(err);
   } catch (handlerErr) {
     logger.error({ err: handlerErr }, "Error handler itself failed");
-    return;
   }
 });
 dailyWordleCron.start();
-await ensureDailyWordExists();
 
-await bot.api.deleteWebhook({ drop_pending_updates: true });
+try {
+  await ensureDailyWordExists();
+} catch (err) {
+  logger.error({ err }, "Failed to ensure daily word exists");
+}
+
+try {
+  await bot.api.deleteWebhook({ drop_pending_updates: true });
+} catch (err) {
+  logger.error({ err }, "Failed to delete webhook");
+}
 
 // Resume any pending broadcast before starting the bot
 
@@ -115,8 +139,17 @@ if (env.WEB_SERVICE) {
   });
 }
 
-await CommandsHelper.setCommands();
-await resumeBroadcast();
+try {
+  await CommandsHelper.setCommands();
+} catch (err) {
+  logger.error({ err }, "Failed to register bot commands");
+}
+
+try {
+  await resumeBroadcast();
+} catch (err) {
+  logger.error({ err }, "Failed to resume broadcast");
+}
 
 async function shutdown(signal: string) {
   logger.info({ signal }, "Shutting down");
@@ -140,6 +173,12 @@ async function shutdown(signal: string) {
     } catch (err) {
       logger.error({ err }, "Error stopping bot runner");
     }
+
+    // runner.stop() stops fetching but does not wait for its sink to drain.
+    await new Promise<void>((resolve) => {
+      if (activeUpdates === 0) return resolve();
+      updatesDrained = resolve;
+    });
     dailyWordleCron.stop();
     try {
       await bot.stop();
