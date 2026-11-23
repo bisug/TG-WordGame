@@ -1,4 +1,4 @@
-import { Composer, GrammyError, InlineKeyboard } from "grammy";
+import { Composer, type Context, GrammyError, InlineKeyboard } from "grammy";
 
 import { sql } from "kysely";
 import { endGame, resolveGameEndPermission } from "../commands/end-game";
@@ -40,11 +40,69 @@ import { safeJsonParse } from "../util/formatting";
 import { generateLeaderboardKeyboard } from "../util/generate-leaderboard-keyboard";
 import { generateUserSelectionKeyboard } from "../util/generate-user-selection-keyboard";
 import { getSmartDefaults } from "../util/get-smart-defaults";
+import { getCachedBanStatus } from "../util/ban-cache";
+import { richToPlainHtml, supportsRichMessages } from "../util/rich-message";
 
 const composer = new Composer();
 
+// Rich messages need a current Bot API server. Custom roots fall back to
+// classic HTML so self-hosted/older API servers still show the same content.
+async function showHelpMessage(
+  ctx: Context,
+  html: string,
+  keyboard: InlineKeyboard,
+) {
+  const rich = supportsRichMessages(env.CUSTOM_API_ROOT);
+  const text = rich ? html : richToPlainHtml(html);
+  const markup = { reply_markup: keyboard };
+
+  try {
+    if (rich) {
+      await ctx.editMessageText({ html: text }, markup);
+    } else {
+      await ctx.editMessageText(text, { ...markup, parse_mode: "HTML" });
+    }
+  } catch (err) {
+    if (
+      err instanceof GrammyError &&
+      !err.description.includes("message is not modified:")
+    ) {
+      await ctx.deleteMessage();
+      if (rich) {
+        await ctx.replyWithRichMessage({ html: text }, markup);
+      } else {
+        await ctx.reply(text, { ...markup, parse_mode: "HTML" });
+      }
+    }
+  }
+}
+
+// Ban enforcement on `message` updates does not cover old keyboards. Reject
+// callbacks from banned users before any handler can mutate shared state.
+composer.on("callback_query:data", async (ctx, next) => {
+  if (!ctx.from) return next();
+  if (!(await getCachedBanStatus(ctx.from.id.toString()))) return next();
+
+  await ctx.answerCallbackQuery({
+    text: "⛔ Access restricted. Check /start for appeal details.",
+    show_alert: true,
+  });
+});
+
 composer.on("callback_query:data", async (ctx) => {
   const data = ctx.callbackQuery.data;
+
+  if (data.startsWith("wh:")) {
+    const [, state, letter] = data.split(":");
+    const hints: Record<string, string> = {
+      correct: `🟩 "${letter}" is in the word and in the right spot.`,
+      present: `🟨 "${letter}" is in the word, but in a different spot.`,
+      absent: `🟥 "${letter}" isn't in the word.`,
+    };
+    return await ctx.answerCallbackQuery({
+      text: (state ? hints[state] : undefined) ?? "Unknown hint.",
+    });
+  }
 
   if (data.startsWith(LEADERBOARD_ACTIONS.PREFIX)) {
     const [, searchKey, timeKey, wordLength] = data.split(" ");
@@ -174,6 +232,7 @@ composer.on("callback_query:data", async (ctx) => {
         userId,
         searchKey,
         timeKey,
+        wordLength,
       });
 
       if (!userScore) {
@@ -492,25 +551,7 @@ composer.on("callback_query:data", async (ctx) => {
       env.ADMIN_USERS.includes(ctx.from.id) && ctx.chat?.type === "private";
 
     if (data === "help_start") {
-      const message = getStartMessage();
-      const keyboard = getStartKeyboard(ctx);
-      const options = {
-        parse_mode: "HTML" as const,
-        reply_markup: keyboard,
-      };
-      try {
-        await ctx.editMessageText(message, options);
-      } catch (err) {
-        // /start posts a photo, which editMessageText cannot edit. Same
-        // fallback as the other help sections: drop it and resend as text.
-        if (
-          err instanceof GrammyError &&
-          !err.description.includes("message is not modified:")
-        ) {
-          await ctx.deleteMessage();
-          await ctx.reply(message, options);
-        }
-      }
+      await showHelpMessage(ctx, getStartMessage(), getStartKeyboard(ctx));
       return await ctx.answerCallbackQuery();
     }
 
@@ -554,22 +595,7 @@ composer.on("callback_query:data", async (ctx) => {
       activeSection,
     );
 
-    const commonOptions = {
-      parse_mode: "HTML" as const,
-      reply_markup: keyboard,
-    };
-
-    try {
-      await ctx.editMessageText(message, commonOptions);
-    } catch (err) {
-      if (
-        err instanceof GrammyError &&
-        !err.description.includes("message is not modified:")
-      ) {
-        await ctx.deleteMessage();
-        await ctx.reply(message, commonOptions);
-      }
-    }
+    await showHelpMessage(ctx, message, keyboard);
 
     return await ctx.answerCallbackQuery();
   } else if (data.startsWith("captcha_")) {

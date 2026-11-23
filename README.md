@@ -52,6 +52,7 @@ This repository is a maintained fork of
 - Language: [TypeScript 7](https://www.typescriptlang.org/)
 - Tooling: [Bun](https://bun.sh/) (Formatting & Type Checking) and [Oxlint](https://oxc.rs/) (Linting)
 - Bot framework: [grammY](https://grammy.dev/)
+- Rich messages: Telegram Bot API 10.5 (button rows, compact tables, expandable quotations). Custom `CUSTOM_API_ROOT` values fall back to classic HTML
 - Database: [PostgreSQL](https://www.postgresql.org/) with [Kysely](https://kysely.dev/)
 - Cache and queues: [Valkey](https://valkey.io/) / [Redis](https://redis.io/) with [BullMQ](https://docs.bullmq.io/)
 - Validation: [Zod](https://zod.dev/)

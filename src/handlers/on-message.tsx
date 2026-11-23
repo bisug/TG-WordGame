@@ -3,6 +3,7 @@ import type { ReactionTypeEmoji } from "grammy/types";
 import { DatabaseError } from "pg";
 
 import { db } from "../config/db";
+import { env } from "../config/env";
 import { safeDel, safeGet } from "../config/redis";
 import allFiveWords from "../data/all-five.json";
 import allFourWords from "../data/all-four.json";
@@ -15,12 +16,13 @@ import {
   getCachedDailyWord,
   getCachedGame,
 } from "../util/cache";
-import { getFeedback, scoreGuess } from "../util/feedback";
+import { getFeedback, scoreGuess, type LetterStatus } from "../util/feedback";
 import { getFontData, prewarmFont } from "../util/font-cache";
 import { formatDailyWordDetails } from "../util/format-word-details";
 import { safeJsonParse, toFancyText } from "../util/formatting";
 import { requireAllowedTopic, runGuards } from "../util/guards";
 import { MemoryTtlCache } from "../util/memory-cache";
+import { supportsRichMessages } from "../util/rich-message";
 import { computeStreakAfterWin } from "../util/streak";
 import { ensureUser } from "../util/sync-entities";
 import { rateLimit, trackGuessSpeed } from "./anticheat";
@@ -170,7 +172,7 @@ composer.on("message:text", rateLimit("guess"), async (ctx) => {
 
       const formattedResponse = `<blockquote>Congrats! You guessed it correctly.\nCorrect Word: <b>${currentGuess}</b>\n${additionalMessage}</blockquote>\nStart with /new${wordLength}`;
 
-      ctx.reply(formattedResponse, {
+      await ctx.reply(formattedResponse, {
         reply_parameters: { message_id: ctx.message.message_id },
         parse_mode: "HTML",
       });
@@ -179,7 +181,7 @@ composer.on("message:text", rateLimit("guess"), async (ctx) => {
 
       const formattedResponse = `<blockquote>Congrats! You guessed it correctly.\nCorrect Word: <b>${currentGuess}</b>\n</blockquote>${additionalMessage}\nStart with /new${wordLength}`;
 
-      ctx.reply(formattedResponse, {
+      await ctx.reply(formattedResponse, {
         reply_parameters: { message_id: ctx.message.message_id },
         parse_mode: "HTML",
       });
@@ -232,14 +234,22 @@ composer.on("message:text", rateLimit("guess"), async (ctx) => {
     );
   }
 
-  const modeLabel = MODE_LABEL[wordLength];
-  const responseMessage =
-    `<i>${modeLabel} · ${allGuesses.length}/30</i>\n\n` +
-    toFancyText(getFeedback(allGuesses, currentGame.word));
-
-  ctx.reply(responseMessage, {
-    parse_mode: "HTML",
-  });
+  if (supportsRichMessages(env.CUSTOM_API_ROOT)) {
+    await ctx.replyWithRichMessage({
+      html: buildRichFeedback(
+        allGuesses,
+        currentGame.word,
+        MODE_LABEL[wordLength],
+      ),
+    });
+  } else {
+    const modeLabel = MODE_LABEL[wordLength];
+    await ctx.reply(
+      `<i>${modeLabel} · ${allGuesses.length}/30</i>\n\n` +
+        toFancyText(getFeedback(allGuesses, currentGame.word)),
+      { parse_mode: "HTML" },
+    );
+  }
 });
 
 async function handleDailyWordleGuess(ctx: Context, currentGuess: string) {
@@ -645,6 +655,36 @@ export async function generateWordleImage(
   imageCache.set(cacheKey, pngBuffer);
 
   return pngBuffer;
+}
+
+const BUTTON_STYLE: Record<LetterStatus, string | null> = {
+  correct: "success",
+  present: null,
+  absent: "danger",
+};
+
+function renderGuessRow(guess: string, solution: string): string {
+  const states = scoreGuess(guess, solution);
+  const buttons = guess
+    .toUpperCase()
+    .split("")
+    .map((letter, i) => {
+      const state = states[i] ?? "absent";
+      const style = BUTTON_STYLE[state];
+      const styleAttr = style ? ` style="${style}"` : "";
+      return `<tg-button type="callback_data"${styleAttr} data="wh:${state}:${letter}">${letter}</tg-button>`;
+    })
+    .join("");
+  return `<tg-button-row align="center">${buttons}</tg-button-row>`;
+}
+
+function buildRichFeedback(
+  guesses: GuessEntry[],
+  solution: string,
+  modeLabel: string,
+): string {
+  const rows = guesses.map((g) => renderGuessRow(g.guess, solution)).join("");
+  return `<h3>${modeLabel}</h3><p><i>${guesses.length}/30 guesses</i></p>${rows}`;
 }
 
 const REACTION_EMOJIS: ReactionTypeEmoji["emoji"][] = [
