@@ -1,7 +1,7 @@
 # ─────────────────────────────────────────────
 # Stage 1: Install dependencies
 # ─────────────────────────────────────────────
-FROM oven/bun:1.4.4-debian AS deps
+FROM oven/bun:1.4.5-debian AS deps
 
 WORKDIR /app
 
@@ -14,7 +14,7 @@ RUN bun install --frozen-lockfile --production
 # ─────────────────────────────────────────────
 # Stage 2: Final runtime image
 # ─────────────────────────────────────────────
-FROM oven/bun:1.4.4-debian AS runner
+FROM oven/bun:1.4.5-debian AS runner
 
 WORKDIR /app
 ENV NODE_ENV=production
@@ -34,6 +34,8 @@ COPY migrations/ ./migrations/
 COPY kysely.config.ts ./
 COPY tsconfig.json ./
 COPY package.json ./
+# toolchain-pins.test.ts reads these to verify the Bun pin across deploy paths.
+COPY .bun-version Dockerfile ./
 
 # Use non-root user for security (bun image ships with this user)
 USER bun

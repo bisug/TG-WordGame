@@ -24,8 +24,5 @@ export default defineConfig({
   migrations: {
     migrationFolder: "migrations",
   },
-  seeds: {
-    seedFolder: "seeds",
-  },
   plugins: [new CamelCasePlugin(), new DeduplicateJoinsPlugin()],
 });
