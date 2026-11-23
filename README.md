@@ -48,7 +48,7 @@ This repository is a maintained fork of
 
 ## Tech Stack
 
-- Runtime: [Bun](https://bun.sh) (v1.4.4+)
+- Runtime: [Bun](https://bun.sh) (v1.4.5+)
 - Language: [TypeScript 7](https://www.typescriptlang.org/)
 - Tooling: [Bun](https://bun.sh/) (Formatting & Type Checking) and [Oxlint](https://oxc.rs/) (Linting)
 - Bot framework: [grammY](https://grammy.dev/)
@@ -102,22 +102,22 @@ This repository is a maintained fork of
 
 ### Player Commands
 
-| Command        | Description                                | Notes                                  |
-| :------------- | :----------------------------------------- | :------------------------------------- |
-| `/start`       | Initialize the bot.                        | Opens the main bot menu.               |
-| `/help`        | Show the interactive help menu.            | Includes player and admin guidance.    |
-| `/id`          | Show chat, user, and message identifiers.  | Useful for admin setup and debugging.  |
-| `/new`         | Start a default 5-letter game.             | Also accepts `/new 4`, `/new 5`, etc.  |
-| `/new4`        | Start a 4-letter game.                     | Available in private and group chats.  |
-| `/new5`        | Start a 5-letter game.                     | Available in private and group chats.  |
-| `/new6`        | Start a 6-letter game.                     | Available in private and group chats.  |
-| `/daily`       | Start Daily WordSeek.                      | Private chat only.                     |
-| `/pausedaily`  | Pause Daily WordSeek and return to normal. | Previous daily attempts still count.   |
-| `/end`         | End the current game.                      | Admins can end directly; others vote.  |
-| `/score`       | Show user statistics.                      | Supports optional user lookup.         |
-| `/myscore`     | Legacy score command.                      | Redirects users to `/score`.           |
-| `/leaderboard` | Show rankings.                             | Supports scope and period filters.     |
-| `/startmatch`  | Reserved command hook for match workflows. | Currently no-op in the command module. |
+| Command        | Description                                | Notes                                 |
+| :------------- | :----------------------------------------- | :------------------------------------ |
+| `/start`       | Initialize the bot.                        | Opens the main bot menu.              |
+| `/help`        | Show the interactive help menu.            | Includes player and admin guidance.   |
+| `/id`          | Show chat, user, and message identifiers.  | Useful for admin setup and debugging. |
+| `/new`         | Start a default 5-letter game.             | Also accepts `/new 4`, `/new 5`, etc. |
+| `/new4`        | Start a 4-letter game.                     | Available in private and group chats. |
+| `/new5`        | Start a 5-letter game.                     | Available in private and group chats. |
+| `/new6`        | Start a 6-letter game.                     | Available in private and group chats. |
+| `/daily`       | Start Daily WordSeek.                      | Private chat only.                    |
+| `/pausedaily`  | Pause Daily WordSeek and return to normal. | Previous daily attempts still count.  |
+| `/end`         | End the current game.                      | Admins can end directly; others vote. |
+| `/score`       | Show user statistics.                      | Supports optional user lookup.        |
+| `/myscore`     | Legacy score command.                      | Redirects users to `/score`.          |
+| `/leaderboard` | Show rankings.                             | Supports scope and period filters.    |
+| `/startmatch`  | Redirect-only match command hook.          | Replies with match workflow guidance. |
 
 ### Group Admin Commands
 
@@ -138,19 +138,19 @@ bot.
 
 These commands are restricted to Telegram user IDs listed in `ADMIN_USERS`.
 
-| Command             | Description                                 | Example                        |
-| :------------------ | :------------------------------------------ | :----------------------------- |
-| `/stats`            | Show bot and system statistics.             | `/stats`                       |
-| `/ban`              | Globally ban a user.                        | `/ban 123456789`               |
-| `/unban`            | Remove a global ban.                        | `/unban 123456789`             |
-| `/broadcast`        | Broadcast a replied message to known chats. | Reply to a message.            |
-| `/broadcast_status` | Show current broadcast progress.            | `/broadcast_status`            |
-| `/broadcast_cancel` | Cancel an active broadcast.                 | `/broadcast_cancel`            |
-| `/captcha`          | Force a captcha challenge for a user.       | `/captcha <chat_id> <user_id>` |
-| `/transfer`         | Transfer stats between Telegram user IDs.   | `/transfer <old_id> <new_id>`  |
-| `/track`            | Track messages in a chat for diagnostics.   | `/track <chat_id>`             |
-| `/untrack`          | Stop tracking a chat.                       | `/untrack <chat_id>`           |
-| `/tracklist`        | List tracked chats.                         | `/tracklist`                   |
+| Command             | Description                                 | Example                                                |
+| :------------------ | :------------------------------------------ | :----------------------------------------------------- |
+| `/stats`            | Show bot and system statistics.             | `/stats`                                               |
+| `/ban`              | Globally ban a user.                        | `/ban 123456789`                                       |
+| `/unban`            | Remove a global ban.                        | `/unban 123456789`                                     |
+| `/broadcast`        | Broadcast a replied message to known chats. | Reply to a message.                                    |
+| `/broadcast_status` | Show current broadcast progress.            | `/broadcast_status`                                    |
+| `/broadcast_cancel` | Cancel an active broadcast.                 | `/broadcast_cancel`                                    |
+| `/captcha`          | Force a captcha challenge for a user.       | `/captcha <chat_id> <user_id>`                         |
+| `/transfer`         | Move leaderboard rows to another user ID.   | `/transfer <old_id> <new_id>` or `/transfer @username` |
+| `/track`            | Track messages in a chat for diagnostics.   | `/track <chat_id>`                                     |
+| `/untrack`          | Stop tracking a chat.                       | `/untrack <chat_id>`                                   |
+| `/tracklist`        | List tracked chats.                         | `/tracklist`                                           |
 
 ## Administration
 
@@ -189,7 +189,7 @@ These commands are restricted to Telegram user IDs listed in `ADMIN_USERS`.
 
 ### Prerequisites
 
-- Bun 1.4.x
+- Bun 1.4.5+
 - PostgreSQL
 - Valkey or Redis
 - A Telegram bot token
@@ -214,12 +214,14 @@ The Compose setup is intended for self-hosted VPS deployments. It includes the
 bot, PostgreSQL, a Valkey/Redis-compatible cache, persistent volumes, health
 checks, and a one-shot migration service.
 
-Default Docker images are pinned to stable releases available in May 2026:
+Default Docker images are pinned to stable releases. Keep the pins here in
+sync with `docker-compose.yml`, `.env.docker.example`, and
+`.github/workflows/ci.yml`:
 
-- PostgreSQL `18.4` via `postgres:18.4-alpine3.23`.
-- Valkey `9.1.0` via `valkey/valkey:9.1.0-alpine3.23`.
-- Redis Open Source `8.8.0` is also supported by setting
-  `CACHE_IMAGE=redis:8.8.0-alpine3.23`.
+- PostgreSQL `18.7` via `postgres:18.7-alpine3.24`.
+- Valkey `9.2.0` via `valkey/valkey:9.2.0-alpine3.24`.
+- Redis Open Source `8.8.4` is also supported by setting
+  `CACHE_IMAGE=redis:8.8.4-alpine3.23`.
 
 ```bash
 cp .env.docker.example .env
@@ -242,12 +244,29 @@ backup.
 
 ### Railway
 
-Railway uses `railway.toml` and Nixpacks.
+`railway.toml` is Config as Code and stops being read on **2026-12-01**. It
+defines the Railpack-compatible build and the `bun run db:migrate` pre-deploy
+command. Migrate the linked service to Infrastructure as Code before the
+cutoff:
 
-1. Create a Railway project from the repository.
-2. Add PostgreSQL and Redis services.
-3. Set the required environment variables.
-4. Deploy. Railway runs `bun run db:migrate` before the start command.
+```bash
+railway login
+railway link
+railway config migrate --apply
+railway config migrate cutover
+railway config plan
+railway config apply
+```
+
+`railway config migrate --apply` writes `.railway/railway.ts` from the existing
+settings. Cutover clears the stored Config File path. Do not delete
+`railway.toml` before cutover, or the next build will lose its settings. Read
+the plan before applying: it must not show a service or volume deletion.
+Install the `railway` package in the repo so the TypeScript config can be
+evaluated by `railway config plan` and CI.
+
+For a new service, skip `migrate`: run `railway config init` and author
+`.railway/railway.ts` directly.
 
 ### Render
 
@@ -305,7 +324,10 @@ latency setup is usually:
 | `REDIS_URI`                        | Yes      | `redis://127.0.0.1:6379`         | Valkey/Redis URI. Falls back to `REDIS_URL`.                                                                                             |
 | `ADMIN_USERS`                      | Yes      | Empty                            | Comma-separated Telegram user IDs with owner access.                                                                                     |
 | `NODE_ENV`                         | No       | `development`                    | One of `development`, `test`, `production`. Use `production` in hosted environments.                                                     |
-| `WEB_SERVICE`                      | No       | `false`                          | Starts a `/healthz` and `/metrics` HTTP server when `true`.                                                                              |
+| `WEB_SERVICE`                      | No       | `false`                          | Starts a `/healthz` and `/metrics` HTTP server when `true`. Set `true` for Docker Compose healthchecks.                                  |
+| `BAN_APPEAL_URL`                   | No       | `https://t.me/WordGuesser`       | Full URL shown to banned users for appeals.                                                                                              |
+| `PORT`                             | No       | `3000`                           | Port for the `/healthz` and `/metrics` server.                                                                                           |
+| `LOG_LEVEL`                        | No       | `info`                           | Pino level: `fatal`, `error`, `warn`, `info`, `debug`, `trace`.                                                                          |
 | `TIME_ZONE`                        | No       | `UTC`                            | Timezone for daily reset logic and scheduled jobs.                                                                                       |
 | `DAILY_WORDLE_START_DATE`          | No       | `2025-01-01`                     | Start date for the daily word rotation.                                                                                                  |
 | `DAILY_WORDLE_SECRET`              | No       | Empty                            | Per-instance salt for the daily word rotation. Set a unique random value so future words can't be precomputed from the public word list. |
@@ -315,9 +337,9 @@ latency setup is usually:
 | `LOGS_CHANNEL`                     | No       | None                             | Telegram channel ID for selected operational logs.                                                                                       |
 | `UPDATES_CHANNEL`                  | No       | `https://t.me/WordSeek`          | Link shown in bot keyboards.                                                                                                             |
 | `DISCUSSION_GROUP`                 | No       | `https://t.me/WordGuesser`       | Link shown in bot keyboards.                                                                                                             |
-| `POSTGRES_IMAGE`                   | Docker   | `postgres:18.4-alpine3.23`       | Compose PostgreSQL image.                                                                                                                |
+| `POSTGRES_IMAGE`                   | Docker   | `postgres:18.7-alpine3.24`       | Compose PostgreSQL image.                                                                                                                |
 | `POSTGRES_PGDATA`                  | Docker   | `/var/lib/postgresql/18/docker`  | Compose PostgreSQL data directory.                                                                                                       |
-| `CACHE_IMAGE`                      | Docker   | `valkey/valkey:9.1.0-alpine3.23` | Compose cache image; Redis `8.8.0` is supported.                                                                                         |
+| `CACHE_IMAGE`                      | Docker   | `valkey/valkey:9.2.0-alpine3.24` | Compose cache image; Redis `8.8.4` is supported.                                                                                         |
 | `WORDSEEK_DATABASE_URL`            | Docker   | Internal Compose PostgreSQL      | Compose-only override mapped to `DATABASE_URL`.                                                                                          |
 | `WORDSEEK_REDIS_URI`               | Docker   | Internal Compose Valkey          | Compose-only override mapped to `REDIS_URI`.                                                                                             |
 
@@ -348,14 +370,13 @@ migrations/      Kysely database migrations
 | `bun run typecheck`  | Run TypeScript type checking.                      |
 | `bun run build`      | Bundle the app to `dist/`.                         |
 | `bun run db:migrate` | Apply Kysely migrations.                           |
-| `bun run db:seed`    | Run configured Kysely seeds.                       |
 | `bun run db:codegen` | Regenerate Kysely database types.                  |
 
 ### Testing
 
 `bun run test` runs the unit suite. The Postgres/Redis-backed tests in
-`src/util/db-integration.test.ts` are skipped unless `INTEGRATION_DB=1` is set,
-so a plain `bun test` never needs a database. Enable them locally against the
+`src/util/db-integration.test.ts` are skipped unless `INTEGRATION_DB` is set
+to any non-empty value, so a plain `bun test` never needs a database. Enable them locally against the
 Compose services (they are not published to the host, so run the suite inside
 the container):
 
@@ -375,8 +396,10 @@ version comment. Dependabot watches the `github-actions` ecosystem and raises
 PRs that bump the SHA and the comment together, so upgrades arrive as reviewable
 diffs rather than silently via a moved tag.
 
-CI installs the Bun toolchain from the repository's `.bun-version` file, so
-bumping it there is what changes the CI runtime.
+CI installs the Bun toolchain from the repository's `.bun-version` file. Bump
+all four pins together — `package.json` `packageManager`, `package.json`
+`engines.bun`, `.bun-version`, and both `FROM oven/bun` lines in `Dockerfile`.
+`src/toolchain-pins.test.ts` fails if any of them drift.
 
 ### Database Migrations
 
