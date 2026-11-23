@@ -66,6 +66,14 @@ async function saveBroadcastState(state: BroadcastState) {
   await redis.set(BROADCAST_KEY, JSON.stringify(state), "EX", 86400);
 }
 
+// /broadcast_cancel deletes the state key. An iteration already past its own
+// cancellation check must not put that key back after an await.
+async function saveBroadcastStateIfActive(state: BroadcastState) {
+  if (!(await redis.exists(BROADCAST_KEY))) return false;
+  await saveBroadcastState(state);
+  return true;
+}
+
 async function getBroadcastState() {
   const data = await redis.get(BROADCAST_KEY);
   if (!data) return null;
@@ -90,10 +98,7 @@ async function acquireBroadcastLock() {
   return result === "OK";
 }
 
-async function performBroadcast(
-  chats: { id: string }[],
-  state: BroadcastState,
-) {
+async function runBroadcast(chats: { id: string }[], state: BroadcastState) {
   // Iterate from the start every time (live run or resumed run) and skip chats
   // already recorded in processedChatIds. This keeps progress correct across a
   // restart even when blocked chats were removed from the DB mid-broadcast.
@@ -144,14 +149,17 @@ async function performBroadcast(
           "Transient broadcast error, chat kept for retry",
         );
         state.currentIndex = i + 1;
-        await saveBroadcastState(state);
+        if (!(await saveBroadcastStateIfActive(state))) return;
         continue;
       }
     }
 
+    // Cancellation can arrive while copyMessage is in flight.
+    if (!(await redis.exists(BROADCAST_KEY))) return;
+
     await redis.sadd(BROADCAST_PROCESSED_KEY, chat.id);
     state.currentIndex = i + 1;
-    await saveBroadcastState(state);
+    if (!(await saveBroadcastStateIfActive(state))) return;
 
     if ((i + 1) % 50 === 0) {
       const elapsed = Date.now() - state.startTime;
@@ -209,8 +217,23 @@ Total Failed: <code>${totalFailed}</code>`,
       "Failed to update broadcast completion message (non-critical)",
     );
   }
+}
 
-  await clearBroadcastState();
+// Any failure must release the state and lock, otherwise /broadcast is blocked
+// for the lock TTL and /broadcast_status keeps reporting a dead run.
+export async function performBroadcast(
+  chats: { id: string }[],
+  state: BroadcastState,
+) {
+  try {
+    await runBroadcast(chats, state);
+  } finally {
+    try {
+      await clearBroadcastState();
+    } catch (err) {
+      logger.error({ err }, "Failed to clear broadcast state");
+    }
+  }
 }
 
 // Called once at boot. An interrupted run leaves its state in Redis, and the
