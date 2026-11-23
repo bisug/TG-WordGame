@@ -101,7 +101,7 @@ composer.command("daily", async (ctx) => {
     );
   } catch (error) {
     logger.error({ err: error }, "Error starting daily wordle");
-    ctx.reply("Something went wrong. Please try again.");
+    await ctx.reply("Something went wrong. Please try again.");
   }
 });
 
@@ -128,7 +128,7 @@ composer.command("pausedaily", async (ctx) => {
     );
   } catch (error) {
     logger.error({ err: error }, "Error pausing daily wordle");
-    ctx.reply("Something went wrong. Please try again.");
+    await ctx.reply("Something went wrong. Please try again.");
   }
 });
 

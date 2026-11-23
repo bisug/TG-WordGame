@@ -35,7 +35,7 @@ composer.command("unban", rateLimit("ban"), async (ctx) => {
 
   await setCachedBanStatus(user.id, false);
 
-  ctx.reply(`Unbanned ${user.name} from the bot`);
+  await ctx.reply(`Unbanned ${user.name} from the bot`);
 });
 
 export const unbanCommand = composer;

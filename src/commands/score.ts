@@ -83,7 +83,7 @@ composer.command("score", rateLimit("score"), async (ctx) => {
   }
 
   const message = formatUserScoreMessage(userScore, searchKey);
-  ctx.reply(message, {
+  await ctx.reply(message, {
     disable_notification: true,
     parse_mode: "HTML",
     reply_markup: keyboard,

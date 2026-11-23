@@ -40,7 +40,7 @@ composer.command("ban", rateLimit("ban"), async (ctx) => {
 
   await setCachedBanStatus(user.id, true);
 
-  ctx.reply(`Banned ${user.name} from the bot`);
+  await ctx.reply(`Banned ${user.name} from the bot`);
 });
 
 export const banCommand = composer;

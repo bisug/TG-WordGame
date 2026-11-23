@@ -35,30 +35,6 @@ export async function getTargetUser(
   identifier: string | undefined,
   fallback = false,
 ) {
-  if (
-    fallback &&
-    !identifier &&
-    ctx.from &&
-    ctx.chatId?.toString() === ctx.from.id.toString()
-  ) {
-    return ensureUser(ctx.from);
-  }
-
-  const replyToMessage = ctx.message?.reply_to_message;
-  const replyToMessageFrom = replyToMessage?.from;
-
-  if (
-    replyToMessageFrom &&
-    !replyToMessageFrom.is_bot &&
-    !replyToMessage.is_topic_message
-  ) {
-    return ensureUser(replyToMessageFrom);
-  }
-
-  if (fallback && !identifier) {
-    return ensureUser(ctx.from);
-  }
-
   const entities = ctx.message?.entities || [];
   const cmdEntity = entities.find((e) => e.type === "bot_command");
   const argStart = (cmdEntity?.length || 0) + 1;
@@ -100,6 +76,18 @@ export async function getTargetUser(
       .executeTakeFirst();
 
     return user || null;
+  }
+
+  // An explicit identifier always wins; only then fall back to a reply. The
+  // `is_topic_message` flag is set on every message in a forum topic, so it
+  // cannot be used to filter out the topic-creation service message here.
+  const replyToMessageFrom = ctx.message?.reply_to_message?.from;
+  if (replyToMessageFrom && !replyToMessageFrom.is_bot) {
+    return ensureUser(replyToMessageFrom);
+  }
+
+  if (fallback && !identifier && ctx.from) {
+    return ensureUser(ctx.from);
   }
 
   return null;

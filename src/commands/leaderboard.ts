@@ -29,7 +29,7 @@ composer.command("leaderboard", rateLimit("score"), async (ctx) => {
     wordLength,
   });
 
-  ctx.reply(formatLeaderboardMessage(memberScores, searchKey), {
+  await ctx.reply(formatLeaderboardMessage(memberScores, searchKey), {
     disable_notification: true,
     reply_markup: keyboard,
     parse_mode: "HTML",

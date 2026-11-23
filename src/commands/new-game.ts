@@ -99,7 +99,8 @@ async function startGame(
     }
 
     logger.error({ err: error }, "Error starting new game");
-    return ctx.reply("Something went wrong. Please try again.");
+    await ctx.reply("Something went wrong. Please try again.");
+    return;
   }
 }
 
