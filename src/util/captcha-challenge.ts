@@ -4,7 +4,7 @@ import { bot } from "../config/bot";
 import { SLOT_SYMBOLS } from "../config/constants";
 import { db } from "../config/db";
 import { logger } from "../config/logger";
-import { redis } from "../config/redis";
+import { redis, safeDel } from "../config/redis";
 import { captchaQueue } from "../queues/captcha-queue";
 import { captchaSchema } from "../schemas";
 import { CAPTCHA_ACTIONS } from "./button-actions";
@@ -143,12 +143,22 @@ export async function sendCaptchaChallenge(
     await captchaQueue.add(
       "expire",
       { chatId, userId, messageId: msg.message_id },
-      { delay: 60_000, removeOnComplete: true },
+      // Match the 80s session TTL; the old 60s job disabled a still-live key.
+      // BullMQ defaults to one attempt, so a transient Redis error could
+      // permanently lose the timeout notification.
+      {
+        delay: 80_000,
+        attempts: 3,
+        backoff: { type: "exponential", delay: 1000 },
+        removeOnComplete: true,
+      },
     );
 
     return { ok: true };
   } catch (err) {
     logger.error({ err, chatId, userId }, "Failed to send captcha challenge");
+    // A state key without an expiry job would stay live but unusable.
+    await safeDel(key);
     return { ok: false, reason: "send_failed" };
   }
 }

@@ -45,19 +45,16 @@ export const captchaWorker = new Worker(
     const { chatId, userId, messageId } = job.data;
 
     const key = `captcha:${chatId}:${userId}`;
-    const raw = await redis.get(key);
+    // GETDEL is atomic: a solve callback that claims the key between our read
+    // and delete can no longer lose a race with this expiry job.
+    const raw = await redis.getdel(key);
 
     if (!raw) return;
 
     const sessionResult = captchaSchema.safeParse(safeJsonParse(raw, null));
-    if (!sessionResult.success) {
-      await redis.del(key);
-      return;
-    }
+    if (!sessionResult.success) return;
 
     const session = sessionResult.data;
-
-    await redis.del(key);
 
     const mention = formatUserMention({
       id: session.userId,

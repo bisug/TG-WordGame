@@ -187,7 +187,6 @@ export async function trackGuessSpeed(
           const challengeCooldownKey = `autocaptcha:${userId}`;
           const recentlyChallenged = await safeGet(challengeCooldownKey);
           if (!recentlyChallenged) {
-            await safeSet(challengeCooldownKey, "1", 3600);
             // Outcome notifications go to adminId, so it must be a real bot
             // admin — passing the suspect's own id DM'd the bot instead.
             const adminId = env.ADMIN_USERS[0]?.toString();
@@ -203,10 +202,15 @@ export async function trackGuessSpeed(
                 adminId,
               );
               if (result.ok) {
+                // Only successful challenges start the cooldown; a failed send
+                // must remain retryable instead of being blocked for an hour.
+                await safeSet(challengeCooldownKey, "1", 3600);
                 logger.info(
                   { userId, chatId },
                   "Auto-challenged suspicious user with captcha",
                 );
+              } else {
+                logger.warn({ userId, chatId }, "Auto-captcha send failed");
               }
             }
           }

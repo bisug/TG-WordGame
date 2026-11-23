@@ -1,7 +1,7 @@
 import { Composer } from "grammy";
 import { env } from "../config/env";
 import { redis } from "../config/redis";
-import { rateLimit, shouldChallengeUser } from "../handlers/anticheat";
+import { rateLimit } from "../handlers/anticheat";
 import { sendCaptchaChallenge } from "../util/captcha-challenge";
 import { safeJsonParse } from "../util/safe-json-parse";
 
@@ -37,16 +37,8 @@ composer.command("captcha", rateLimit("captcha"), async (ctx) => {
     );
   }
 
-  // Check if user should be challenged
-  const challengeCheck = await shouldChallengeUser(userId);
-  if (!challengeCheck.challenge) {
-    return ctx.reply(
-      `✅ This user doesn't need verification.\n\n` +
-        `They haven't shown any suspicious activity.\n\n` +
-        `Use this command only for users with flags.`,
-    );
-  }
-
+  // This is an explicit admin decision. Automatic challenge thresholds do not
+  // apply here — admins are told to use this command on the first flag.
   const key = `captcha:${chatId}:${userId}`;
   const existing = await redis.get(key);
 
