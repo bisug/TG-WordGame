@@ -145,13 +145,13 @@ composer.use(async (ctx, next) => {
                 );
               } catch (e) {
                 logger.error(
-                  { err: e, adminId, chatId },
+                  { err: e },
                   "Failed to forward suspicious message to admin",
                 );
               }
             }
           } catch (error) {
-            logger.error({ err: error, adminId }, "Failed to alert admin");
+            logger.error({ err: error }, "Failed to alert admin");
           }
         }
       }

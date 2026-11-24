@@ -279,7 +279,7 @@ async function flagUserForReview(
         { parse_mode: "HTML" },
       );
     } catch (err) {
-      logger.warn({ err, adminId }, "Failed to notify admin about flag");
+      logger.warn({ err }, "Failed to notify admin about flag");
     }
   }
 }
