@@ -1,12 +1,6 @@
 # WordSeek
 
-<img width="1173" alt="WordSeek Banner" src="https://github.com/user-attachments/assets/bf444d36-2eea-4ad5-83e7-4a99acda2bfe" />
-
-[![Bun](https://img.shields.io/badge/Bun-%23000000.svg?style=for-the-badge&logo=bun&logoColor=white)](https://bun.sh)
-[![TypeScript](https://img.shields.io/badge/typescript-%23007ACC.svg?style=for-the-badge&logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
-[![PostgreSQL](https://img.shields.io/badge/PostgreSQL-316192?style=for-the-badge&logo=postgresql&logoColor=white)](https://www.postgresql.org/)
-[![Valkey](https://img.shields.io/badge/Valkey-5B36F2?style=for-the-badge)](https://valkey.io/)
-[![Redis](https://img.shields.io/badge/Redis-DC382D?style=for-the-badge&logo=redis&logoColor=white)](https://redis.io/)
+<img width="1173" alt="WordSeek Banner" src="src/data/banner.png" />
 
 WordSeek is a Telegram word game bot inspired by Wordle. It supports private
 games, group multiplayer rounds, daily global challenges, Telegram Forum topic
@@ -27,11 +21,6 @@ This repository is a maintained fork of
 - [Development](#development)
 - [Troubleshooting](#troubleshooting)
 - [Credits](#credits)
-
-## Public Bots
-
-- [WordSeek I](https://t.me/WordSeekBot) - Main instance
-- [WordSeek II](https://t.me/WordSeek2Bot) - Backup instance
 
 ## Features
 
@@ -92,66 +81,59 @@ This repository is a maintained fork of
 - Daily word details are loaded from the bundled local dictionary. No AI or
   external dictionary API is required at runtime.
 
-### Gameplay Tips
-
-- Start with words that cover common vowels and consonants.
-- Avoid repeating letters already marked absent.
-- In groups, review previous guesses before submitting your own.
-- Use topic restrictions in busy Forum groups to keep game traffic organized.
-
 ## Commands
 
 ### Player Commands
 
-| Command        | Description                                | Notes                                 |
-| :------------- | :----------------------------------------- | :------------------------------------ |
-| `/start`       | Initialize the bot.                        | Opens the main bot menu.              |
-| `/help`        | Show the interactive help menu.            | Includes player and admin guidance.   |
-| `/id`          | Show chat, user, and message identifiers.  | Useful for admin setup and debugging. |
-| `/new`         | Start a default 5-letter game.             | Also accepts `/new 4`, `/new 5`, etc. |
-| `/new4`        | Start a 4-letter game.                     | Available in private and group chats. |
-| `/new5`        | Start a 5-letter game.                     | Available in private and group chats. |
-| `/new6`        | Start a 6-letter game.                     | Available in private and group chats. |
-| `/daily`       | Start Daily WordSeek.                      | Private chat only.                    |
-| `/pausedaily`  | Pause Daily WordSeek and return to normal. | Previous daily attempts still count.  |
-| `/end`         | End the current game.                      | Admins can end directly; others vote. |
-| `/score`       | Show user statistics.                      | Supports optional user lookup.        |
-| `/myscore`     | Legacy score command.                      | Redirects users to `/score`.          |
-| `/leaderboard` | Show rankings.                             | Supports scope and period filters.    |
-| `/startmatch`  | Redirect-only match command hook.          | Replies with match workflow guidance. |
+| Command        | Description                                | Notes                                                                          |
+| :------------- | :----------------------------------------- | :----------------------------------------------------------------------------- |
+| `/start`       | Initialize the bot.                        | Opens the main bot menu.                                                       |
+| `/help`        | Show the interactive help menu.            | Includes player and admin guidance.                                            |
+| `/id`          | Show chat, user, and message identifiers.  | Useful for admin setup and debugging.                                          |
+| `/new`         | Start a default 5-letter game.             | Also accepts `/new 4`, `/new 5`, etc.                                          |
+| `/new4`        | Start a 4-letter game.                     | Available in private and group chats.                                          |
+| `/new5`        | Start a 5-letter game.                     | Available in private and group chats.                                          |
+| `/new6`        | Start a 6-letter game.                     | Available in private and group chats.                                          |
+| `/daily`       | Start Daily WordSeek.                      | Private chat only.                                                             |
+| `/pausedaily`  | Pause Daily WordSeek and return to normal. | Previous daily attempts still count.                                           |
+| `/end`         | End the current game.                      | Admins, the game starter, and users in private chat end directly; others vote. |
+| `/score`       | Show user statistics.                      | Supports optional user lookup.                                                 |
+| `/myscore`     | Legacy score command.                      | Redirects users to `/score`.                                                   |
+| `/leaderboard` | Show rankings.                             | Supports scope and period filters.                                             |
+| `/startmatch`  | Redirect-only command hook.                | Points users to `/new`, `/new5`, or `/daily`.                                  |
 
 ### Group Admin Commands
 
 These commands require Telegram group admin rights or authorization through the
 bot.
 
-| Command            | Description                              | Example                      |
-| :----------------- | :--------------------------------------- | :--------------------------- |
-| `/seekauth`        | Authorize trusted users for game admin.  | `/seekauth @username`        |
-| `/seekauth list`   | List authorized users in the group.      | `/seekauth list`             |
-| `/seekauth remove` | Remove an authorized user.               | `/seekauth remove @username` |
-| `/setgametopic`    | Restrict games to the current topic.     | Run inside the target topic. |
-| `/unsetgametopic`  | Remove the topic restriction.            | Run in the group or topic.   |
-| `/allowonlylen`    | Restrict allowed word lengths by topic.  | `/allowonlylen 4 5`          |
-| `/recreatetopic`   | Recreate expired or deleted game topics. | `/recreatetopic on` or `off` |
+| Command            | Description                                  | Example                      |
+| :----------------- | :------------------------------------------- | :--------------------------- |
+| `/seekauth`        | Authorize users to end games without voting. | `/seekauth @username`        |
+| `/seekauth list`   | List authorized users in the group.          | `/seekauth list`             |
+| `/seekauth remove` | Remove an authorized user.                   | `/seekauth remove @username` |
+| `/setgametopic`    | Restrict games to the current topic.         | Run inside the target topic. |
+| `/unsetgametopic`  | Remove the topic restriction.                | Run in the group or topic.   |
+| `/allowonlylen`    | Restrict allowed word lengths by topic.      | `/allowonlylen 4 5`          |
+| `/recreatetopic`   | Recreate expired or deleted game topics.     | `/recreatetopic on` or `off` |
 
 ### Bot Owner Commands
 
 These commands are restricted to Telegram user IDs listed in `ADMIN_USERS`.
 
-| Command             | Description                                 | Example                                                |
-| :------------------ | :------------------------------------------ | :----------------------------------------------------- |
-| `/stats`            | Show bot and system statistics.             | `/stats`                                               |
-| `/ban`              | Globally ban a user.                        | `/ban 123456789`                                       |
-| `/unban`            | Remove a global ban.                        | `/unban 123456789`                                     |
-| `/broadcast`        | Broadcast a replied message to known chats. | Reply to a message.                                    |
-| `/broadcast_status` | Show current broadcast progress.            | `/broadcast_status`                                    |
-| `/broadcast_cancel` | Cancel an active broadcast.                 | `/broadcast_cancel`                                    |
-| `/captcha`          | Force a captcha challenge for a user.       | `/captcha <chat_id> <user_id>`                         |
-| `/transfer`         | Move leaderboard rows to another user ID.   | `/transfer <old_id> <new_id>` or `/transfer @username` |
-| `/track`            | Track messages in a chat for diagnostics.   | `/track <chat_id>`                                     |
-| `/untrack`          | Stop tracking a chat.                       | `/untrack <chat_id>`                                   |
-| `/tracklist`        | List tracked chats.                         | `/tracklist`                                           |
+| Command             | Description                                 | Example                        |
+| :------------------ | :------------------------------------------ | :----------------------------- |
+| `/stats`            | Show bot and system statistics.             | `/stats`                       |
+| `/ban`              | Globally ban a user.                        | `/ban 123456789`               |
+| `/unban`            | Remove a global ban.                        | `/unban 123456789`             |
+| `/broadcast`        | Broadcast a replied message to known chats. | Reply to a message.            |
+| `/broadcast_status` | Show current broadcast progress.            | `/broadcast_status`            |
+| `/broadcast_cancel` | Cancel an active broadcast.                 | `/broadcast_cancel`            |
+| `/captcha`          | Force a captcha challenge for a user.       | `/captcha <chat_id> <user_id>` |
+| `/transfer`         | Move leaderboard rows to another user ID.   | `/transfer <old_id> <new_id>`  |
+| `/track`            | Track messages in a chat for diagnostics.   | `/track <chat_id>`             |
+| `/untrack`          | Stop tracking a chat.                       | `/untrack <chat_id>`           |
+| `/tracklist`        | List tracked chats.                         | `/tracklist`                   |
 
 ## Administration
 
@@ -168,8 +150,7 @@ These commands are restricted to Telegram user IDs listed in `ADMIN_USERS`.
 ### Authorization Model
 
 - Group admins can manage games in their own groups.
-- Users authorized with `/seekauth` can perform selected game-management
-  actions.
+- Users authorized with `/seekauth` can end games without voting.
 - Bot owners are configured through `ADMIN_USERS` and can use global commands
   such as bans, broadcasts, captcha, tracking, and transfers.
 
@@ -245,33 +226,14 @@ backup.
 
 ### Railway
 
-`railway.toml` is Config as Code and stops being read on **2026-12-01**. It
-defines the Railpack-compatible build and the `bun run db:migrate` pre-deploy
-command. Migrate the linked service to Infrastructure as Code before the
-cutoff:
-
-```bash
-railway login
-railway link
-railway config migrate --apply
-railway config migrate cutover
-railway config plan
-railway config apply
-```
-
-`railway config migrate --apply` writes `.railway/railway.ts` from the existing
-settings. Cutover clears the stored Config File path. Do not delete
-`railway.toml` before cutover, or the next build will lose its settings. Read
-the plan before applying: it must not show a service or volume deletion.
-Install the `railway` package in the repo so the TypeScript config can be
-evaluated by `railway config plan` and CI.
-
-For a new service, skip `migrate`: run `railway config init` and author
-`.railway/railway.ts` directly.
+`railway.toml` selects the Railpack builder, watches `src/`, `package.json`, and
+`bun.lock`, and runs `bun run db:migrate` before each deploy.
 
 ### Render
 
-Render uses `render.yaml` to deploy the bot seamlessly as a Background Worker.
+[![Deploy to Render](https://render.com/images/deploy-to-render-button.svg)](https://render.com/deploy?repo=https://github.com/bisug/TG-WordGame)
+
+`render.yaml` deploys the bot as a Background Worker.
 
 1. Connect the repository to Render.
 2. Create PostgreSQL and Redis instances.
@@ -279,6 +241,8 @@ Render uses `render.yaml` to deploy the bot seamlessly as a Background Worker.
 4. Deploy. Render runs `bun run db:migrate` as the pre-deploy command.
 
 ### Heroku
+
+[![Deploy to Heroku](https://www.herokucdn.com/deploy/button.svg)](https://www.heroku.com/deploy?template=https://github.com/bisug/TG-WordGame)
 
 Heroku deploys this app on the `heroku-26` stack with the classic
 [`heroku-buildpack-bun`](https://github.com/bisug/heroku-buildpack-bun)
@@ -309,26 +273,7 @@ bun run db:migrate
 bun run start
 ```
 
-For process supervision, run the bot under systemd, Supervisor, PM2, or your
-preferred service manager. If using PM2:
-
-```bash
-pm2 start src/index.ts --interpreter bun --name wordseek
-```
-
-### Latency Guidance
-
-For South Asia users, keep the bot, PostgreSQL, and Valkey/Redis in the same
-region whenever possible. Code-level caching helps, but it cannot remove network
-round-trip latency between India, Europe, and the United States. The lowest
-latency setup is usually:
-
-- App server in India, Singapore, or another nearby South Asia/Southeast Asia
-  region.
-- PostgreSQL in the same region as the app.
-- Valkey/Redis in the same region as the app.
-- Telegram Bot API root left as `https://api.telegram.org` unless you operate a
-  local Bot API server close to the app.
+Run the bot under a process supervisor so it restarts after a failure.
 
 ## Configuration
 
@@ -336,8 +281,8 @@ latency setup is usually:
 | :--------------------------------- | :------- | :------------------------------- | :--------------------------------------------------------------------------------------------------------------------------------------- |
 | `BOT_TOKEN`                        | Yes      | None                             | Telegram bot token from BotFather.                                                                                                       |
 | `DATABASE_URL`                     | Yes      | None                             | PostgreSQL connection string.                                                                                                            |
-| `REDIS_URI`                        | Yes      | `redis://127.0.0.1:6379`         | Valkey/Redis URI. Falls back to `REDIS_URL`.                                                                                             |
-| `ADMIN_USERS`                      | Yes      | Empty                            | Comma-separated Telegram user IDs with owner access.                                                                                     |
+| `REDIS_URI`                        | No       | `redis://127.0.0.1:6379`         | Valkey/Redis URI. Falls back to `REDIS_URL`.                                                                                             |
+| `ADMIN_USERS`                      | No       | Empty                            | Comma-separated Telegram user IDs with owner access.                                                                                     |
 | `NODE_ENV`                         | No       | `development`                    | One of `development`, `test`, `production`. Use `production` in hosted environments.                                                     |
 | `WEB_SERVICE`                      | No       | `false`                          | Starts a `/healthz` and `/metrics` HTTP server when `true`. Set `true` for Docker Compose healthchecks.                                  |
 | `BAN_APPEAL_URL`                   | No       | `https://t.me/WordGuesser`       | Full URL shown to banned users for appeals.                                                                                              |
@@ -353,6 +298,9 @@ latency setup is usually:
 | `UPDATES_CHANNEL`                  | No       | `https://t.me/WordSeek`          | Link shown in bot keyboards.                                                                                                             |
 | `DISCUSSION_GROUP`                 | No       | `https://t.me/WordGuesser`       | Link shown in bot keyboards.                                                                                                             |
 | `POSTGRES_IMAGE`                   | Docker   | `postgres:18.7-alpine3.24`       | Compose PostgreSQL image.                                                                                                                |
+| `POSTGRES_DB`                      | Docker   | `wordseek`                       | Compose PostgreSQL database name.                                                                                                        |
+| `POSTGRES_USER`                    | Docker   | `wordseek`                       | Compose PostgreSQL user.                                                                                                                 |
+| `POSTGRES_PASSWORD`                | Docker   | `wordseek_change_me`             | Compose PostgreSQL password. Set a real value in `.env`.                                                                                 |
 | `POSTGRES_PGDATA`                  | Docker   | `/var/lib/postgresql/18/docker`  | Compose PostgreSQL data directory.                                                                                                       |
 | `CACHE_IMAGE`                      | Docker   | `valkey/valkey:9.2.0-alpine3.24` | Compose cache image; Redis `8.8.4` is supported.                                                                                         |
 | `WORDSEEK_DATABASE_URL`            | Docker   | Internal Compose PostgreSQL      | Compose-only override mapped to `DATABASE_URL`.                                                                                          |
@@ -370,8 +318,10 @@ src/
   queues/        BullMQ-backed background work
   services/      Daily WordSeek and domain services
   util/          Shared helpers, caches, keyboards, and formatters
+  data/          Word lists, daily word data, and banner
+  fonts/         Font used for generated word images
 migrations/      Kysely database migrations
-.github/         CI workflows
+.github/         CI workflows and Dependabot config
 ```
 
 ### Scripts
@@ -391,9 +341,9 @@ migrations/      Kysely database migrations
 
 `bun run test` runs the unit suite. The Postgres/Redis-backed tests in
 `src/util/db-integration.test.ts` are skipped unless `INTEGRATION_DB` is set
-to any non-empty value, so a plain `bun test` never needs a database. Enable them locally against the
-Compose services (they are not published to the host, so run the suite inside
-the container):
+to any non-empty value, so a plain `bun test` never needs a database. Run them
+locally against the Compose services. The database ports are not published, so
+run the suite inside the container:
 
 ```bash
 docker compose build
@@ -413,7 +363,7 @@ PRs that bump the SHA and the comment together, so upgrades arrive as reviewable
 diffs rather than silently via a moved tag.
 
 CI installs the Bun toolchain from the repository's `.bun-version` file. Bump
-all four pins together — `package.json` `packageManager`, `package.json`
+all four pins together: `package.json` `packageManager`, `package.json`
 `engines.bun`, `.bun-version`, and both `FROM oven/bun` lines in `Dockerfile`.
 `src/toolchain-pins.test.ts` fails if any of them drift.
 
@@ -437,8 +387,10 @@ bun run db:codegen
 1. Create a new command module in `src/commands/`.
 2. Implement the handler with `Composer`.
 3. Register it in `src/commands/index.ts`.
-4. Add or update tests for shared logic.
-5. Run `bun run lint`, `bun run test`, `bun run typecheck`, and
+4. Add it to the Bot API command menu via `CommandsHelper.addNewCommand` in the
+   module.
+5. Add or update tests for shared logic.
+6. Run `bun run lint`, `bun run test`, `bun run typecheck`, and
    `bun run build`.
 
 ## Troubleshooting
@@ -474,18 +426,10 @@ bun run db:codegen
 - Run migrations before starting the worker if you deploy without the provided
   cloud or Compose migration hooks.
 
-### High Latency
-
-- Keep the app, Valkey/Redis, and PostgreSQL in the same region.
-- Avoid running the app in Europe or the United States while Valkey/Redis,
-  PostgreSQL, or users are in South Asia.
-- Use the Docker/VPS path in a nearby region if your platform does not offer
-  South Asia infrastructure.
-
 ## Community
 
 - Updates: [WordSeek](https://t.me/WordSeek)
-- Discussion: [WordGuesser](https://t.me/wordguesser)
+- Discussion: [WordGuesser](https://t.me/WordGuesser)
 - Issues: [GitHub Issues](https://github.com/bisug/TG-WordGame/issues)
 
 ## Credits

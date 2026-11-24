@@ -1,4 +1,4 @@
-// DB/Redis-backed tests. Skipped unless INTEGRATION_DB=1 — CI runs them
+// DB/Redis-backed tests. Skipped unless INTEGRATION_DB is set. CI runs them
 // against real postgres + valkey services after `bun run db:migrate`.
 // Modules are imported lazily in beforeAll so a local `bun test` run (no env)
 // never instantiates the db/redis clients.

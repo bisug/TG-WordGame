@@ -1,27 +1,37 @@
 # Contributing to WordSeek
 
-We welcome contributions to enhance the bot! Here's how you can help:
+## Setup
 
-1. **Fork the repository** on GitHub.
-2. **Create a new branch** for your feature or bugfix:
+Fork the repository and clone your fork. Then:
 
-   ```bash
-   git checkout -b feature/your-feature-name
-   ```
+```bash
+bun install
+cp .env.example .env
+bun run db:migrate
+```
 
-3. **Make your changes** and ensure they follow the project's coding standards.
-4. **Test your changes** thoroughly in development mode.
-5. **Commit your changes** with descriptive commit messages:
+Set `BOT_TOKEN` and `DATABASE_URL` in `.env` before running `bun run dev`.
 
-   ```bash
-   git commit -m "Add: new feature description"
-   ```
+## Changes
 
-6. **Push to your fork** and **open a pull request** with a clear description of your changes.
+- Put command handlers in `src/commands/` and register them in
+  `src/commands/index.ts`.
+- Add tests for shared logic under `src/`.
+- Run the checks CI runs:
 
-## Development Guidelines
+```bash
+bun lint
+bun check
+bun test
+bun run build
+```
 
-- Follow the existing code style and structure.
-- Add appropriate error handling for new features.
-- Update documentation for any new commands or features.
-- Test both private chat and group chat functionality.
+CI also checks formatting with `bun fmt --check`. The database-backed tests in
+`src/util/db-integration.test.ts` need Postgres, Valkey, and `INTEGRATION_DB`;
+see the Testing section of README.md.
+
+## Pull requests
+
+Use a descriptive branch name and Conventional Commit messages, matching the
+repository history (`fix:`, `feat:`, `chore:`, `ci:`). Push to your fork and open
+a pull request against `main`. Describe the change and the checks you ran.
