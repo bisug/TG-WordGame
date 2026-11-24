@@ -3,17 +3,17 @@ import IORedis from "ioredis";
 import { env } from "./env";
 import { logger } from "./logger";
 
-// Bounded, fail-fast connection. A single socket is kept on purpose: the
-// vote-to-end logic relies on one connection and bullmq owns its own separate
-// client (which keeps maxRetriesPerRequest:null). If a command can't complete
-// it rejects quickly instead of stalling the whole update pipeline forever.
+// Bounded connection. A single socket is kept on purpose: the vote-to-end
+// logic relies on one connection and bullmq owns its own separate client
+// (which keeps maxRetriesPerRequest:null). Commands issued before the socket
+// is ready are queued rather than rejected immediately; commandTimeout still
+// bounds how long a command can stall the update pipeline.
 const retryStrategy = (times: number) => Math.min(times * 200, 5000);
 
 export const redis = new IORedis(env.REDIS_URI, {
   maxRetriesPerRequest: 2,
   commandTimeout: 2000,
   connectTimeout: 10000,
-  enableOfflineQueue: false,
   retryStrategy,
 });
 

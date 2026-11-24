@@ -22,6 +22,7 @@ import {
   ensureDailyWordExists,
 } from "./services/daily-wordle-cron";
 import { CommandsHelper } from "./util/commands-helper";
+import { retryWithBackoff } from "./util/retry";
 import { getUpdateConstraint } from "./util/update-constraint";
 
 // Bound retries: the defaults are infinite, so a Telegram outage can pin every
@@ -100,11 +101,9 @@ try {
   logger.error({ err }, "Failed to ensure daily word exists");
 }
 
-try {
-  await bot.api.deleteWebhook({ drop_pending_updates: true });
-} catch (err) {
-  logger.error({ err }, "Failed to delete webhook");
-}
+// Do not delete the webhook on boot: it is a Telegram write call on every
+// restart, and drop_pending_updates would discard queued updates if it worked.
+// This deployment uses long polling and has no configured webhook.
 
 // Resume any pending broadcast before starting the bot
 
@@ -139,11 +138,17 @@ if (env.WEB_SERVICE) {
   });
 }
 
-try {
-  await CommandsHelper.setCommands();
-} catch (err) {
-  logger.error({ err }, "Failed to register bot commands");
-}
+// Command registration is best-effort. Retry in the background so a 429 does
+// not block startup, and never on every restart in a tight loop.
+void retryWithBackoff(async () => {
+  try {
+    await CommandsHelper.setCommands();
+    return true;
+  } catch (err) {
+    logger.warn({ err }, "Failed to register bot commands, will retry");
+    throw err;
+  }
+}, [0, 60_000, 300_000]);
 
 try {
   await resumeBroadcast();
@@ -156,9 +161,9 @@ async function shutdown(signal: string) {
 
   // Bounded force-exit watchdog: never hang forever if a close stalls.
   const forceExit = setTimeout(() => {
-    logger.warn("Shutdown timed out after 10s, forcing exit");
+    logger.warn("Shutdown timed out after 25s, forcing exit");
     process.exit(1);
-  }, 10000);
+  }, 25_000);
   forceExit.unref();
 
   try {
