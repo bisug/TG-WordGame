@@ -402,9 +402,10 @@ docker compose run --rm wordseek-migrate
 docker compose run --rm -e INTEGRATION_DB=1 wordseek-migrate bun test
 ```
 
-CI (`.github/workflows/ci.yml`) runs three jobs: `build` (lint, typecheck, unit
-tests, bundle), `integration` (Postgres + Redis services on the same pinned
-images as `docker-compose.yml`, migrations, full suite), and `docker-build`.
+CI (`.github/workflows/ci.yml`) runs two jobs: `build` (lint, format check,
+typecheck, tests, bundle, Docker image build) and `integration` (Postgres +
+Valkey services on the same pinned images as `docker-compose.yml`, migrations,
+DB integration tests).
 
 Workflow actions are pinned to full commit SHAs with a trailing `# vX.Y.Z`
 version comment. Dependabot watches the `github-actions` ecosystem and raises
